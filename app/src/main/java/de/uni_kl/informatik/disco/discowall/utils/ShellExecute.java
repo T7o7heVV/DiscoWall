@@ -6,6 +6,7 @@ import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.LinkedList;
 
 public class ShellExecute {
     private static final String LOG_TAG = ShellExecute.class.getCanonicalName();
@@ -40,44 +41,51 @@ public class ShellExecute {
         }
     }
 
-    public String shell = "sh";
+    public static class Builder {
+        public final ShellExecute shellExecute = new ShellExecute();
+        public final LinkedList<String> commands = new LinkedList<>();
+
+        public Builder waitForTermination() {
+            shellExecute.waitForTermination = true;
+            return this;
+        }
+
+        public Builder readResult() {
+            shellExecute.readResult = true;
+            return this;
+        }
+
+        public Builder appendCommand(String command) {
+            commands.add(command);
+            return this;
+        }
+
+        public ShellExecuteResult execute() throws IOException, InterruptedException {
+            return ShellExecute.execute(shellExecute.readResult, shellExecute.waitForTermination, shellExecute.shell, this.commands.toArray(new String[this.commands.size()]));
+        }
+    }
+
+    public String shell;
     public boolean readResult = false;
     public boolean waitForTermination = false;
 
+    public static Builder build() {
+        return new Builder();
+    }
+
+    public ShellExecute(String shell) {
+        this.shell = shell;
+    }
+
     public ShellExecute() {
+        this.shell = "sh";
     }
 
-    public ShellExecuteResult execute(String... cmds) throws IOException, InterruptedException {
-        return ShellExecute.shellExecuteEx(readResult, waitForTermination, shell, cmds);
+    public ShellExecuteResult execute(String[] commands) throws IOException, InterruptedException {
+        return execute(readResult, waitForTermination, shell, commands);
     }
 
-
-
-    public static ShellExecuteResult shellExecute(String... cmds) throws IOException, InterruptedException {
-        return shellExecuteEx(false, false, "sh", cmds);
-    }
-
-    public static ShellExecuteResult shellExecute(String shell, String... cmds) throws IOException, InterruptedException {
-        return shellExecuteEx(false, false, shell, cmds);
-    }
-
-    public static ShellExecuteResult shellExecute(boolean waitForTermination, String... cmds) throws IOException, InterruptedException {
-        return shellExecuteEx(false, waitForTermination, "sh", cmds);
-    }
-
-    public static ShellExecuteResult shellExecute(boolean waitForTermination, String shell, String... cmds) throws IOException, InterruptedException {
-        return shellExecuteEx(false, waitForTermination, shell, cmds);
-    }
-
-    public static ShellExecuteResult shellExecuteWithResult(String... cmds) throws IOException, InterruptedException {
-        return shellExecuteEx(true, true, "sh", cmds);
-    }
-
-    public static ShellExecuteResult shellExecuteWithResult(String shell, String... cmds) throws IOException, InterruptedException {
-        return shellExecuteEx(true, true, shell, cmds);
-    }
-
-    private static ShellExecuteResult shellExecuteEx(boolean readResult, boolean waitForTermination, String shell, String... cmds) throws IOException, InterruptedException {
+    public static ShellExecuteResult execute(boolean readResult, boolean waitForTermination, String shell, String... cmds) throws IOException, InterruptedException {
         ShellExecuteResult shellExecuteResult = new ShellExecuteResult(shell, cmds);
         Log.v(LOG_TAG, "executing command [shell="+shellExecuteResult.shell+"]: " + shellExecuteResult.commandsAsString);
 

@@ -2,8 +2,15 @@ package de.uni_kl.informatik.disco.discowall;
 
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
+
+import de.uni_kl.informatik.disco.discowall.utils.RootUtils;
+import de.uni_kl.informatik.disco.discowall.utils.ShellExecute;
 
 
 public class MainActivity extends ActionBarActivity {
@@ -35,5 +42,25 @@ public class MainActivity extends ActionBarActivity {
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    public void sendButtonClicked(View sendButtonView) {
+        Button sendButton = (Button)sendButtonView;
+        Log.v("Main", "button clicked");
+
+        EditText editText = (EditText) findViewById(R.id.editText);
+        Log.v("Main", "edit text: " + editText.getText());
+
+        try {
+//            ShellExecute.ShellExecuteResult result = RootUtils.shellExecuteAsRoot("echo start", "id", "echo yes", "echo done.");
+//            Log.v("Root test", "execution result: " + result.processOutput);
+
+            Log.v("Root test", "isDeviceRooted: " + RootUtils.isDeviceRooted());
+        } catch(Exception e)
+        {
+
+        }
+
+        
     }
 }
