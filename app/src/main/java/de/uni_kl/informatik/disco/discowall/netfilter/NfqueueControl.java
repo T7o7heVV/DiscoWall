@@ -2,12 +2,36 @@ package de.uni_kl.informatik.disco.discowall.netfilter;
 
 import java.io.IOException;
 
+import de.uni_kl.informatik.disco.discowall.utils.DroidWallAssets;
+
 public class NfqueueControl {
     private static final String LOG_TAG = "NfqueueControl";
-    private static final String IPTABLES_NFQUEUE_RULE = "-p icmp -j NFQUEUE --queue-num 0";
+    private static final String IPTABLES_NFQUEUE_RULE = "-p tcp -j NFQUEUE --queue-num 0";
 
     public NfqueueControl() {
 
+    }
+
+    private void executeNetfilterBridge() {
+        // TODO
+    }
+
+    private void terminateNetfilterBridge() {
+        // TODO
+    }
+
+    private class NetfilterBridgeBinaryHandler {
+        public boolean isBinaryDeployed() {
+            return false; // TODO
+        }
+
+        public void deployBinary() {
+            // TODO
+        }
+
+        public String getBinaryPath() {
+            return ""; // TODO
+        }
     }
 
     public void rulesEnableAll() throws InterruptedException, IptablesControl.IptablesException, IOException {
