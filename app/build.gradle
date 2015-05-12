@@ -4,12 +4,22 @@ android {
     compileSdkVersion 21
     buildToolsVersion "21.1.2"
 
+    // Gradle-NDK workaround: Otherwise Gradle will search for c-sources in the "main.jni" folder.
+    // This results in the "Android.mk" file being generated - while overwriting the existing one.
+    // Since I want to manually change the "Android.mk", I need to hide the source-files from gradle,
+    // so that it does not bother looking at the "Android.mk" - over even overwriting it.
+//    sourceSets.main.jni.srcDirs = []
+
     defaultConfig {
         applicationId "de.uni_kl.informatik.disco.discowall"
         minSdkVersion 15
         targetSdkVersion 21
         versionCode 1
         versionName "1.0"
+
+        ndk {
+            moduleName "DiscoLib"
+        }
     }
     buildTypes {
         release {

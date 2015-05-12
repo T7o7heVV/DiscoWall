@@ -1,0 +1,8 @@
+Build-Method: 			Simple NDK build, without gradle- or android-involvement.
+Directory-Structure:	All c/c++ source-files contained within "<ProjectRoot>/jni/"
+							- "<ProjectRoot>/jni/Android.mk" 
+							- "<ProjectRoot>/jni/some-source.c"
+							...
+						Output:											 
+							- "<ProjectRoot>/libs/armeabi"	# Note, that 'armeabi' is the architecture 
+

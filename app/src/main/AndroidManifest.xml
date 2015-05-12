@@ -2,6 +2,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="de.uni_kl.informatik.disco.discowall" >
 
+    <!-- minSdkVersion=3 is required for NDK to work
+         [https://developer.android.com/tools/sdk/ndk/index.html#Reqs]
+     -->
+    <uses-sdk android:minSdkVersion="3" />
+
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
