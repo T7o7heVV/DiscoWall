@@ -41,6 +41,19 @@ public class ShellExecute {
         }
     }
 
+    public static class ShellExecuteException extends Exception {
+        private final ShellExecuteResult shellExecuteResult;
+
+        public ShellExecuteResult getShellExecuteResult() {
+            return shellExecuteResult;
+        }
+
+        public ShellExecuteException(String message, ShellExecuteResult shellExecuteResult) {
+            super(message);
+            this.shellExecuteResult = shellExecuteResult;
+        }
+    }
+
     public static class Builder {
         public final ShellExecute shellExecute = new ShellExecute();
         public final LinkedList<String> commands = new LinkedList<>();
@@ -83,6 +96,10 @@ public class ShellExecute {
 
     public ShellExecuteResult execute(String[] commands) throws IOException, InterruptedException {
         return execute(readResult, waitForTermination, shell, commands);
+    }
+
+    public static ShellExecuteResult execute(boolean readResult, boolean waitForTermination, String shell, String command) throws IOException, InterruptedException {
+        return execute(readResult, waitForTermination, shell, new String[] { command });
     }
 
     public static ShellExecuteResult execute(boolean readResult, boolean waitForTermination, String shell, String... cmds) throws IOException, InterruptedException {

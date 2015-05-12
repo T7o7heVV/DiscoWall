@@ -15,6 +15,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 
+import de.uni_kl.informatik.disco.discowall.netfilter.IptablesControl;
+import de.uni_kl.informatik.disco.discowall.netfilter.NfqueueControl;
+import de.uni_kl.informatik.disco.discowall.utils.DroidWallAssets;
 import de.uni_kl.informatik.disco.discowall.utils.RootUtils;
 import de.uni_kl.informatik.disco.discowall.utils.ShellExecute;
 
@@ -63,7 +66,7 @@ public class MainActivity extends ActionBarActivity {
 
 //        Log.v("Main", "JNI test execution: " + getStringFromNative());
 
-        assetsTest();
+        engineTest();
 
         try {
 //            ShellExecute.ShellExecuteResult result = RootUtils.shellExecuteAsRoot("echo start", "id", "echo yes", "echo done.");
@@ -76,46 +79,7 @@ public class MainActivity extends ActionBarActivity {
         }
     }
 
-    private void assetsTest() {
-        AssetManager assetManager = getAssets();
-        String[] files = null;
-        try {
-            files = assetManager.list("");
-        } catch (IOException e) {
-            Log.e("ASSETS ERROR", e.getMessage());
-        }
-
-        Log.v("ASSETS-Test", "files count: " + files.length);
-
-        for (String file : files)
-            Log.v("ASSETS-Test", "> file: " + file);
-
-        InputStream inputStream = null;
-        try {
-            inputStream = assetManager.open("test.txt");
-        } catch (IOException e) {
-            Log.e("tag", e.getMessage());
-        }
-
-        if (inputStream == null) {
-            Log.e("ASSETS-Test", "file not foundt: " + "test.txt");
-            return;
-        }
-
-        String text = "";
-        BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
-
-        EditText editText = (EditText) findViewById(R.id.editText);
-
-        try {
-            editText.setText(reader.readLine());
-            Thread.sleep(1000);
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+    private void engineTest() {
 
     }
-
 }
