@@ -13,6 +13,7 @@ import android.widget.EditText;
 import java.io.File;
 
 import de.uni_kl.informatik.disco.discowall.netfilter.NetfilterUtils;
+import de.uni_kl.informatik.disco.discowall.netfilter.NfqueueControl;
 import de.uni_kl.informatik.disco.discowall.utils.ressources.DroidWallFiles;
 
 
@@ -63,7 +64,7 @@ public class MainActivity extends ActionBarActivity {
         engineTest();
 
         try {
-//            Log.v("Root test", "isDeviceRooted: " + SystemInfo.isDeviceRooted());
+//            Log.v("Root test", "isDeviceRooted: " + SystemUtils.isDeviceRooted());
 
 //            Log.v("Temp Files", "Path: " + File.createTempFile("__tmp__", ".txt").toString());
         } catch(Exception e)
@@ -81,7 +82,13 @@ public class MainActivity extends ActionBarActivity {
 
 
         try {
-            Log.v("ENGINE TEST", "isIptablesModuleInstalled: " + NetfilterUtils.isIptablesModuleInstalled());
+//            Log.v("ENGINE TEST", "isIptablesModuleInstalled: " + NetfilterUtils.isIptablesModuleInstalled());
+            Log.v("NFBridge Deploy", "begin");
+            AppManagement.initialize(this);
+
+            NfqueueControl control = new NfqueueControl(AppManagement.getInstance());
+            Log.v("NFBridge Deploy", "done.");
+
         } catch (Exception e) {
             e.printStackTrace();
         }

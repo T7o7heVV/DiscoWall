@@ -13,8 +13,7 @@ import java.io.InputStreamReader;
  */
 public enum DroidWallAssets {
     DIR_BINARIES,
-    BINARY_NETFILTER_BRIDGE,
-    DEBUG_TESTFILE
+    NETFILTER_BRIDGE_BINARY
     ;
 
     public static class AssetFunctionalityNotImplementedException extends RuntimeException {
@@ -34,8 +33,7 @@ public enum DroidWallAssets {
         AssetManager assetManager = context.getAssets();
 
         switch (this) {
-            case BINARY_NETFILTER_BRIDGE: return assetManager.open(BINARY_NETFILTER_BRIDGE.getRelativePath());
-            case DEBUG_TESTFILE: return assetManager.open(DEBUG_TESTFILE.getRelativePath());
+            case NETFILTER_BRIDGE_BINARY: return assetManager.open(NETFILTER_BRIDGE_BINARY.getRelativePath());
 
             default: throw new AssetFunctionalityNotImplementedException(this);
         }
@@ -43,8 +41,7 @@ public enum DroidWallAssets {
 
     public BufferedReader getBufferedReader(Context context) throws IOException {
         switch (this) {
-            case BINARY_NETFILTER_BRIDGE: return new BufferedReader(new InputStreamReader(BINARY_NETFILTER_BRIDGE.getInputStream(context)));
-            case DEBUG_TESTFILE: return new BufferedReader(new InputStreamReader(DEBUG_TESTFILE.getInputStream(context)));
+            case NETFILTER_BRIDGE_BINARY: return new BufferedReader(new InputStreamReader(NETFILTER_BRIDGE_BINARY.getInputStream(context)));
 
             default: throw new AssetFunctionalityNotImplementedException(this);
         }
@@ -54,8 +51,7 @@ public enum DroidWallAssets {
         switch(this) {
             case DIR_BINARIES: return "bin/";
 
-            case BINARY_NETFILTER_BRIDGE: return DIR_BINARIES + "netfilter_bridge";
-            case DEBUG_TESTFILE: return "test.txt";
+            case NETFILTER_BRIDGE_BINARY: return DIR_BINARIES.getRelativePath() + "netfilter_bridge";
 
             default: throw new AssetFunctionalityNotImplementedException(this);
         }

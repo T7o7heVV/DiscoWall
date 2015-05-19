@@ -9,10 +9,8 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.LinkedList;
 
-import de.uni_kl.informatik.disco.discowall.utils.ressources.DroidWallFiles;
-
-public class SystemInfo {
-    private static final String LOG_TAG = SystemInfo.class.getCanonicalName();
+public class SystemUtils {
+    private static final String LOG_TAG = SystemUtils.class.getCanonicalName();
 
     public static boolean isDeviceRooted() {
         try {
@@ -46,7 +44,7 @@ public class SystemInfo {
         if (!new File(configGzPath).exists())
             throw new FileNotFoundException("Config-file " + configGzPath + " does not exist.");
 
-        File configFile = DroidWallFiles.createTempFile("config", ".txt");
+        File configFile = FileUtils.createTempFile("config", ".txt");
 
         ShellExecute.ShellExecuteResult result = new RootShellExecute().build()
                 .appendCommand("gunzip -c /proc/config.gz > '" + configFile.getAbsolutePath() + "'")
@@ -68,4 +66,5 @@ public class SystemInfo {
 
         return configFileContent;
     }
+
 }

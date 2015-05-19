@@ -10,23 +10,23 @@ import de.uni_kl.informatik.disco.discowall.netfilter.NfqueueControl;
 import de.uni_kl.informatik.disco.discowall.utils.ressources.DroidWallAssets;
 
 public class Tests {
-    public static void assetsTest(Context context) {
-        BufferedReader reader = null;
-        try {
-            reader = DroidWallAssets.DEBUG_TESTFILE.getBufferedReader(context);
-        } catch (IOException e) {
-            Log.e("tag", e.getMessage());
-        }
-
-        try {
-            Log.i("Tests", "debut testfile content: " + reader.readLine());
-            Thread.sleep(1000);
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-    }
+//    public static void assetsTest(Context context) {
+//        BufferedReader reader = null;
+//        try {
+//            reader = DroidWallAssets.DEBUG_TESTFILE.getBufferedReader(context);
+//        } catch (IOException e) {
+//            Log.e("tag", e.getMessage());
+//        }
+//
+//        try {
+//            Log.i("Tests", "debut testfile content: " + reader.readLine());
+//            Thread.sleep(1000);
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        } catch (InterruptedException e) {
+//            e.printStackTrace();
+//        }
+//    }
 
     public static void engineTest(NfqueueControl nqc) {
         Log.i("Engine Test", "Beginning nfqueue engine tests...");

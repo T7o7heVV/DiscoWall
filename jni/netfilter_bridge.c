@@ -150,14 +150,12 @@ void startNfqueueCallbacks()
 	printf("closing library handle\n");
 	nfq_close(h);
 
-//	exit(0);
+	exit(0);
 	return;
 }
 
 int main(int argc, char **argv)
 {
-	//startNfqueueCallbacks();
-
 	printf("Netfilter-Bridge: application started...");
 	startNfqueueCallbacks();
 	printf("Netfilter-Bridge: all done. good bye.");
@@ -166,7 +164,8 @@ int main(int argc, char **argv)
 	return 0;
 }
 
-//void test()
-//{
-//	printf("Netfilter-Bridge: test() says hello.");
-//
+void test()
+{
+	printf("Netfilter-Bridge: test() says hello.");
+}
+

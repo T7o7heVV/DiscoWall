@@ -5,9 +5,12 @@ import android.content.res.AssetManager;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 
 public enum DroidWallFiles {
     DEPLOYED_BINARIES__DIR,
@@ -24,9 +27,4 @@ public enum DroidWallFiles {
         }
     }
 
-    public static File createTempFile(String prefix, String suffix) throws IOException {
-        File tempFile = File.createTempFile("__tmp" + prefix, suffix);
-        tempFile.deleteOnExit();
-        return tempFile;
-    }
 }
