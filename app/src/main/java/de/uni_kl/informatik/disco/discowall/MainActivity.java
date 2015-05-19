@@ -1,6 +1,6 @@
 package de.uni_kl.informatik.disco.discowall;
 
-import android.content.res.AssetManager;
+import android.content.Context;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -10,16 +10,10 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.File;
 
-import de.uni_kl.informatik.disco.discowall.netfilter.IptablesControl;
-import de.uni_kl.informatik.disco.discowall.netfilter.NfqueueControl;
-import de.uni_kl.informatik.disco.discowall.utils.DroidWallAssets;
-import de.uni_kl.informatik.disco.discowall.utils.RootUtils;
-import de.uni_kl.informatik.disco.discowall.utils.ShellExecute;
+import de.uni_kl.informatik.disco.discowall.netfilter.NetfilterUtils;
+import de.uni_kl.informatik.disco.discowall.utils.ressources.DroidWallFiles;
 
 
 public class MainActivity extends ActionBarActivity {
@@ -69,17 +63,28 @@ public class MainActivity extends ActionBarActivity {
         engineTest();
 
         try {
-//            ShellExecute.ShellExecuteResult result = RootUtils.shellExecuteAsRoot("echo start", "id", "echo yes", "echo done.");
-//            Log.v("Root test", "execution result: " + result.processOutput);
+//            Log.v("Root test", "isDeviceRooted: " + SystemInfo.isDeviceRooted());
 
-//            Log.v("Root test", "isDeviceRooted: " + RootUtils.isDeviceRooted());
+//            Log.v("Temp Files", "Path: " + File.createTempFile("__tmp__", ".txt").toString());
         } catch(Exception e)
         {
-
+            Log.e("ERROR On TEST", e.toString());
         }
     }
 
     private void engineTest() {
+//        File binDir = DroidWallFiles.DEPLOYED_BINARIES__DIR.getFile(this);
+//        Log.v("ENGINE TEST", "Binary Dir: " + binDir.getAbsolutePath());
+//
+//        File netfilterBridge = DroidWallFiles.NETFILTER_BRIDGE_BINARY__FILE.getFile(this);
+//        Log.v("ENGINE TEST", "NetfilterBridge: " + netfilterBridge.getAbsolutePath());
+
+
+        try {
+            Log.v("ENGINE TEST", "isIptablesModuleInstalled: " + NetfilterUtils.isIptablesModuleInstalled());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
     }
 }

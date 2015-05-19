@@ -13,6 +13,14 @@ public class RootShellExecute extends ShellExecute {
         return builder;
     }
 
+    public static ShellExecute.ShellExecuteResult execute(String command) throws IOException, InterruptedException {
+        return ShellExecute.execute(true, true, "su", command);
+    }
+
+    public static ShellExecute.ShellExecuteResult execute(boolean readResult, String command) throws IOException, InterruptedException {
+        return ShellExecute.execute(readResult, true, "su", command);
+    }
+
     public static ShellExecute.ShellExecuteResult execute(boolean readResult, boolean waitForTermination, String command) throws IOException, InterruptedException {
         return ShellExecute.execute(readResult, waitForTermination, "su", command);
     }

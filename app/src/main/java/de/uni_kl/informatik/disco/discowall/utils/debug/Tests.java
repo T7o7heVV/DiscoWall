@@ -2,15 +2,12 @@ package de.uni_kl.informatik.disco.discowall.utils.debug;
 
 import android.content.Context;
 import android.util.Log;
-import android.widget.EditText;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 
-import de.uni_kl.informatik.disco.discowall.R;
-import de.uni_kl.informatik.disco.discowall.netfilter.IptablesControl;
 import de.uni_kl.informatik.disco.discowall.netfilter.NfqueueControl;
-import de.uni_kl.informatik.disco.discowall.utils.DroidWallAssets;
+import de.uni_kl.informatik.disco.discowall.utils.ressources.DroidWallAssets;
 
 public class Tests {
     public static void assetsTest(Context context) {

@@ -2,8 +2,6 @@ package de.uni_kl.informatik.disco.discowall.netfilter;
 
 import java.io.IOException;
 
-import de.uni_kl.informatik.disco.discowall.utils.DroidWallAssets;
-
 public class NfqueueControl {
     private static final String LOG_TAG = "NfqueueControl";
     private static final String IPTABLES_NFQUEUE_RULE = "-p tcp -j NFQUEUE --queue-num 0";
@@ -62,4 +60,5 @@ public class NfqueueControl {
     public boolean CheckKernelNetfilterSupport() {
         return false; //TODO
     }
+
 }
