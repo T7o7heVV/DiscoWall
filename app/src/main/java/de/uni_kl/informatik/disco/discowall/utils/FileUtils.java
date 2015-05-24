@@ -7,6 +7,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
+import de.uni_kl.informatik.disco.discowall.utils.shell.RootShellExecute;
+import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecute;
+import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecuteExceptions;
+
 public class FileUtils {
     public static File createTempFile(String prefix, String suffix) throws IOException {
         File tempFile = File.createTempFile("__tmp" + prefix, suffix);
@@ -31,12 +35,12 @@ public class FileUtils {
         }
     }
 
-    public static void chmod(File file, String args) throws IOException, InterruptedException, ShellExecute.NonZeroReturnValueException {
+    public static void chmod(File file, String args) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.NonZeroReturnValueException {
         ShellExecute.ShellExecuteResult result = RootShellExecute.build()
                 .appendCommand("chmod " + args + " " + file.getAbsolutePath())
                 .execute();
 
         if (result.returnValue != 0)
-            throw new ShellExecute.NonZeroReturnValueException(result);
+            throw new ShellExecuteExceptions.NonZeroReturnValueException(result);
     }
 }

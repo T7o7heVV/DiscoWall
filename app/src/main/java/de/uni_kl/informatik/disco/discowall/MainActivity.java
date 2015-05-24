@@ -86,7 +86,7 @@ public class MainActivity extends ActionBarActivity {
             Log.v("NFBridge Deploy", "begin");
             AppManagement.initialize(this);
 
-            NfqueueControl control = new NfqueueControl(AppManagement.getInstance());
+            NfqueueControl control = new NfqueueControl(AppManagement.getInstance(), 1337);
             Log.v("NFBridge Deploy", "done.");
 
         } catch (Exception e) {

@@ -1,87 +1,68 @@
 package de.uni_kl.informatik.disco.discowall.netfilter;
 
-import android.content.Context;
 import android.util.Log;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-
 import de.uni_kl.informatik.disco.discowall.AppManagement;
-import de.uni_kl.informatik.disco.discowall.utils.FileUtils;
-import de.uni_kl.informatik.disco.discowall.utils.RootShellExecute;
-import de.uni_kl.informatik.disco.discowall.utils.ShellExecute;
-import de.uni_kl.informatik.disco.discowall.utils.ressources.DroidWallAssets;
-import de.uni_kl.informatik.disco.discowall.utils.ressources.DroidWallFiles;
+import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecuteExceptions;
 
 public class NfqueueControl {
     private static final String LOG_TAG = "NfqueueControl";
     private static final String IPTABLES_NFQUEUE_RULE = "-p tcp -j NFQUEUE --queue-num 0";
-    private final NetfilterBridgeBinaryHandler bridgeBinaryHandler;
+
     private final AppManagement appManagement;
+    private final NetfilterBridgeBinaryHandler bridgeBinaryHandler;
+    private final NetfilterBridgeCommunicator bridgeCommunicator;
 
-    public NfqueueControl(AppManagement appManagement) throws IOException, ShellExecute.NonZeroReturnValueException, InterruptedException {
+    public NfqueueControl(AppManagement appManagement, int bridgeCommunicationPort) throws NetfilterExceptions.NetfilterBridgeDeploymentException, ShellExecuteExceptions.CallException {
+        Log.v(LOG_TAG, "initializing NfqueueControl...");
+
         this.appManagement = appManagement;
-        this.bridgeBinaryHandler = new NetfilterBridgeBinaryHandler();
+        this.bridgeBinaryHandler = new NetfilterBridgeBinaryHandler(appManagement);
 
-        Log.v("NFBridge Deploy", "is deployed: " + bridgeBinaryHandler.isBinaryDeployed());
+        Log.v(LOG_TAG, "netfilter bridge is deployed: " + bridgeBinaryHandler.isDeployed());
 
-        if (!bridgeBinaryHandler.isBinaryDeployed())
-            bridgeBinaryHandler.deployBinary();
+        if (!bridgeBinaryHandler.isDeployed()) {
+            bridgeBinaryHandler.deploy();
 
-        Log.v("NFBridge Deploy", "is deployed: " + bridgeBinaryHandler.isBinaryDeployed());
-    }
-
-    private void executeNetfilterBridge() {
-        // TODO
-    }
-
-    private void terminateNetfilterBridge() {
-        // TODO
-    }
-
-    private class NetfilterBridgeBinaryHandler {
-        public boolean isBinaryDeployed() {
-            return getBinaryFile().exists();
+            // assert deployment
+            if (!bridgeBinaryHandler.isDeployed())
+                Log.e(LOG_TAG, "error deploying netfilter bridge. File has NOT been deployed!");
         }
 
-        public void deployBinary() throws IOException, ShellExecute.NonZeroReturnValueException, InterruptedException {
-            File netfilterBridgeBinary = DroidWallFiles.NETFILTER_BRIDGE_BINARY__FILE.getFile(appManagement.getContext());
+        Log.v(LOG_TAG, "starting netfilter bridge communicator as listening server...");
+        bridgeCommunicator = new NetfilterBridgeCommunicator(bridgeCommunicationPort);
+        Log.v(LOG_TAG, "listening on port: " + bridgeCommunicationPort);
 
-            InputStream netfilterInputStream = DroidWallAssets.NETFILTER_BRIDGE_BINARY.getInputStream(appManagement.getContext());
-            FileOutputStream netfilterOutputStream = new FileOutputStream(netfilterBridgeBinary);
+        Log.v(LOG_TAG, "killing all possibly running netfilter bridge instances...");
+        bridgeBinaryHandler.killAllInstances();
 
-            FileUtils.fileStreamCopy(netfilterInputStream, netfilterOutputStream);
-            FileUtils.chmod(netfilterBridgeBinary, "777");
-        }
+        Log.v(LOG_TAG, "executing netfilter bridge binary...");
+        bridgeBinaryHandler.execute(bridgeCommunicationPort);
 
-        public File getBinaryFile() {
-            return DroidWallFiles.NETFILTER_BRIDGE_BINARY__FILE.getFile(appManagement.getContext());
-        }
+        Log.v(LOG_TAG, "nfqueueControl initialized.");
     }
 
-    public void rulesEnableAll() throws InterruptedException, IptablesControl.IptablesException, IOException {
+    public void rulesEnableAll() throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.NonZeroReturnValueException {
         ruleAddIfMissing(IptableConstants.Chains.INPUT, IPTABLES_NFQUEUE_RULE);
         ruleAddIfMissing(IptableConstants.Chains.OUTPUT, IPTABLES_NFQUEUE_RULE);
     }
 
-    public void rulesDisableAll() throws InterruptedException, IptablesControl.IptablesException, IOException {
+    public void rulesDisableAll() throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.NonZeroReturnValueException {
         ruleDeleteIfExisting(IptableConstants.Chains.INPUT, IPTABLES_NFQUEUE_RULE);
         ruleDeleteIfExisting(IptableConstants.Chains.OUTPUT, IPTABLES_NFQUEUE_RULE);
     }
 
-    private void ruleAddIfMissing(String chain, String rule) throws InterruptedException, IptablesControl.IptablesException, IOException {
+    private void ruleAddIfMissing(String chain, String rule) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.NonZeroReturnValueException {
         if (!IptablesControl.ruleExists(chain, rule))
             IptablesControl.ruleAdd(chain, rule);
     }
 
-    private void ruleDeleteIfExisting(String chain, String rule) throws InterruptedException, IptablesControl.IptablesException, IOException {
+    private void ruleDeleteIfExisting(String chain, String rule) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.NonZeroReturnValueException {
         if (IptablesControl.ruleExists(chain, rule))
             IptablesControl.ruleDelete(chain, rule);
     }
 
-    public boolean rulesAreEnabled() throws InterruptedException, IptablesControl.IptablesException, IOException {
+    public boolean rulesAreEnabled() throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.NonZeroReturnValueException {
         return IptablesControl.ruleExists(IptableConstants.Chains.INPUT, IPTABLES_NFQUEUE_RULE)
                 || IptablesControl.ruleExists(IptableConstants.Chains.OUTPUT, IPTABLES_NFQUEUE_RULE);
     }

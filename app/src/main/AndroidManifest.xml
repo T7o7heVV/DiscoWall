@@ -23,4 +23,6 @@
         </activity>
     </application>
 
+    <!-- Permissions: -->
+    <uses-permission android:name="android.permission.INTERNET" /> <!-- required for listening on tcp port, in order to communicate with netfilter-bridge -->
 </manifest>

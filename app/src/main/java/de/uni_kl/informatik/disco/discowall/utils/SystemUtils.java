@@ -9,6 +9,11 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.LinkedList;
 
+import de.uni_kl.informatik.disco.discowall.utils.shell.RootShellExecute;
+import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecute;
+import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecuteExceptions;
+import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecuteExceptions.*;
+
 public class SystemUtils {
     private static final String LOG_TAG = SystemUtils.class.getCanonicalName();
 
@@ -35,11 +40,8 @@ public class SystemUtils {
         /**
          * Returns the extracted string-content of the file /proc/config.gz
          * @return
-         * @throws IOException
-         * @throws InterruptedException
-         * @throws ShellExecute.NonZeroReturnValueException
          */
-    public static LinkedList<String> getKernelConfig() throws IOException, InterruptedException, ShellExecute.NonZeroReturnValueException {
+    public static LinkedList<String> getKernelConfig() throws ShellExecuteExceptions.NonZeroReturnValueException, IOException, CallException {
         final String configGzPath = "/proc/config.gz";
         if (!new File(configGzPath).exists())
             throw new FileNotFoundException("Config-file " + configGzPath + " does not exist.");
@@ -52,7 +54,7 @@ public class SystemUtils {
                 .execute();
 
         if (result.returnValue != 0) {
-            throw new ShellExecute.NonZeroReturnValueException(result);
+            throw new ShellExecuteExceptions.NonZeroReturnValueException(result);
         }
 
         BufferedReader br = new BufferedReader(new FileReader(configFile));

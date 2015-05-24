@@ -1,4 +1,4 @@
-package de.uni_kl.informatik.disco.discowall.utils;
+package de.uni_kl.informatik.disco.discowall.utils.shell;
 
 import android.util.Log;
 
@@ -16,6 +16,7 @@ public class ShellExecute {
         public final String[] commands;
         public String processOutput;
         public int returnValue;
+        public Process process;
 
         @Override
         public String toString() {
@@ -39,36 +40,29 @@ public class ShellExecute {
 
             this.commandsAsString = cmdStr;
         }
-    }
 
-    public static class ShellExecuteException extends Exception {
-        private final ShellExecuteResult shellExecuteResult;
+        public boolean isRunning() {
+            if (process == null)
+                throw new RuntimeException("Process has not been provided to " + this.getClass().getSimpleName() + ". Requested information not available.");
 
-        public ShellExecuteResult getShellExecuteResult() {
-            return shellExecuteResult;
-        }
-
-        public ShellExecuteException(String message, ShellExecuteResult shellExecuteResult) {
-            super(message);
-            this.shellExecuteResult = shellExecuteResult;
-        }
-    }
-
-    public static class NonZeroReturnValueException extends ShellExecuteException {
-        public NonZeroReturnValueException(ShellExecuteResult shellExecuteResult) {
-            this("Expected return value of 0, but got "+shellExecuteResult.returnValue+"."
-                    + "\n" + "ShellExecuteResult was:" + shellExecuteResult.toString()
-                    , shellExecuteResult);
-        }
-
-        public NonZeroReturnValueException(String message, ShellExecuteResult shellExecuteResult) {
-            super(message, shellExecuteResult);
+            // Workaround: If the process is still running, calling Process.exitValue() will throw an exception.
+            try {
+                process.exitValue();
+                return true;
+            } catch (IllegalThreadStateException e) {
+                return false;
+            }
         }
     }
 
     public static class Builder {
-        public final ShellExecute shellExecute = new ShellExecute();
-        public final LinkedList<String> commands = new LinkedList<>();
+        private final ShellExecute shellExecute = new ShellExecute();
+        private final LinkedList<String> commands = new LinkedList<>();
+
+        public Builder setShell(String shell) {
+            shellExecute.shell = shell;
+            return this;
+        }
 
         public Builder doNotWaitForTermination() {
             shellExecute.waitForTermination = false;
@@ -80,12 +74,29 @@ public class ShellExecute {
             return this;
         }
 
+        public Builder doWaitForTermination() {
+            shellExecute.waitForTermination = true;
+            return this;
+        }
+
+        public Builder doReadResult() {
+            shellExecute.readResult = true;
+            return this;
+        }
+
         public Builder appendCommand(String command) {
             commands.add(command);
             return this;
         }
 
-        public ShellExecuteResult execute() throws IOException, InterruptedException {
+        public ShellExecuteResult executeAndAssertReturnValueZero() throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.NonZeroReturnValueException {
+            ShellExecuteResult result = execute();
+
+            ShellExecuteExceptions.NonZeroReturnValueException.assertZero(result);
+            return result;
+        }
+
+        public ShellExecuteResult execute() throws ShellExecuteExceptions.CallException {
             return ShellExecute.execute(shellExecute.readResult, shellExecute.waitForTermination, shellExecute.shell, this.commands.toArray(new String[this.commands.size()]));
         }
     }
@@ -106,22 +117,29 @@ public class ShellExecute {
         this.shell = "sh";
     }
 
-    public ShellExecuteResult execute(String... commands) throws IOException, InterruptedException {
+    public ShellExecuteResult execute(String... commands) throws ShellExecuteExceptions.CallException {
         return execute(readResult, waitForTermination, shell, commands);
     }
 
-    public static ShellExecuteResult execute(boolean readResult, boolean waitForTermination, String shell, String command) throws IOException, InterruptedException {
+    public static ShellExecuteResult execute(boolean readResult, boolean waitForTermination, String shell, String command) throws ShellExecuteExceptions.CallException {
         return execute(readResult, waitForTermination, shell, new String[] { command });
     }
 
-    public static ShellExecuteResult execute(boolean readResult, boolean waitForTermination, String shell, String... cmds) throws IOException, InterruptedException {
+    public static ShellExecuteResult execute(boolean readResult, boolean waitForTermination, String shell, String... cmds) throws ShellExecuteExceptions.CallException {
         ShellExecuteResult shellExecuteResult = new ShellExecuteResult(shell, cmds);
         Log.v(LOG_TAG, "executing command [shell="+shellExecuteResult.shell+"]: " + shellExecuteResult.commandsAsString);
 
+        Process p = null;
         try {
-            Process p = Runtime.getRuntime().exec(shell);
-            DataOutputStream os = new DataOutputStream(p.getOutputStream());
+            p = Runtime.getRuntime().exec(shell);
+            shellExecuteResult.process = p;
+        } catch (IOException e) {
+            throw new ShellExecuteExceptions.ShellExecuteCommandNotFoundException(shellExecuteResult, e);
+        }
 
+        DataOutputStream os = new DataOutputStream(p.getOutputStream());
+
+        try {
             for (String tmpCmd : cmds) {
                 os.writeBytes(tmpCmd+"\n");
             }
@@ -141,20 +159,24 @@ public class ShellExecute {
 
                 shellExecuteResult.processOutput = result;
             }
+        } catch(IOException e) {
+            throw new ShellExecuteExceptions.ShellExecuteProcessCommunicationException(shellExecuteResult, e);
+        }
 
-            // Wait until the su process terminates (after the "exit").
-            // Then the entire output of the process is available.
-            if (waitForTermination || readResult) {
-                Log.v(LOG_TAG, "waiting for termination of command: " + shellExecuteResult.commandsAsString);
+        // Wait until the su process terminates (after the "exit").
+        // Then the entire output of the process is available.
+        if (waitForTermination || readResult) {
+            Log.v(LOG_TAG, "waiting for termination of command: " + shellExecuteResult.commandsAsString);
+
+            try {
                 shellExecuteResult.returnValue = p.waitFor();
-                Log.v(LOG_TAG, "command '" + shellExecuteResult.commandsAsString + "' terminated with return code: " + shellExecuteResult.returnValue);
+            } catch(InterruptedException e) {
+                throw new ShellExecuteExceptions.CallInterruptedException(shellExecuteResult, e);
             }
 
-            return shellExecuteResult;
-        } catch (IOException | InterruptedException e) {
-            Log.e(LOG_TAG, "exception when trying to execute command: " + shellExecuteResult.commandsAsString);
-
-            throw e;
+            Log.v(LOG_TAG, "command '" + shellExecuteResult.commandsAsString + "' terminated with return code: " + shellExecuteResult.returnValue);
         }
+
+        return shellExecuteResult;
     }
 }
