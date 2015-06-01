@@ -43,7 +43,7 @@ public class ShellExecute {
 
         public boolean isRunning() {
             if (process == null)
-                throw new RuntimeException("Process has not been provided to " + this.getClass().getSimpleName() + ". Requested information not available.");
+                throw new RuntimeException("Process handle has not been attached to " + this.getClass().getSimpleName() + " on startup. Requested information not available.");
 
             // Workaround: If the process is still running, calling Process.exitValue() will throw an exception.
             try {

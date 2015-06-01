@@ -1,6 +1,10 @@
 package de.uni_kl.informatik.disco.discowall;
 
+import android.content.ComponentName;
 import android.content.Context;
+import android.content.Intent;
+import android.content.ServiceConnection;
+import android.os.IBinder;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -12,17 +16,15 @@ import android.widget.EditText;
 
 import java.io.File;
 
+import de.uni_kl.informatik.disco.discowall.firewallService.FirewallService;
 import de.uni_kl.informatik.disco.discowall.netfilter.NetfilterUtils;
 import de.uni_kl.informatik.disco.discowall.netfilter.NfqueueControl;
 import de.uni_kl.informatik.disco.discowall.utils.ressources.DroidWallFiles;
 
 
 public class MainActivity extends ActionBarActivity {
-//    static {
-//        System.loadLibrary("DiscoLib");
-//    }
-//
-//    public native String getStringFromNative();
+    private static final String LOG_TAG = MainActivity.class.getSimpleName();
+    private FirewallService firewallService;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,39 +61,54 @@ public class MainActivity extends ActionBarActivity {
         EditText editText = (EditText) findViewById(R.id.editText);
         Log.v("Main", "edit text: " + editText.getText());
 
-//        Log.v("Main", "JNI test execution: " + getStringFromNative());
-
-        engineTest();
-
-        try {
-//            Log.v("Root test", "isDeviceRooted: " + SystemUtils.isDeviceRooted());
-
-//            Log.v("Temp Files", "Path: " + File.createTempFile("__tmp__", ".txt").toString());
-        } catch(Exception e)
-        {
-            Log.e("ERROR On TEST", e.toString());
-        }
-    }
-
-    private void engineTest() {
-//        File binDir = DroidWallFiles.DEPLOYED_BINARIES__DIR.getFile(this);
-//        Log.v("ENGINE TEST", "Binary Dir: " + binDir.getAbsolutePath());
-//
-//        File netfilterBridge = DroidWallFiles.NETFILTER_BRIDGE_BINARY__FILE.getFile(this);
-//        Log.v("ENGINE TEST", "NetfilterBridge: " + netfilterBridge.getAbsolutePath());
-
-
         try {
 //            Log.v("ENGINE TEST", "isIptablesModuleInstalled: " + NetfilterUtils.isIptablesModuleInstalled());
-            Log.v("NFBridge Deploy", "begin");
-            AppManagement.initialize(this);
 
-            NfqueueControl control = new NfqueueControl(AppManagement.getInstance(), 1337);
-            Log.v("NFBridge Deploy", "done.");
+//            firewallService.enableFirewall(1337);
+            firewallService.stopFirewallService();
 
+//            Log.i("SERVICE TEST", "is connected: " + (firewallService != null));
+//            Log.i("SERVICE TEST", "service.isFirewallRunning(): " + firewallService.isFirewallRunning());
         } catch (Exception e) {
             e.printStackTrace();
         }
-
     }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+
+        // assure that the firewall-service runs indefinitely - even if all bound activities unbind:
+        startService(new Intent(this, FirewallService.class));
+
+        // Bind to LocalService
+        Intent intent = new Intent(this, FirewallService.class);
+        bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        // Unbind from the service
+        if (firewallService != null) {
+            unbindService(mConnection);
+            firewallService = null;
+        }
+    }
+
+    /** Defines callbacks for service binding, passed to bindService() */
+    private ServiceConnection mConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName className, IBinder service) {
+//            Log.v(LOG_TAG, "conntected to service");
+
+            FirewallService.FirewallBinder binder = (FirewallService.FirewallBinder) service;
+            firewallService = binder.getService();
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName arg0) {
+            firewallService = null;
+        }
+    };
 }

@@ -1,12 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="de.uni_kl.informatik.disco.discowall" >
-
-    <!-- minSdkVersion=3 is required for NDK to work
+    <!--
+ minSdkVersion=3 is required for NDK to work
          [https://developer.android.com/tools/sdk/ndk/index.html#Reqs]
-     -->
+    -->
     <uses-sdk android:minSdkVersion="3" />
 
+    <!-- Permissions: -->
+    <uses-permission android:name="android.permission.INTERNET" /> <!-- required for listening on tcp port, in order to communicate with netfilter-bridge -->
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
@@ -21,8 +23,13 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- important: the android:name of the service is its relative qualified name! -->
+        <service
+            android:name=".firewallService.FirewallService"
+            android:label="Firewall Service"
+            android:exported="false" >
+        </service>
     </application>
 
-    <!-- Permissions: -->
-    <uses-permission android:name="android.permission.INTERNET" /> <!-- required for listening on tcp port, in order to communicate with netfilter-bridge -->
 </manifest>

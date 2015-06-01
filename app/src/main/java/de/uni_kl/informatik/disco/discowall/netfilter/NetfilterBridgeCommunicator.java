@@ -36,7 +36,7 @@ public class NetfilterBridgeCommunicator implements Runnable {
             Log.v(LOG_TAG, "opening listening port: " + listeningPort);
             serverSocket = new ServerSocket(listeningPort);
 
-            Log.v(LOG_TAG, "listening...");
+            Log.v(LOG_TAG, "waiting for client...");
             Socket clientSocket = serverSocket.accept();
 
             Log.v(LOG_TAG, "client (netfilter bridge) connected.");

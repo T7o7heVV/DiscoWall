@@ -2,6 +2,8 @@ package de.uni_kl.informatik.disco.discowall.netfilter;
 
 import android.util.Log;
 
+import java.io.IOException;
+
 import de.uni_kl.informatik.disco.discowall.AppManagement;
 import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecuteExceptions;
 
@@ -11,14 +13,31 @@ public class NfqueueControl {
 
     private final AppManagement appManagement;
     private final NetfilterBridgeBinaryHandler bridgeBinaryHandler;
-    private final NetfilterBridgeCommunicator bridgeCommunicator;
+    private NetfilterBridgeCommunicator bridgeCommunicator;
 
-    public NfqueueControl(AppManagement appManagement, int bridgeCommunicationPort) throws NetfilterExceptions.NetfilterBridgeDeploymentException, ShellExecuteExceptions.CallException {
-        Log.v(LOG_TAG, "initializing NfqueueControl...");
+//    public NetfilterBridgeCommunicator getBridgeCommunicator() {
+//        return bridgeCommunicator;
+//    }
+//
+//    public NetfilterBridgeBinaryHandler getBridgeBinaryHandler() {
+//        return bridgeBinaryHandler;
+//    }
+
+    public NfqueueControl(AppManagement appManagement) {
+        Log.d(LOG_TAG, "initializing NfqueueControl...");
 
         this.appManagement = appManagement;
         this.bridgeBinaryHandler = new NetfilterBridgeBinaryHandler(appManagement);
+    }
 
+    public boolean isBridgeConnected() {
+        if (bridgeCommunicator == null)
+            return false;
+        else
+            return bridgeCommunicator.isConnected() && bridgeBinaryHandler.isProcessRunning();
+    }
+
+    public void connectToBridge(int bridgeCommunicationPort) throws NetfilterExceptions.NetfilterBridgeDeploymentException, ShellExecuteExceptions.CallException {
         Log.v(LOG_TAG, "netfilter bridge is deployed: " + bridgeBinaryHandler.isDeployed());
 
         if (!bridgeBinaryHandler.isDeployed()) {
@@ -39,7 +58,21 @@ public class NfqueueControl {
         Log.v(LOG_TAG, "executing netfilter bridge binary...");
         bridgeBinaryHandler.execute(bridgeCommunicationPort);
 
-        Log.v(LOG_TAG, "nfqueueControl initialized.");
+        Log.d(LOG_TAG, "nfqueueControl initialized.");
+    }
+
+    public void disconnectBridge() throws IOException, ShellExecuteExceptions.CallException {
+        Log.v(LOG_TAG, "disconnecting netfilter-bridge-communicator");
+
+        if (bridgeCommunicator == null) {
+            Log.v(LOG_TAG, "bridge-communicator has never been connected - nothing to disconnect.");
+            return;
+        }
+
+        bridgeCommunicator.disconnect();
+
+        Log.v(LOG_TAG, "killing all possibly running netfilter bridge instances...");
+        bridgeBinaryHandler.killAllInstances();
     }
 
     public void rulesEnableAll() throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.NonZeroReturnValueException {
