@@ -17,9 +17,11 @@ import android.widget.EditText;
 import java.io.File;
 
 import de.uni_kl.informatik.disco.discowall.firewallService.FirewallService;
+import de.uni_kl.informatik.disco.discowall.netfilter.NetfilterExceptions;
 import de.uni_kl.informatik.disco.discowall.netfilter.NetfilterUtils;
 import de.uni_kl.informatik.disco.discowall.netfilter.NfqueueControl;
 import de.uni_kl.informatik.disco.discowall.utils.ressources.DroidWallFiles;
+import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecuteExceptions;
 
 
 public class MainActivity extends ActionBarActivity {
@@ -64,8 +66,10 @@ public class MainActivity extends ActionBarActivity {
         try {
 //            Log.v("ENGINE TEST", "isIptablesModuleInstalled: " + NetfilterUtils.isIptablesModuleInstalled());
 
-//            firewallService.enableFirewall(1337);
-            firewallService.stopFirewallService();
+            if (editText.getText().equals("stop"))
+                firewallService.stopFirewallService();
+            else
+                firewallService.enableFirewall(1337);
 
 //            Log.i("SERVICE TEST", "is connected: " + (firewallService != null));
 //            Log.i("SERVICE TEST", "service.isFirewallRunning(): " + firewallService.isFirewallRunning());

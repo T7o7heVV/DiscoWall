@@ -2,10 +2,13 @@ package de.uni_kl.informatik.disco.discowall.netfilter;
 
 import android.util.Log;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 
 import de.uni_kl.informatik.disco.discowall.AppManagement;
 import de.uni_kl.informatik.disco.discowall.utils.FileUtils;
@@ -61,8 +64,33 @@ class NetfilterBridgeBinaryHandler {
         bridgeBinaryExecuteResult = RootShellExecute.build()
                 .doNotReadResult()
                 .doNotWaitForTermination()
-                .appendCommand(getFile().getAbsolutePath() + " --port " + communicationPort)
+                .appendCommand(getFile().getAbsolutePath() + " localhost " + communicationPort)
                 .execute(); // non-blocking call, as ShellExecute.doWaitForTermination==false
+
+        Thread readerThread = new Thread() {
+            @Override
+            public void run() {
+                BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(bridgeBinaryExecuteResult.process.getInputStream()));
+                Log.d(LOG_TAG, "Beginning to stream NetfilterBridge output...");
+
+                while(bridgeBinaryExecuteResult.isRunning()) {
+                    try {
+                        Log.d(LOG_TAG, "NetfilterBridge:: " + bufferedReader.readLine());
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                try {
+                    bufferedReader.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        };
+
+        readerThread.setDaemon(true);
+        readerThread.start();
     }
 
     public void killAllInstances() throws ShellExecuteExceptions.CallException {

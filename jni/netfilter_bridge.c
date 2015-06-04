@@ -176,6 +176,8 @@ void error(const char *msg)
 
 void connectToServer(const char *hostname, const char *port)
 {
+	printf("Connecting to server %s:%s", hostname, port);
+
     struct sockaddr_in serv_addr;
     struct hostent *server;
 
@@ -233,6 +235,8 @@ int main(int argc, char **argv)
        fprintf(stderr,"usage %s hostname port\n", argv[0]);
        exit(0);
     }
+
+    connectToServer(argv[1], argv[2]);
 
 	printf("Netfilter-Bridge: application started...");
 	startNfqueueCallbacks();
