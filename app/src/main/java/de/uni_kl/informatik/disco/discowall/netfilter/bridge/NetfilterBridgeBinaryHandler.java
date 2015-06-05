@@ -1,4 +1,4 @@
-package de.uni_kl.informatik.disco.discowall.netfilter;
+package de.uni_kl.informatik.disco.discowall.netfilter.bridge;
 
 import android.util.Log;
 
@@ -11,6 +11,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 
 import de.uni_kl.informatik.disco.discowall.AppManagement;
+import de.uni_kl.informatik.disco.discowall.netfilter.NetfilterExceptions;
 import de.uni_kl.informatik.disco.discowall.utils.FileUtils;
 import de.uni_kl.informatik.disco.discowall.utils.shell.RootShellExecute;
 import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecute;

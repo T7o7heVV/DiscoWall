@@ -6,15 +6,15 @@ import android.util.Log;
 import java.io.IOException;
 
 import de.uni_kl.informatik.disco.discowall.AppManagement;
+import de.uni_kl.informatik.disco.discowall.netfilter.bridge.NetfilterBridgeControl;
 import de.uni_kl.informatik.disco.discowall.netfilter.NetfilterExceptions;
-import de.uni_kl.informatik.disco.discowall.netfilter.NfqueueControl;
 import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecuteExceptions;
 
 public class Firewall {
     private static final String LOG_TAG = FirewallService.class.getSimpleName();
 
     private final AppManagement appManagement;
-    private NfqueueControl control;
+    private NetfilterBridgeControl control;
 
     public Firewall(Context context) {
         Log.i(LOG_TAG, "initializing firewall service...");
@@ -36,7 +36,7 @@ public class Firewall {
         {
             Log.i(LOG_TAG, "firewall already running. nothing to do.");
         } else {
-            control = new NfqueueControl(appManagement, appManagement.getSettings().getFirewallPort());
+            control = new NetfilterBridgeControl(appManagement, appManagement.getSettings().getFirewallPort());
             Log.i(LOG_TAG, "firewall started.");
         }
     }

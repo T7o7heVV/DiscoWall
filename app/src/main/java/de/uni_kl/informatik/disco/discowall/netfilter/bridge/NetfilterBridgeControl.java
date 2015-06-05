@@ -1,14 +1,17 @@
-package de.uni_kl.informatik.disco.discowall.netfilter;
+package de.uni_kl.informatik.disco.discowall.netfilter.bridge;
 
 import android.util.Log;
 
 import java.io.IOException;
 
 import de.uni_kl.informatik.disco.discowall.AppManagement;
+import de.uni_kl.informatik.disco.discowall.netfilter.IptableConstants;
+import de.uni_kl.informatik.disco.discowall.netfilter.IptablesControl;
+import de.uni_kl.informatik.disco.discowall.netfilter.NetfilterExceptions;
 import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecuteExceptions;
 
-public class NfqueueControl {
-    private static final String LOG_TAG = "NfqueueControl";
+public class NetfilterBridgeControl {
+    private static final String LOG_TAG = "NetfilterBridgeControl";
 //    private static final String IPTABLES_NFQUEUE_RULE = "-p tcp -j NFQUEUE --queue-num 0";
     private static final String IPTABLES_NFQUEUE_RULE = "-p tcp -j NFQUEUE --queue-num 0 --queue-bypass"; // '--queue-bypass' will allow all packages, when no application is bound to the --queue-num 0
     private final AppManagement appManagement;
@@ -18,8 +21,8 @@ public class NfqueueControl {
     private final int bridgeCommunicationPort;
     private final String IPTABLES_FIREWALL_BRIDGE_COM_SOURCE_EXCEPTION_RULE, IPTABLES_FIREWALL_BRIDGE_COM_DESTINATION_EXCEPTION_RULE;
 
-    public NfqueueControl(AppManagement appManagement, int bridgeCommunicationPort) throws NetfilterExceptions.NetfilterBridgeDeploymentException, ShellExecuteExceptions.ReturnValueException, ShellExecuteExceptions.CallException {
-        Log.d(LOG_TAG, "initializing NfqueueControl...");
+    public NetfilterBridgeControl(AppManagement appManagement, int bridgeCommunicationPort) throws NetfilterExceptions.NetfilterBridgeDeploymentException, ShellExecuteExceptions.ReturnValueException, ShellExecuteExceptions.CallException {
+        Log.d(LOG_TAG, "initializing NetfilterBridgeControl...");
 
         this.bridgeCommunicationPort = bridgeCommunicationPort;
         this.IPTABLES_FIREWALL_BRIDGE_COM_SOURCE_EXCEPTION_RULE = "-p tcp --destination-port " + bridgeCommunicationPort + " -j ACCEPT";
@@ -87,7 +90,7 @@ public class NfqueueControl {
     }
 
     private String getRelevantIptableChains() throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.NonZeroReturnValueException {
-        return IptablesControl.execute("-L "+IptableConstants.Chains.INPUT+" -n -v")
+        return IptablesControl.execute("-L " + IptableConstants.Chains.INPUT + " -n -v")
                 + "\n"
                 + IptablesControl.execute("-L "+IptableConstants.Chains.OUTPUT+" -n -v");
     }

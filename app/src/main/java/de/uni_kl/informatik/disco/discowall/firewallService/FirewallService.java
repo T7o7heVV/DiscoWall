@@ -2,23 +2,13 @@ package de.uni_kl.informatik.disco.discowall.firewallService;
 
 import android.app.IntentService;
 import android.app.Notification;
-import android.app.NotificationManager;
-import android.app.PendingIntent;
 import android.content.Intent;
-import android.graphics.Bitmap;
 import android.os.Binder;
 import android.os.IBinder;
-import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 
-import java.io.IOException;
-
-import de.uni_kl.informatik.disco.discowall.AppManagement;
 import de.uni_kl.informatik.disco.discowall.DiscoWallConstants;
 import de.uni_kl.informatik.disco.discowall.R;
-import de.uni_kl.informatik.disco.discowall.netfilter.NetfilterExceptions;
-import de.uni_kl.informatik.disco.discowall.netfilter.NfqueueControl;
-import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecuteExceptions;
 
 /**
  * Persistent service hosting the entire DiscoWall firewall functionality.

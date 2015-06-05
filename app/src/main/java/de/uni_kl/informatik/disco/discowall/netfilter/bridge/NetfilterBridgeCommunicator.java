@@ -1,4 +1,4 @@
-package de.uni_kl.informatik.disco.discowall.netfilter;
+package de.uni_kl.informatik.disco.discowall.netfilter.bridge;
 
 import android.util.Log;
 
@@ -8,6 +8,7 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.regex.Pattern;
 
 public class NetfilterBridgeCommunicator implements Runnable {
     private static final String LOG_TAG = "NfBridgeCommunicator";
@@ -95,11 +96,12 @@ public class NetfilterBridgeCommunicator implements Runnable {
             }
 
             if (firstMessage) {
-                sendMessage(DiscoWallBridgeProtocoll.Comment.MSG_PREFIX, "DiscoWall App says hello.");
+                sendMessage(NetfilterBridgeProtocol.Comment.MSG_PREFIX, "DiscoWall App says hello.");
                 firstMessage = false;
+                continue;
             }
 
-            onMessageReceived(message);
+            handleReceivedMessage(message);
         }
     }
 
@@ -108,17 +110,31 @@ public class NetfilterBridgeCommunicator implements Runnable {
         socketOut.flush();
     }
 
-    private static class DiscoWallBridgeProtocoll {
-        public static class Comment {
-            public static final String MSG_PREFIX = "#COMMENT#";
-        }
+    private void handleReceivedMessage(String message) {
+        if (message.startsWith(NetfilterBridgeProtocol.QueryPackageAction.MSG_PREFIX)) {
+            // Example: #Packet.QueryAction##protocol=tcp##ip.src=192.168.178.28##ip.dst=173.194.116.159##tcp.src.port=35251##tcp.dst.port=80#
 
-        public static class QueryPackageAction {
-            public static final String MSG_PREFIX = "#QUERY:PACKAGE-ACTION#";
+            // Handling of different protocols - currently TCP/UDP
+            if (message.contains(NetfilterBridgeProtocol.QueryPackageAction.IP.PROTOCOL_TYPE_TCP)) {
+                // Handle TCP Package
+
+            } else if (message.contains(NetfilterBridgeProtocol.QueryPackageAction.IP.PROTOCOL_TYPE_UDP)) {
+                // Handle UDP  Package
+
+            }
+        } else if (message.startsWith(NetfilterBridgeProtocol.Comment.MSG_PREFIX)) {
+            String comment = message.substring(message.indexOf(NetfilterBridgeProtocol.Comment.MSG_PREFIX));
+            Log.v(LOG_TAG, "Comment received: " + comment);
+        } else {
+            Log.e(LOG_TAG, "Unknown message format: " + message);
         }
     }
 
-    private void onMessageReceived(String message) {
+    private String extractValueFromMessage(String valuePrefix, String valueSuffix) {
+        return null;
+    }
+
+    private void onPackageReceived(String sourceIP, String destinationIP, int sourcePort, int destinationPort) {
 
     }
 

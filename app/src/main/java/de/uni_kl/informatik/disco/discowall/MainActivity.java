@@ -14,16 +14,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 
-import java.io.File;
-
 import de.uni_kl.informatik.disco.discowall.firewallService.FirewallService;
-import de.uni_kl.informatik.disco.discowall.netfilter.IptableConstants;
-import de.uni_kl.informatik.disco.discowall.netfilter.IptablesControl;
-import de.uni_kl.informatik.disco.discowall.netfilter.NetfilterExceptions;
-import de.uni_kl.informatik.disco.discowall.netfilter.NetfilterUtils;
-import de.uni_kl.informatik.disco.discowall.netfilter.NfqueueControl;
-import de.uni_kl.informatik.disco.discowall.utils.ressources.DroidWallFiles;
-import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecuteExceptions;
 
 
 public class MainActivity extends ActionBarActivity {

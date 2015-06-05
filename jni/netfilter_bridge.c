@@ -40,7 +40,37 @@
  *  External sources:
  *  > Thanks goes to "http://www.binarytides.com/packet-sniffer-code-c-linux/" for the utility-methods used for decoding & printing ip-/tcp-/udp-package information.
  *  > Also thanks to "Paul Amaranth" (paul@auroragrp.com) for his how-to on the fact that I simply need to cast "unsigned char *data" to "struct iphdr *".
+ * 
+ * 
+ * 
+ *  Netfilter-Bridge <-> Android Protocol:
+ *  + Netfilter-Bridge is client, Android-App (DiscoWall) is Server
+ *  + Behavior-Rules:
+ *    - The server never querries the client
+ * 	  - The server only responds to inquerries from the client
+ *    - For each message sent to the server, the server will respond with exactly one message
+ *  + Message-Schema:
+ *    - A message is exactly one line (and therefore ends with a "\n")
+ *  + Session-Schema:
+ *    1) Welcome-Messages:
+ 		 ==> Netfilter-Bridge sends welcome-message after
+ *       <== Server responds with welcome-message
+ *    2) Package-Filter-Loop:
+ *       [ on Package received ]
+ *       ==> Filter-Query: Netfilter-Bridge sends package-information to server
+ *			 * EXAMPLE: #Packet.QueryAction##protocol=tcp##ip.src=173.194.116.152##ip.dst=192.168.178.28##tcp.src.port=80##tcp.dst.port=54845#
+ *       <== Filter-Decision: Server sends response containing action to be taken [ a) accept  b) drop ]
+ * 			 + RESPONSES: ACCEPT == 'A', DROP == 'D'
+ *    3) Example-Communication:
+         ==> #COMMENT#Netfilter-Bridge says hello.
+         <== #COMMENT#DiscoWall App says hello.
+         ==> #Packet.QueryAction##protocol=tcp##ip.src=173.194.116.152##ip.dst=192.168.178.28##tcp.src.port=80##tcp.dst.port=54845#
+         <== 'D' // i.e. package will be dropped
+         ==> #Packet.QueryAction##protocol=tcp##ip.src=173.194.116.152##ip.dst=192.168.178.28##tcp.src.port=80##tcp.dst.port=54845#
+         <== 'A' // i.e. package will be accepted
  */
+
+
 
 
 /* ======================================================================================== */
@@ -75,7 +105,7 @@ int sendMessageToServer(char *message)
 	char buffer[256];
     bzero(buffer,256); // overwrite buffer with zeros
 	strcpy(buffer, message);
-	fprintf(stdout, "SEND: sending message through channel: %s", buffer);
+	// fprintf(stdout, "SEND: sending message through channel: %s", buffer);
 
 	// TCP send: write from buffer into socket 
     int n = write(sockfd,buffer,strlen(buffer));
@@ -84,6 +114,16 @@ int sendMessageToServer(char *message)
     	error("ERROR writing to socket");
 
     return n;
+}
+
+int sendIntToServer(int value)
+{
+	char buffer[20];
+
+	snprintf(buffer, sizeof(buffer),"%d",value);
+
+	// itoa(value, buffer, 10);   // here 10 means decimal
+	return sendMessageToServer(buffer);
 }
 
 
@@ -119,6 +159,105 @@ char receiveCharFromServer()
     return buffer[1];    
 }
 
+
+bool receiveProtocolResponseAcceptOrDropPackage()
+{
+	char responseAction = receiveCharFromServer();
+
+    if (responseAction == 'A') // i.e. accept
+    {
+    	return true;
+    } 
+    else if (responseAction == 'D') // i.e. drop
+    {
+    	return false;
+    } 
+    else 
+    {
+    	error("Invalid Server-Response! Expected 'A' or 'D'.");
+    }
+}
+
+
+void connectToServer(const char *hostname, const char *port)
+{
+	fprintf(stdout, "Connecting to server %s:%s\n", hostname, port);
+
+    struct sockaddr_in serv_addr;
+    struct hostent *server;
+
+    int portno = atoi(port);
+    //int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    sockfd = socket(AF_INET, SOCK_STREAM, 0); // declared public
+    if (sockfd < 0) 
+        error("ERROR opening socket");
+
+    server = gethostbyname(hostname);
+    if (server == NULL) {
+        error("no such host");
+    }
+
+    bzero((char *) &serv_addr, sizeof(serv_addr));
+    serv_addr.sin_family = AF_INET;
+
+    bcopy((char *)server->h_addr, 
+         (char *)&serv_addr.sin_addr.s_addr,
+         server->h_length);
+    serv_addr.sin_port = htons(portno);
+    
+    if (connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0) 
+        error("ERROR connecting");
+
+	fprintf(stdout, "Connected.\n");
+
+	// To send strings via console to server
+//    fprintf(stdout, "Please enter the message: ");
+//    char buffer[256];
+//    bzero(buffer,256);
+//    fgets(buffer,255,stdin); // read from stdin and write to buffer
+
+
+	sendMessageToServer("#COMMENT#Netfilter-Bridge says hello.\n");
+
+	char buffer[256];
+	receiveMessageFromServer(buffer, 256);
+
+/*  
+	char buffer[256];
+    bzero(buffer,256);
+    char *message = "#COMMENT#Netfilter-Bridge says hello.\n";
+	strcpy(buffer, message);
+	fprintf(stdout, "SEND: sending message through channel: %s", buffer);
+
+
+	// TCP send: write from buffer into socket 
+    int n = write(sockfd,buffer,strlen(buffer));
+    fprintf(stdout, "SEND: greeting-message sent.\n");
+
+    if (n < 0) 
+         error("ERROR writing to socket");
+
+    bzero(buffer,256); // overwrite buffer with zeros
+
+
+	// TCP receive: read from tcp stream and write to buffer 
+	fprintf(stdout, "RECEIVE: waiting for response...\n");
+    n = read(sockfd,buffer,255);
+    if (n < 0) 
+         error("ERROR reading from socket");
+    
+    fprintf(stdout, "RECEIVE: response received: %s\n", buffer);
+    */
+}
+
+
+void closeConnection() 
+{
+	// TCP: close connection
+    fprintf(stdout, "Closing TCP connection...\n");
+    close(sockfd);
+    fprintf(stdout, "TCP connection closed.\n");
+}
 
 
 /* ======================================================================================== */
@@ -164,7 +303,11 @@ void printPackagePayload(unsigned char* data , int Size)
 }
 
 
-void print_ip_header(unsigned char* Buffer, int Size)
+/* ======================================================================================== */
+/* Package-Handling */
+/* ======================================================================================== */
+
+void handle_ip_packet(unsigned char* Buffer, int Size)
 {
     unsigned short iphdrlen;
          
@@ -195,12 +338,18 @@ void print_ip_header(unsigned char* Buffer, int Size)
 	    fprintf(stdout,"   |-Source IP        : %s\n",inet_ntoa(source.sin_addr));
 	    fprintf(stdout,"   |-Destination IP   : %s\n",inet_ntoa(dest.sin_addr));
 	}
+
+    // ----------------------------- Firewall-Communication ----------------------------
+    // Send IP-Packet-Information to server
+    sendMessageToServer("#ip.src=");
+    sendMessageToServer(inet_ntoa(source.sin_addr));
+    sendMessageToServer("#");
+    sendMessageToServer("#ip.dst=");
+    sendMessageToServer(inet_ntoa(dest.sin_addr));
+    sendMessageToServer("#");
+    // ---------------------------------------------------------------------------------
 }
 
-
-/* ======================================================================================== */
-/* Package-Handling */
-/* ======================================================================================== */
 
 /* Returns true, if the package should be accepted, false otherwise */
 bool handle_tcp_packet(unsigned char* Buffer, int Size)
@@ -217,10 +366,15 @@ bool handle_tcp_packet(unsigned char* Buffer, int Size)
 	    fprintf(stdout,"\n\n***********************TCP Packet*************************\n");    
 	}
 
+    // ----------------------------- Firewall-Communication ----------------------------
+    sendMessageToServer("#Packet.QueryAction#");
+    sendMessageToServer("#protocol=tcp#");
+    // --------------------------------------------------------------------------------
+
+    handle_ip_packet(Buffer,Size); // will also send packet-information to server
+
     if (debug_printPackageHeader)
     {
-	    print_ip_header(Buffer,Size);
-	         
 	    fprintf(stdout,"\n");
 	    fprintf(stdout,"TCP Header\n");
 	    fprintf(stdout,"   |-Source Port      : %u\n",ntohs(tcph->source));
@@ -259,10 +413,24 @@ bool handle_tcp_packet(unsigned char* Buffer, int Size)
                          
     fprintf(stdout,"\n###########################################################");
 
-    return true;
+    // ----------------------------- Firewall-Communication ----------------------------
+    // Send TCP-Packet-Information to server
+    sendMessageToServer("#tcp.src.port=");
+    sendIntToServer(ntohs(tcph->source));
+    sendMessageToServer("#");
+    sendMessageToServer("#tcp.dst.port=");
+    sendIntToServer(ntohs(tcph->dest));
+    sendMessageToServer("#");
+    sendMessageToServer("\n"); // message-end
+
+    // Receive server-response
+    bool acceptPackage = receiveProtocolResponseAcceptOrDropPackage();
+    // --------------------------------------------------------------------------------
+
+    return acceptPackage;
 }
 
- 
+
 /* Returns true, if the package should be accepted, false otherwise */
 bool handle_udp_packet(unsigned char *Buffer , int Size)
 {
@@ -279,10 +447,15 @@ bool handle_udp_packet(unsigned char *Buffer , int Size)
     	fprintf(stdout,"\n\n***********************UDP Packet*************************\n");
     }
     
+    // ----------------------------- Firewall-Communication ----------------------------
+    sendMessageToServer("#Packet.QueryAction#");
+    sendMessageToServer("#protocol=udp#");
+    // --------------------------------------------------------------------------------
+
+	handle_ip_packet(Buffer,Size);           
+
     if (debug_printPackageHeader)  
     {
-	    print_ip_header(Buffer,Size);           
-	     
 	    fprintf(stdout,"\nUDP Header\n");
 	    fprintf(stdout,"   |-Source Port      : %d\n" , ntohs(udph->source));
 	    fprintf(stdout,"   |-Destination Port : %d\n" , ntohs(udph->dest));
@@ -305,7 +478,21 @@ bool handle_udp_packet(unsigned char *Buffer , int Size)
      
     fprintf(stdout,"\n###########################################################");
 
-    return true;
+    // ----------------------------- Firewall-Communication ----------------------------
+    // Send IP-UDP-Information to server
+    sendMessageToServer("#udp.src.port=");
+    sendIntToServer(ntohs(udph->source));
+    sendMessageToServer("#");
+    sendMessageToServer("#udp.dst.port=");
+    sendIntToServer(ntohs(udph->dest));
+    sendMessageToServer("#");
+    sendMessageToServer("\n"); // message-end
+
+    // Receive server-response
+    bool acceptPackage = receiveProtocolResponseAcceptOrDropPackage();
+    // --------------------------------------------------------------------------------
+
+    return acceptPackage;
 }
 
  
@@ -428,7 +615,7 @@ static int cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
 	fprintf(stdout, "\n================ Package Received ================\n");
 	u_int32_t id = handle_pkt(nfa);
 
-	sendMessageToServer("#COMMENT#package received.\n");
+	// sendMessageToServer("#COMMENT#package received.\n"); // the only information about a received package will be sent when handling the tcp and ip content
 
 	return nfq_set_verdict(qh, id, NF_ACCEPT, 0, NULL);
 	// return nfq_set_verdict(qh, id, NF_DROP, 0, NULL);
@@ -517,96 +704,7 @@ void startNfqueueCallbacks()
 }
 
 /* ======================================================================================== */
-/* TCP communication */
-/* ======================================================================================== */
-
-void connectToServer(const char *hostname, const char *port)
-{
-	fprintf(stdout, "Connecting to server %s:%s\n", hostname, port);
-
-    struct sockaddr_in serv_addr;
-    struct hostent *server;
-
-    int portno = atoi(port);
-    //int sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    sockfd = socket(AF_INET, SOCK_STREAM, 0); // declared public
-    if (sockfd < 0) 
-        error("ERROR opening socket");
-
-    server = gethostbyname(hostname);
-    if (server == NULL) {
-        error("no such host");
-    }
-
-    bzero((char *) &serv_addr, sizeof(serv_addr));
-    serv_addr.sin_family = AF_INET;
-
-    bcopy((char *)server->h_addr, 
-         (char *)&serv_addr.sin_addr.s_addr,
-         server->h_length);
-    serv_addr.sin_port = htons(portno);
-    
-    if (connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0) 
-        error("ERROR connecting");
-
-	fprintf(stdout, "Connected.\n");
-
-	// To send strings via console to server
-//    fprintf(stdout, "Please enter the message: ");
-//    char buffer[256];
-//    bzero(buffer,256);
-//    fgets(buffer,255,stdin); // read from stdin and write to buffer
-
-
-	sendMessageToServer("#COMMENT#Netfilter-Bridge says hello.\n");
-
-	char buffer[256];
-	receiveMessageFromServer(buffer, 256);
-
-/*  
-	char buffer[256];
-    bzero(buffer,256);
-    char *message = "#COMMENT#Netfilter-Bridge says hello.\n";
-	strcpy(buffer, message);
-	fprintf(stdout, "SEND: sending message through channel: %s", buffer);
-
-
-	// TCP send: write from buffer into socket 
-    int n = write(sockfd,buffer,strlen(buffer));
-    fprintf(stdout, "SEND: greeting-message sent.\n");
-
-    if (n < 0) 
-         error("ERROR writing to socket");
-
-    bzero(buffer,256); // overwrite buffer with zeros
-
-
-	// TCP receive: read from tcp stream and write to buffer 
-	fprintf(stdout, "RECEIVE: waiting for response...\n");
-    n = read(sockfd,buffer,255);
-    if (n < 0) 
-         error("ERROR reading from socket");
-    
-    fprintf(stdout, "RECEIVE: response received: %s\n", buffer);
-    */
-    
-
-//    // TCP: close connection
-//    fprintf(stdout, "Closing TCP connection...\n");
-//    close(sockfd);
-//    fprintf(stdout, "TCP connection closed.\n");
-    
-    return;
-}
-
-void closeConnection() 
-{
-	// TCP: close connection
-    fprintf(stdout, "Closing TCP connection...\n");
-    close(sockfd);
-    fprintf(stdout, "TCP connection closed.\n");
-}
-
+/*  Application */
 /* ======================================================================================== */
 
 int main(int argc, char **argv)
