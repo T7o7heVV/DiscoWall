@@ -38,7 +38,7 @@
  *  Used for notifying DiscoWall about incomming/outgoing packages and querying response (ACCEPT/DROP).
  *  
  *  External sources:
- *  > Thanks goes to "http://www.binarytides.com/packet-sniffer-code-c-linux/" for the utility-methods used for decoding & printing ip-/tcp-package information.
+ *  > Thanks goes to "http://www.binarytides.com/packet-sniffer-code-c-linux/" for the utility-methods used for decoding & printing ip-/tcp-/udp-package information.
  *  > Also thanks to "Paul Amaranth" (paul@auroragrp.com) for his how-to on the fact that I simply need to cast "unsigned char *data" to "struct iphdr *".
  */
 
@@ -49,6 +49,11 @@
 
 int sockfd; // server (android app) connection
 struct sockaddr_in source,dest; // printer-methods
+
+// debugging stuff:
+bool debug_printPackageHeader = true;
+bool debug_printPackagePayload = false;
+
 
 /* ======================================================================================== */
 /* Utility-Methods */
@@ -62,8 +67,102 @@ void error(const char *msg)
 
 
 /* ======================================================================================== */
-/* Package-Handling */
+/* Server-Communication */
 /* ======================================================================================== */
+
+int sendMessageToServer(char *message)
+{
+	char buffer[256];
+    bzero(buffer,256); // overwrite buffer with zeros
+	strcpy(buffer, message);
+	fprintf(stdout, "SEND: sending message through channel: %s", buffer);
+
+	// TCP send: write from buffer into socket 
+    int n = write(sockfd,buffer,strlen(buffer));
+
+    if (n < 0) 
+    	error("ERROR writing to socket");
+
+    return n;
+}
+
+
+int receiveMessageFromServer(char* buffer, int size)
+{
+    bzero(buffer, size); // fill buffer with zeros
+
+	// TCP receive: read from tcp stream and write to buffer 
+	fprintf(stdout, "RECEIVE: waiting for response...\n");
+    // int n = read(sockfd,buffer,255);
+    int n = read(sockfd, buffer, size);
+    if (n < 0) 
+         error("ERROR reading from socket");
+    
+    fprintf(stdout, "RECEIVE: response received: %s\n", buffer);
+    return n;
+}
+
+
+char receiveCharFromServer()
+{
+	char buffer[1];
+    bzero(buffer,1); // fill buffer with zeros
+
+	// TCP receive: read from tcp stream and write to buffer 
+	fprintf(stdout, "RECEIVE: waiting for response...\n");
+    // int n = read(sockfd,buffer,255);
+    int n = read(sockfd,buffer,1);
+    if (n < 0) 
+         error("ERROR reading from socket");
+    
+    fprintf(stdout, "RECEIVE: response received: %s\n", buffer);
+    return buffer[1];    
+}
+
+
+
+/* ======================================================================================== */
+/* Package Data-Printing */
+/* ======================================================================================== */
+
+void printPackagePayload(unsigned char* data , int Size)
+{
+    int i, j;
+
+    for(i=0 ; i < Size ; i++)
+    {
+        if( i!=0 && i%16==0)   //if one line of hex printing is complete...
+        {
+            fprintf(stdout,"         ");
+            for(j=i-16 ; j<i ; j++)
+            {
+                if(data[j]>=32 && data[j]<=128)
+                    fprintf(stdout,"%c",(unsigned char)data[j]); //if its a number or alphabet
+                 
+                else fprintf(stdout,"."); //otherwise print a dot
+            }
+            fprintf(stdout,"\n");
+        } 
+         
+        if(i%16==0) fprintf(stdout,"   ");
+            fprintf(stdout," %02X",(unsigned int)data[i]);
+                 
+        if( i==Size-1)  //print the last spaces
+        {
+            for(j=0;j<15-i%16;j++) fprintf(stdout,"   "); //extra spaces
+             
+            fprintf(stdout,"         ");
+             
+            for(j=i-i%16 ; j<=i ; j++)
+            {
+                if(data[j]>=32 && data[j]<=128) fprintf(stdout,"%c",(unsigned char)data[j]);
+                else fprintf(stdout,".");
+            }
+            fprintf(stdout,"\n");
+        }
+    }
+}
+
 
 void print_ip_header(unsigned char* Buffer, int Size)
 {
@@ -78,22 +177,30 @@ void print_ip_header(unsigned char* Buffer, int Size)
     memset(&dest, 0, sizeof(dest));
     dest.sin_addr.s_addr = iph->daddr;
      
-    fprintf(stdout,"\n");
-    fprintf(stdout,"IP Header\n");
-    fprintf(stdout,"   |-IP Version        : %d\n",(unsigned int)iph->version);
-    fprintf(stdout,"   |-IP Header Length  : %d DWORDS or %d Bytes\n",(unsigned int)iph->ihl,((unsigned int)(iph->ihl))*4);
-    fprintf(stdout,"   |-Type Of Service   : %d\n",(unsigned int)iph->tos);
-    fprintf(stdout,"   |-IP Total Length   : %d  Bytes(Size of Packet)\n",ntohs(iph->tot_len));
-    fprintf(stdout,"   |-Identification    : %d\n",ntohs(iph->id));
-    //fprintf(stdout,"   |-Reserved ZERO Field   : %d\n",(unsigned int)iphdr->ip_reserved_zero);
-    //fprintf(stdout,"   |-Dont Fragment Field   : %d\n",(unsigned int)iphdr->ip_dont_fragment);
-    //fprintf(stdout,"   |-More Fragment Field   : %d\n",(unsigned int)iphdr->ip_more_fragment);
-    fprintf(stdout,"   |-TTL      : %d\n",(unsigned int)iph->ttl);
-    fprintf(stdout,"   |-Protocol : %d\n",(unsigned int)iph->protocol);
-    fprintf(stdout,"   |-Checksum : %d\n",ntohs(iph->check));
-    fprintf(stdout,"   |-Source IP        : %s\n",inet_ntoa(source.sin_addr));
-    fprintf(stdout,"   |-Destination IP   : %s\n",inet_ntoa(dest.sin_addr));
+    if (debug_printPackageHeader)
+    {
+	    fprintf(stdout,"\n");
+	    fprintf(stdout,"IP Header\n");
+	    fprintf(stdout,"   |-IP Version        : %d\n",(unsigned int)iph->version);
+	    fprintf(stdout,"   |-IP Header Length  : %d DWORDS or %d Bytes\n",(unsigned int)iph->ihl,((unsigned int)(iph->ihl))*4);
+	    fprintf(stdout,"   |-Type Of Service   : %d\n",(unsigned int)iph->tos);
+	    fprintf(stdout,"   |-IP Total Length   : %d  Bytes(Size of Packet)\n",ntohs(iph->tot_len));
+	    fprintf(stdout,"   |-Identification    : %d\n",ntohs(iph->id));
+	    //fprintf(stdout,"   |-Reserved ZERO Field   : %d\n",(unsigned int)iphdr->ip_reserved_zero);
+	    //fprintf(stdout,"   |-Dont Fragment Field   : %d\n",(unsigned int)iphdr->ip_dont_fragment);
+	    //fprintf(stdout,"   |-More Fragment Field   : %d\n",(unsigned int)iphdr->ip_more_fragment);
+	    fprintf(stdout,"   |-TTL      : %d\n",(unsigned int)iph->ttl);
+	    fprintf(stdout,"   |-Protocol : %d\n",(unsigned int)iph->protocol);
+	    fprintf(stdout,"   |-Checksum : %d\n",ntohs(iph->check));
+	    fprintf(stdout,"   |-Source IP        : %s\n",inet_ntoa(source.sin_addr));
+	    fprintf(stdout,"   |-Destination IP   : %s\n",inet_ntoa(dest.sin_addr));
+	}
 }
+
+
+/* ======================================================================================== */
+/* Package-Handling */
+/* ======================================================================================== */
 
 /* Returns true, if the package should be accepted, false otherwise */
 bool handle_tcp_packet(unsigned char* Buffer, int Size)
@@ -105,40 +212,50 @@ bool handle_tcp_packet(unsigned char* Buffer, int Size)
      
     struct tcphdr *tcph=(struct tcphdr*)(Buffer + iphdrlen);
              
-    fprintf(stdout,"\n\n***********************TCP Packet*************************\n");    
-         
-    print_ip_header(Buffer,Size);
-         
-    fprintf(stdout,"\n");
-    fprintf(stdout,"TCP Header\n");
-    fprintf(stdout,"   |-Source Port      : %u\n",ntohs(tcph->source));
-    fprintf(stdout,"   |-Destination Port : %u\n",ntohs(tcph->dest));
-    fprintf(stdout,"   |-Sequence Number    : %u\n",ntohl(tcph->seq));
-    fprintf(stdout,"   |-Acknowledge Number : %u\n",ntohl(tcph->ack_seq));
-    fprintf(stdout,"   |-Header Length      : %d DWORDS or %d BYTES\n" ,(unsigned int)tcph->doff,(unsigned int)tcph->doff*4);
-    //fprintf(stdout,"   |-CWR Flag : %d\n",(unsigned int)tcph->cwr);
-    //fprintf(stdout,"   |-ECN Flag : %d\n",(unsigned int)tcph->ece);
-    fprintf(stdout,"   |-Urgent Flag          : %d\n",(unsigned int)tcph->urg);
-    fprintf(stdout,"   |-Acknowledgement Flag : %d\n",(unsigned int)tcph->ack);
-    fprintf(stdout,"   |-Push Flag            : %d\n",(unsigned int)tcph->psh);
-    fprintf(stdout,"   |-Reset Flag           : %d\n",(unsigned int)tcph->rst);
-    fprintf(stdout,"   |-Synchronise Flag     : %d\n",(unsigned int)tcph->syn);
-    fprintf(stdout,"   |-Finish Flag          : %d\n",(unsigned int)tcph->fin);
-    fprintf(stdout,"   |-Window         : %d\n",ntohs(tcph->window));
-    fprintf(stdout,"   |-Checksum       : %d\n",ntohs(tcph->check));
-    fprintf(stdout,"   |-Urgent Pointer : %d\n",tcph->urg_ptr);
-    fprintf(stdout,"\n");
-    fprintf(stdout,"                        DATA Dump                         ");
-    fprintf(stdout,"\n");
-         
-    fprintf(stdout,"IP Header\n");
-    // PrintData(Buffer,iphdrlen);
-         
-    fprintf(stdout,"TCP Header\n");
-    // PrintData(Buffer+iphdrlen,tcph->doff*4);
-         
-    fprintf(stdout,"Data Payload\n");  
-    // PrintData(Buffer + iphdrlen + tcph->doff*4 , (Size - tcph->doff*4-iph->ihl*4) );
+    if (debug_printPackageHeader | debug_printPackagePayload)
+    {
+	    fprintf(stdout,"\n\n***********************TCP Packet*************************\n");    
+	}
+
+    if (debug_printPackageHeader)
+    {
+	    print_ip_header(Buffer,Size);
+	         
+	    fprintf(stdout,"\n");
+	    fprintf(stdout,"TCP Header\n");
+	    fprintf(stdout,"   |-Source Port      : %u\n",ntohs(tcph->source));
+	    fprintf(stdout,"   |-Destination Port : %u\n",ntohs(tcph->dest));
+	    fprintf(stdout,"   |-Sequence Number    : %u\n",ntohl(tcph->seq));
+	    fprintf(stdout,"   |-Acknowledge Number : %u\n",ntohl(tcph->ack_seq));
+	    fprintf(stdout,"   |-Header Length      : %d DWORDS or %d BYTES\n" ,(unsigned int)tcph->doff,(unsigned int)tcph->doff*4);
+	    //fprintf(stdout,"   |-CWR Flag : %d\n",(unsigned int)tcph->cwr);
+	    //fprintf(stdout,"   |-ECN Flag : %d\n",(unsigned int)tcph->ece);
+	    fprintf(stdout,"   |-Urgent Flag          : %d\n",(unsigned int)tcph->urg);
+	    fprintf(stdout,"   |-Acknowledgement Flag : %d\n",(unsigned int)tcph->ack);
+	    fprintf(stdout,"   |-Push Flag            : %d\n",(unsigned int)tcph->psh);
+	    fprintf(stdout,"   |-Reset Flag           : %d\n",(unsigned int)tcph->rst);
+	    fprintf(stdout,"   |-Synchronise Flag     : %d\n",(unsigned int)tcph->syn);
+	    fprintf(stdout,"   |-Finish Flag          : %d\n",(unsigned int)tcph->fin);
+	    fprintf(stdout,"   |-Window         : %d\n",ntohs(tcph->window));
+	    fprintf(stdout,"   |-Checksum       : %d\n",ntohs(tcph->check));
+	    fprintf(stdout,"   |-Urgent Pointer : %d\n",tcph->urg_ptr);
+	    fprintf(stdout,"\n");
+    }
+
+    if (debug_printPackagePayload)
+    {
+    	fprintf(stdout,"                     TCP DATA Dump                         ");
+	    fprintf(stdout,"\n");
+	         
+	    fprintf(stdout,"IP Header\n");
+	    printPackagePayload(Buffer,iphdrlen);
+	         
+	    fprintf(stdout,"TCP Header\n");
+	    printPackagePayload(Buffer+iphdrlen,tcph->doff*4);
+	         
+	    fprintf(stdout,"Data Payload\n");  
+	    printPackagePayload(Buffer + iphdrlen + tcph->doff*4 , (Size - tcph->doff*4-iph->ihl*4) );
+    }
                          
     fprintf(stdout,"\n###########################################################");
 
@@ -157,25 +274,34 @@ bool handle_udp_packet(unsigned char *Buffer , int Size)
      
     struct udphdr *udph = (struct udphdr*)(Buffer + iphdrlen);
      
-    fprintf(stdout,"\n\n***********************UDP Packet*************************\n");
-     
-    print_ip_header(Buffer,Size);           
-     
-    fprintf(stdout,"\nUDP Header\n");
-    fprintf(stdout,"   |-Source Port      : %d\n" , ntohs(udph->source));
-    fprintf(stdout,"   |-Destination Port : %d\n" , ntohs(udph->dest));
-    fprintf(stdout,"   |-UDP Length       : %d\n" , ntohs(udph->len));
-    fprintf(stdout,"   |-UDP Checksum     : %d\n" , ntohs(udph->check));
-     
-    fprintf(stdout,"\n");
-    fprintf(stdout,"IP Header\n");
-    // PrintData(Buffer , iphdrlen);
-         
-    fprintf(stdout,"UDP Header\n");
-    // PrintData(Buffer+iphdrlen , sizeof udph);
-         
-    fprintf(stdout,"Data Payload\n");  
-    // PrintData(Buffer + iphdrlen + sizeof udph ,( Size - sizeof udph - iph->ihl * 4 ));
+    if (debug_printPackageHeader | debug_printPackagePayload) 
+    {
+    	fprintf(stdout,"\n\n***********************UDP Packet*************************\n");
+    }
+    
+    if (debug_printPackageHeader)  
+    {
+	    print_ip_header(Buffer,Size);           
+	     
+	    fprintf(stdout,"\nUDP Header\n");
+	    fprintf(stdout,"   |-Source Port      : %d\n" , ntohs(udph->source));
+	    fprintf(stdout,"   |-Destination Port : %d\n" , ntohs(udph->dest));
+	    fprintf(stdout,"   |-UDP Length       : %d\n" , ntohs(udph->len));
+	    fprintf(stdout,"   |-UDP Checksum     : %d\n" , ntohs(udph->check));
+	    fprintf(stdout,"\n");
+	}
+
+	if (debug_printPackagePayload) 
+	{
+	    fprintf(stdout,"IP Header\n");
+	    printPackagePayload(Buffer , iphdrlen);
+	         
+	    fprintf(stdout,"UDP Header\n");
+	    printPackagePayload(Buffer+iphdrlen , sizeof udph);
+	         
+	    fprintf(stdout,"Data Payload\n");  
+	    printPackagePayload(Buffer + iphdrlen + sizeof udph ,( Size - sizeof udph - iph->ihl * 4 ));
+	}
      
     fprintf(stdout,"\n###########################################################");
 
@@ -295,21 +421,6 @@ static u_int32_t handle_pkt(struct nfq_data *tb)
 }
 
 
-void sendMessageToServer(char *message)
-{
-	char buffer[256];
-    bzero(buffer,256); // overwrite buffer with zeros
-	strcpy(buffer, message);
-	fprintf(stdout, "SEND: sending message through channel: %s", buffer);
-
-	// TCP send: write from buffer into socket 
-    int n = write(sockfd,buffer,strlen(buffer));
-
-    if (n < 0) 
-     error("ERROR writing to socket");
-}
-
-	
 // CallBack: is being called for each package by nfqueue
 static int cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
 	      struct nfq_data *nfa, void *data)
@@ -446,7 +557,14 @@ void connectToServer(const char *hostname, const char *port)
 //    bzero(buffer,256);
 //    fgets(buffer,255,stdin); // read from stdin and write to buffer
 
-    char buffer[256];
+
+	sendMessageToServer("#COMMENT#Netfilter-Bridge says hello.\n");
+
+	char buffer[256];
+	receiveMessageFromServer(buffer, 256);
+
+/*  
+	char buffer[256];
     bzero(buffer,256);
     char *message = "#COMMENT#Netfilter-Bridge says hello.\n";
 	strcpy(buffer, message);
@@ -470,6 +588,7 @@ void connectToServer(const char *hostname, const char *port)
          error("ERROR reading from socket");
     
     fprintf(stdout, "RECEIVE: response received: %s\n", buffer);
+    */
     
 
 //    // TCP: close connection
@@ -493,7 +612,7 @@ void closeConnection()
 int main(int argc, char **argv)
 {
 	if (argc < 3) {
-       fprintf(stderr,"usage %s hostname port\n", argv[0]);
+       fprintf(stderr,"usage %s <hostname> <port>\n", argv[0]);
        exit(0);
     }
 
