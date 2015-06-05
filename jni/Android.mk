@@ -24,7 +24,8 @@ include $(CLEAR_VARS)
 LOCAL_C_INCLUDES := $(LOCAL_PATH)/libnfnetlink-1.0.1/include \
     $(LOCAL_PATH)/libnetfilter_queue-1.0.2/include
 LOCAL_MODULE:=netfilter_queue
-LOCAL_SRC_FILES:=libnetfilter_queue-1.0.2/src/libnetfilter_queue.c
+LOCAL_SRC_FILES:=\
+	libnetfilter_queue-1.0.2/src/libnetfilter_queue.c
 LOCAL_STATIC_LIBRARIES:=libnflink
 include $(BUILD_STATIC_LIBRARY)
 #include $(BUILD_SHARED_LIBRARY)

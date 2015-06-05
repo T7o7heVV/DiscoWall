@@ -55,8 +55,22 @@ public class ShellExecuteExceptions {
     }
 
     public static class ReturnValueException extends ShellExecuteException {
+        private final int[] allowedReturnValues;
+
+        public int[] getAllowedReturnValues() {
+            int[] copy = new int[allowedReturnValues.length];
+            System.arraycopy(allowedReturnValues, 0, copy, 0, allowedReturnValues.length);
+            return copy;
+        }
+
         public ReturnValueException(String message, ShellExecute.ShellExecuteResult shellExecuteResult) {
+            this(message, shellExecuteResult, null);
+        }
+
+        public ReturnValueException(String message, ShellExecute.ShellExecuteResult shellExecuteResult, int... allowedReturnValues) {
             super(message, shellExecuteResult);
+
+            this.allowedReturnValues = allowedReturnValues;
         }
     }
 
@@ -68,7 +82,7 @@ public class ShellExecuteExceptions {
         }
 
         public NonZeroReturnValueException(String message, ShellExecute.ShellExecuteResult shellExecuteResult) {
-            super(message, shellExecuteResult);
+            super(message, shellExecuteResult, 0);
         }
 
         public static void assertZero(ShellExecute.ShellExecuteResult result) throws NonZeroReturnValueException {

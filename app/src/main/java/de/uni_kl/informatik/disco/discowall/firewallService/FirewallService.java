@@ -27,7 +27,7 @@ public class FirewallService extends IntentService {
     private static final String LOG_TAG = FirewallService.class.getSimpleName();
 
     private final AppManagement appManagement;
-    private final NfqueueControl control;
+    private NfqueueControl control;
 
     /** This variable is currently only used to create log-messages which specify whether the service is already running.
      */
@@ -37,20 +37,9 @@ public class FirewallService extends IntentService {
         super("FirewallService");
 
         Log.i(LOG_TAG, "initializing firewall service...");
-
         appManagement = new AppManagement(this);
-        control = new NfqueueControl(appManagement);
-
         Log.i(LOG_TAG, "firewall service running.");
     }
-
-//    @Override
-//    public void onCreate() {
-//        // called only once in the lifetime of a service
-//        // since this DiscoWall service is persistent (due to startForeground), this method will only be called ONCE
-//        // during the runtime of the host operating system
-//        super.onCreate();
-//    }
 
     @Override
     public void onDestroy() {
@@ -58,7 +47,7 @@ public class FirewallService extends IntentService {
 
         // making sure, that no nfqueue rules remain - otherwise the host system's tcp/ip network would become unusable
         try {
-            control.rulesDisableAll();
+            disableFirewall();
         } catch (Exception e) {
             Log.e(LOG_TAG, e.getMessage());
             Log.e(LOG_TAG, "Could not remove iptable rules. Please check your rules for any nfqueue-call by using typing 'iptables -L -n -v' via a root-shell.");
@@ -70,7 +59,10 @@ public class FirewallService extends IntentService {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        super.onStartCommand(intent, flags, startId);
+        // DO NOT invoke the super-method!
+        // It will result in the service behaving in "default" behavior - i.e. NON-persistent
+//        super.onStartCommand(intent, flags, startId);
+
         Log.i(LOG_TAG, "starting firewall service.");
 
         if (serviceRunning) {
@@ -87,9 +79,16 @@ public class FirewallService extends IntentService {
         return START_STICKY;
     }
 
+    /**
+     * Android-Service method, which is being invoked AFTER the android-system has begun stopping the service.
+     * @param name
+     * @return
+     */
     @Override
     public boolean stopService(Intent name) {
         Log.i(LOG_TAG, "stopping firewall service.");
+
+        serviceRunning = false;
 
         /**
          * Note: The service is only destroyed, after
@@ -97,32 +96,27 @@ public class FirewallService extends IntentService {
          * (2) all clients have called unbind
          */
 
-//        removePermanentNotification();
-
         // making sure, that no nfqueue rules remain - otherwise the host system's tcp/ip network would become unusable
         try {
-            control.rulesDisableAll();
+            disableFirewall();
+            Log.i(LOG_TAG, "service stopped.");
         } catch (Exception e) {
-            Log.e(LOG_TAG, e.getMessage());
-            Log.e(LOG_TAG, "Could not remove iptable rules. Please check your rules for any nfqueue-call by using typing 'iptables -L -n -v' via a root-shell.");
+            Log.e(LOG_TAG, "Error while stopping firewall service: " + e.getMessage());
         }
-
-        Log.i(LOG_TAG, "service stopped.");
 
         return super.stopService(name);
     }
 
+    /**
+     * Method which makes it possible to stop the android service.
+     * All connected clients (i.e. activities) must disconnect, so that the service may be stopped.
+     */
     public void stopFirewallService() {
         Log.i(LOG_TAG, "service is about to be stopped. It will continue until the last client (activity) disconnects.");
 
         stopForeground(true);
         stopSelf();
     }
-
-//    private void removePermanentNotification() {
-//        NotificationManager notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-//        notificationManager.cancel(DiscoWallConstants.NotificationIDs.firewallService);
-//    }
 
     /**
      * Creates permanent notification required for service to run indefinitely.
@@ -157,46 +151,40 @@ public class FirewallService extends IntentService {
     }
 
     public boolean isFirewallRunning() throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.NonZeroReturnValueException {
-        if (!control.isBridgeConnected())
+        if (control == null)
             return false;
         else
-            return control.rulesAreEnabled();
+            return control.isBridgeConnected();
     }
 
-    public void enableFirewall(int port) throws ShellExecuteExceptions.CallException, NetfilterExceptions.NetfilterBridgeDeploymentException, ShellExecuteExceptions.NonZeroReturnValueException {
-        Log.v(LOG_TAG, "starting firewall...");
+    public void enableFirewall(int port) throws ShellExecuteExceptions.CallException, NetfilterExceptions.NetfilterBridgeDeploymentException, ShellExecuteExceptions.ReturnValueException {
+        Log.i(LOG_TAG, "starting firewall...");
 
         if (isFirewallRunning())
         {
-            Log.v(LOG_TAG, "firewall already running. nothing to do.");
+            Log.i(LOG_TAG, "firewall already running. nothing to do.");
+        } else {
+            control = new NfqueueControl(appManagement, appManagement.getSettings().getFirewallPort());
+            Log.i(LOG_TAG, "firewall started.");
+        }
+    }
+
+    public void disableFirewall() throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException, IOException {
+        Log.i(LOG_TAG, "disabling firewall...");
+
+        if (control == null) {
+            Log.i(LOG_TAG, "firewall already disabled. nothing to do.");
             return;
         }
 
-        // Start and connect to netfilter-bridge
-        if (!control.isBridgeConnected())
-            control.connectToBridge(port);
-
-        // Enable iptables hooking-rules, so that each package will be sent to netfilter-bridge binary
-        control.rulesEnableAll();
-
-        Log.v(LOG_TAG, "firewall started.");
-    }
-
-    public void disableFirewall() throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.NonZeroReturnValueException, IOException {
-        Log.v(LOG_TAG, "disabling firewall...");
+        // I will try disconnecting the bridge - even if the communication itself is already down.
+        // This is being done to make sure the user can deactivate the firewall even in an unexpected/erroneous state.
 
         // Disable iptables hooking-rules, so that no package will be sent to netfilter-bridge binary
-        Log.v(LOG_TAG, "removing iptable rules");
-        control.rulesDisableAll();
+        Log.v(LOG_TAG, "disconnecting bridge");
+        control.disconnectBridge();
 
-        if (control.isBridgeConnected()) {
-            Log.v(LOG_TAG, "disconnecting bridge");
-            control.disconnectBridge();
-        } else {
-            Log.v(LOG_TAG, "bridge not connected.");
-        }
-
-        Log.v(LOG_TAG, "firewall disabled.");
+        Log.i(LOG_TAG, "firewall disabled.");
     }
 
 }

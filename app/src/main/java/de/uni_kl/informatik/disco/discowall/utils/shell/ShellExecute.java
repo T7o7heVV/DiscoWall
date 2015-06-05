@@ -9,7 +9,12 @@ import java.io.InputStreamReader;
 import java.util.LinkedList;
 
 public class ShellExecute {
-    private static final String LOG_TAG = ShellExecute.class.getCanonicalName();
+    private static final String LOG_TAG = ShellExecute.class.getSimpleName();
+
+    public String shell;
+    public boolean readResult = true;
+    public boolean waitForTermination = true;
+    public boolean redirectStderrToStdout = false;
 
     public static class ShellExecuteResult {
         public final String shell, commandsAsString;
@@ -17,6 +22,8 @@ public class ShellExecute {
         public String processOutput;
         public int returnValue;
         public Process process;
+
+        private IOException readerThreadException;
 
         @Override
         public String toString() {
@@ -84,6 +91,16 @@ public class ShellExecute {
             return this;
         }
 
+        public Builder doRedirectStderrToStdout() {
+            shellExecute.redirectStderrToStdout = true;
+            return this;
+        }
+
+        public Builder doNotRedirectStderrToStdout() {
+            shellExecute.redirectStderrToStdout = false;
+            return this;
+        }
+
         public Builder appendCommand(String command) {
             commands.add(command);
             return this;
@@ -97,13 +114,10 @@ public class ShellExecute {
         }
 
         public ShellExecuteResult execute() throws ShellExecuteExceptions.CallException {
-            return ShellExecute.execute(shellExecute.readResult, shellExecute.waitForTermination, shellExecute.shell, this.commands.toArray(new String[this.commands.size()]));
+            return ShellExecute.execute(shellExecute.readResult, shellExecute.waitForTermination, shellExecute.shell, this.commands.toArray(new String[this.commands.size()]), shellExecute.redirectStderrToStdout);
         }
-    }
 
-    public String shell;
-    public boolean readResult = true;
-    public boolean waitForTermination = true;
+    }
 
     public static Builder build() {
         return new Builder();
@@ -125,19 +139,24 @@ public class ShellExecute {
         return execute(readResult, waitForTermination, shell, new String[] { command });
     }
 
-    public static ShellExecuteResult execute(boolean readResult, boolean waitForTermination, String shell, String... cmds) throws ShellExecuteExceptions.CallException {
-        ShellExecuteResult shellExecuteResult = new ShellExecuteResult(shell, cmds);
+    public static ShellExecuteResult execute(boolean readResult, boolean waitForTermination, String shell, String[] cmds) throws ShellExecuteExceptions.CallException {
+        return execute(readResult, waitForTermination, shell, cmds, false);
+    }
+
+    public static ShellExecuteResult execute(boolean readResult, boolean waitForTermination, String shell, String[] cmds, boolean redirectStderrToStdout) throws ShellExecuteExceptions.CallException {
+        final ShellExecuteResult shellExecuteResult = new ShellExecuteResult(shell, cmds);
         Log.v(LOG_TAG, "executing command [shell="+shellExecuteResult.shell+"]: " + shellExecuteResult.commandsAsString);
 
-        Process p = null;
+        ProcessBuilder builder = new ProcessBuilder(shell);
         try {
-            p = Runtime.getRuntime().exec(shell);
-            shellExecuteResult.process = p;
+            Log.v(LOG_TAG, "redirecting Stderr to Stdout: " + redirectStderrToStdout);
+            builder.redirectErrorStream(redirectStderrToStdout);
+            shellExecuteResult.process = builder.start();
         } catch (IOException e) {
             throw new ShellExecuteExceptions.ShellExecuteCommandNotFoundException(shellExecuteResult, e);
         }
 
-        DataOutputStream os = new DataOutputStream(p.getOutputStream());
+        DataOutputStream os = new DataOutputStream(shellExecuteResult.process.getOutputStream());
 
         try {
             for (String tmpCmd : cmds) {
@@ -146,35 +165,66 @@ public class ShellExecute {
 
             os.writeBytes("exit\n");
             os.flush();
-
-            if (readResult) {
-                BufferedReader inputReader = new BufferedReader(new InputStreamReader(p.getInputStream()));
-                String result = "";
-
-                Log.v(LOG_TAG, "reading string output of command: '"+shellExecuteResult.commandsAsString);
-                while(inputReader.ready()) {
-                    result = result + inputReader.readLine() + "\n";
-                }
-                Log.v(LOG_TAG, "string output of command '" + shellExecuteResult.commandsAsString + "': " + result);
-
-                shellExecuteResult.processOutput = result;
-            }
         } catch(IOException e) {
             throw new ShellExecuteExceptions.ShellExecuteProcessCommunicationException(shellExecuteResult, e);
         }
 
+        if (readResult) {
+            Thread readerThread = new Thread() {
+                @Override
+                public void run() {
+                    try {
+                        BufferedReader inputReader = new BufferedReader(new InputStreamReader(shellExecuteResult.process.getInputStream()));
+                        String result = "";
+
+                        Log.v(LOG_TAG, "streaming output of command...");
+                        String line;
+                        while ((line = inputReader.readLine()) != null) {
+                            result = result + line + "\n";
+                        }
+
+                        if (result.isEmpty())
+                            Log.v(LOG_TAG, "string output of command '" + shellExecuteResult.commandsAsString + ": <command had no output>");
+                        else
+                            Log.v(LOG_TAG, "string output of command '" + shellExecuteResult.commandsAsString + "':\n" + result);
+
+                        shellExecuteResult.processOutput = result;
+                    } catch(IOException e) {
+                        shellExecuteResult.readerThreadException = e;
+                    }
+                }
+            };
+
+            if (waitForTermination) {
+                // if waiting for termination is desired, the output will be read without threading
+                readerThread.run();
+            } else {
+                // if it is desired to NOT wait for termination, the output will be read in a background daemon-thread
+                readerThread.setDaemon(true);
+                readerThread.start();
+            }
+        }
+
+
         // Wait until the su process terminates (after the "exit").
         // Then the entire output of the process is available.
-        if (waitForTermination || readResult) {
-            Log.v(LOG_TAG, "waiting for termination of command: " + shellExecuteResult.commandsAsString);
+        if (waitForTermination) {
+            Log.v(LOG_TAG, "waiting for termination of command...");
 
             try {
-                shellExecuteResult.returnValue = p.waitFor();
+                shellExecuteResult.returnValue = shellExecuteResult.process.waitFor();
             } catch(InterruptedException e) {
                 throw new ShellExecuteExceptions.CallInterruptedException(shellExecuteResult, e);
             }
 
+            // Forward exception back to execute-caller, if reader-thread encountered an exception
+            if (shellExecuteResult.readerThreadException != null)
+                throw new ShellExecuteExceptions.ShellExecuteProcessCommunicationException(shellExecuteResult, shellExecuteResult.readerThreadException);
+
             Log.v(LOG_TAG, "command '" + shellExecuteResult.commandsAsString + "' terminated with return code: " + shellExecuteResult.returnValue);
+        } else {
+            Log.v(LOG_TAG, "NOT waiting for termination of command. Return-value will be set to 0.");
+            shellExecuteResult.returnValue = 0; // setting value since "everything ok" can only be assumed without waiting for process-termination
         }
 
         return shellExecuteResult;

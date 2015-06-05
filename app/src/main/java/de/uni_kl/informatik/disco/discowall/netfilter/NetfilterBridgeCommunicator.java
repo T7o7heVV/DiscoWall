@@ -17,6 +17,7 @@ public class NetfilterBridgeCommunicator implements Runnable {
     private volatile boolean connected;
 
     private ServerSocket serverSocket;
+    private Socket clientSocket;
     private IOException connectionException;
     private PrintWriter socketOut;
     private BufferedReader socketIn;
@@ -37,7 +38,7 @@ public class NetfilterBridgeCommunicator implements Runnable {
             serverSocket = new ServerSocket(listeningPort);
 
             Log.v(LOG_TAG, "waiting for client...");
-            Socket clientSocket = serverSocket.accept();
+            clientSocket = serverSocket.accept();
 
             Log.v(LOG_TAG, "client (netfilter bridge) connected.");
             socketOut = new PrintWriter(clientSocket.getOutputStream(), true);
@@ -60,6 +61,13 @@ public class NetfilterBridgeCommunicator implements Runnable {
         } finally {
             connected = false;
         }
+
+        if (runCommunicationLoop) {
+            Log.d(LOG_TAG, "client disconnected. Reopening socket...");
+            run();
+        } else {
+            Log.d(LOG_TAG, "communication loop terminated.");
+        }
     }
 
     /**
@@ -68,12 +76,50 @@ public class NetfilterBridgeCommunicator implements Runnable {
      */
     private void communicate() throws IOException {
         runCommunicationLoop = true;
+        boolean firstMessage = true;
 
-        while (runCommunicationLoop) {
+        while (runCommunicationLoop
+                && clientSocket.isBound()
+                && clientSocket.isConnected()
+                && !clientSocket.isClosed()
+                && !clientSocket.isInputShutdown()
+                && !clientSocket.isOutputShutdown()
+               ) {
+
             String message = socketIn.readLine();
-            Log.d(LOG_TAG, "message received: " + message);
+            Log.v(LOG_TAG, "raw message received: " + message);
 
+            if (message == null) {
+                Log.d(LOG_TAG, "value 'null' received. Closing connection and waiting for new client.");
+                break;
+            }
+
+            if (firstMessage) {
+                sendMessage(DiscoWallBridgeProtocoll.Comment.MSG_PREFIX, "DiscoWall App says hello.");
+                firstMessage = false;
+            }
+
+            onMessageReceived(message);
         }
+    }
+
+    private void sendMessage(String prefix, String message) {
+        socketOut.println(prefix + message);
+        socketOut.flush();
+    }
+
+    private static class DiscoWallBridgeProtocoll {
+        public static class Comment {
+            public static final String MSG_PREFIX = "#COMMENT#";
+        }
+
+        public static class QueryPackageAction {
+            public static final String MSG_PREFIX = "#QUERY:PACKAGE-ACTION#";
+        }
+    }
+
+    private void onMessageReceived(String message) {
+
     }
 
     public boolean isConnected() {

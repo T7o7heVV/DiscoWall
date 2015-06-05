@@ -34,7 +34,7 @@ class NetfilterBridgeBinaryHandler {
     public boolean isProcessRunning() { return bridgeBinaryExecuteResult.isRunning(); }
 
     public void deploy() throws NetfilterExceptions.NetfilterBridgeDeploymentException {
-        Log.v(LOG_TAG, "netfilter bridge: deploying...");
+        Log.d(LOG_TAG, "netfilter bridge: deploying...");
 
         File netfilterBridgeBinary = DroidWallFiles.NETFILTER_BRIDGE_BINARY__FILE.getFile(appManagement.getContext());
 
@@ -55,42 +55,28 @@ class NetfilterBridgeBinaryHandler {
             throw new NetfilterExceptions.NetfilterBridgeDeploymentException("Error changing file permissions to '777'.", e);
         }
 
-        Log.v(LOG_TAG, "netfilter bridge: deployed and ready to use.");
+        Log.d(LOG_TAG, "netfilter bridge: deployed and ready to use.");
     }
 
     public void execute(int communicationPort) throws ShellExecuteExceptions.CallException {
+//        ProcessBuilder builder = new ProcessBuilder("su -c \"/data/data/nfqnltest/netfilter_bridge localhost 1337\"");
+//        builder.redirectErrorStream(true);
+//        try {
+//            builder.start();
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+
         // It will NOT be waited until this method returns!
         // The bridge binary runs as background process continuously.
         bridgeBinaryExecuteResult = RootShellExecute.build()
-                .doNotReadResult()
+                .doReadResult()
                 .doNotWaitForTermination()
+                .doRedirectStderrToStdout()
                 .appendCommand(getFile().getAbsolutePath() + " localhost " + communicationPort)
+//                .appendCommand(getFile().getAbsolutePath() + " localhost " + communicationPort)
+//                .appendCommand("/data/data/nfqnltest/netfilter_bridge localhost 1337")
                 .execute(); // non-blocking call, as ShellExecute.doWaitForTermination==false
-
-        Thread readerThread = new Thread() {
-            @Override
-            public void run() {
-                BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(bridgeBinaryExecuteResult.process.getInputStream()));
-                Log.d(LOG_TAG, "Beginning to stream NetfilterBridge output...");
-
-                while(bridgeBinaryExecuteResult.isRunning()) {
-                    try {
-                        Log.d(LOG_TAG, "NetfilterBridge:: " + bufferedReader.readLine());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-
-                try {
-                    bufferedReader.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        };
-
-        readerThread.setDaemon(true);
-        readerThread.start();
     }
 
     public void killAllInstances() throws ShellExecuteExceptions.CallException {
