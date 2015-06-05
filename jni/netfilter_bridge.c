@@ -1,4 +1,4 @@
-
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -25,12 +25,21 @@
 #include <libnetfilter_queue/libnetfilter_queue.h>
 
 
+/*  = Netfilter-Bridge client =
+ *  Used for notifying DiscoWall about incomming/outgoing packages and querying response (ACCEPT/DROP).
+ *  
+ *  External sources:
+ *  > Thanks goes to "http://www.binarytides.com/packet-sniffer-code-c-linux/" for the utility-methods used for decoding & printing ip-/tcp-package information.
+ *  > Also thanks to "Paul Amaranth" (paul@auroragrp.com) for his how-to on the fact that I simply need to cast "unsigned char *data" to "struct iphdr *".
+ */
+
+
 /* ======================================================================================== */
 /* Global Variables */
 /* ======================================================================================== */
 
 int sockfd; // server (android app) connection
-
+struct sockaddr_in source,dest; // printer-methods
 
 /* ======================================================================================== */
 /* Utility-Methods */
@@ -42,10 +51,89 @@ void error(const char *msg)
     exit(1);
 }
 
+void print_ip_header(unsigned char* Buffer, int Size)
+{
+    unsigned short iphdrlen;
+         
+    struct iphdr *iph = (struct iphdr *)Buffer;
+    iphdrlen =iph->ihl*4;
+     
+    memset(&source, 0, sizeof(source));
+    source.sin_addr.s_addr = iph->saddr;
+     
+    memset(&dest, 0, sizeof(dest));
+    dest.sin_addr.s_addr = iph->daddr;
+     
+    fprintf(stdout,"\n");
+    fprintf(stdout,"IP Header\n");
+    fprintf(stdout,"   |-IP Version        : %d\n",(unsigned int)iph->version);
+    fprintf(stdout,"   |-IP Header Length  : %d DWORDS or %d Bytes\n",(unsigned int)iph->ihl,((unsigned int)(iph->ihl))*4);
+    fprintf(stdout,"   |-Type Of Service   : %d\n",(unsigned int)iph->tos);
+    fprintf(stdout,"   |-IP Total Length   : %d  Bytes(Size of Packet)\n",ntohs(iph->tot_len));
+    fprintf(stdout,"   |-Identification    : %d\n",ntohs(iph->id));
+    //fprintf(stdout,"   |-Reserved ZERO Field   : %d\n",(unsigned int)iphdr->ip_reserved_zero);
+    //fprintf(stdout,"   |-Dont Fragment Field   : %d\n",(unsigned int)iphdr->ip_dont_fragment);
+    //fprintf(stdout,"   |-More Fragment Field   : %d\n",(unsigned int)iphdr->ip_more_fragment);
+    fprintf(stdout,"   |-TTL      : %d\n",(unsigned int)iph->ttl);
+    fprintf(stdout,"   |-Protocol : %d\n",(unsigned int)iph->protocol);
+    fprintf(stdout,"   |-Checksum : %d\n",ntohs(iph->check));
+    fprintf(stdout,"   |-Source IP        : %s\n",inet_ntoa(source.sin_addr));
+    fprintf(stdout,"   |-Destination IP   : %s\n",inet_ntoa(dest.sin_addr));
+}
+
+void print_tcp_packet(unsigned char* Buffer, int Size)
+{
+    unsigned short iphdrlen;
+     
+    struct iphdr *iph = (struct iphdr *)Buffer;
+    iphdrlen = iph->ihl*4;
+     
+    struct tcphdr *tcph=(struct tcphdr*)(Buffer + iphdrlen);
+             
+    fprintf(stdout,"\n\n***********************TCP Packet*************************\n");    
+         
+    print_ip_header(Buffer,Size);
+         
+    fprintf(stdout,"\n");
+    fprintf(stdout,"TCP Header\n");
+    fprintf(stdout,"   |-Source Port      : %u\n",ntohs(tcph->source));
+    fprintf(stdout,"   |-Destination Port : %u\n",ntohs(tcph->dest));
+    fprintf(stdout,"   |-Sequence Number    : %u\n",ntohl(tcph->seq));
+    fprintf(stdout,"   |-Acknowledge Number : %u\n",ntohl(tcph->ack_seq));
+    fprintf(stdout,"   |-Header Length      : %d DWORDS or %d BYTES\n" ,(unsigned int)tcph->doff,(unsigned int)tcph->doff*4);
+    //fprintf(stdout,"   |-CWR Flag : %d\n",(unsigned int)tcph->cwr);
+    //fprintf(stdout,"   |-ECN Flag : %d\n",(unsigned int)tcph->ece);
+    fprintf(stdout,"   |-Urgent Flag          : %d\n",(unsigned int)tcph->urg);
+    fprintf(stdout,"   |-Acknowledgement Flag : %d\n",(unsigned int)tcph->ack);
+    fprintf(stdout,"   |-Push Flag            : %d\n",(unsigned int)tcph->psh);
+    fprintf(stdout,"   |-Reset Flag           : %d\n",(unsigned int)tcph->rst);
+    fprintf(stdout,"   |-Synchronise Flag     : %d\n",(unsigned int)tcph->syn);
+    fprintf(stdout,"   |-Finish Flag          : %d\n",(unsigned int)tcph->fin);
+    fprintf(stdout,"   |-Window         : %d\n",ntohs(tcph->window));
+    fprintf(stdout,"   |-Checksum       : %d\n",ntohs(tcph->check));
+    fprintf(stdout,"   |-Urgent Pointer : %d\n",tcph->urg_ptr);
+    fprintf(stdout,"\n");
+    fprintf(stdout,"                        DATA Dump                         ");
+    fprintf(stdout,"\n");
+         
+    fprintf(stdout,"IP Header\n");
+    // PrintData(Buffer,iphdrlen);
+         
+    fprintf(stdout,"TCP Header\n");
+    // PrintData(Buffer+iphdrlen,tcph->doff*4);
+         
+    fprintf(stdout,"Data Payload\n");  
+    // PrintData(Buffer + iphdrlen + tcph->doff*4 , (Size - tcph->doff*4-iph->ihl*4) );
+                         
+    fprintf(stdout,"\n###########################################################");
+}
+
+
+
+
 /* ======================================================================================== */
 /* Netfilter Stuff */
 /* ======================================================================================== */
-
 
 /* returns packet id */
 static u_int32_t print_pkt(struct nfq_data *tb)
@@ -54,7 +142,7 @@ static u_int32_t print_pkt(struct nfq_data *tb)
 	struct nfqnl_msg_packet_hdr *ph;
 	struct nfqnl_msg_packet_hw *hwph;
 	u_int32_t mark,ifi; 
-	int ret;
+	int data_size;
 	unsigned char *data;
 
 	ph = nfq_get_msg_packet_hdr(tb);
@@ -93,26 +181,71 @@ static u_int32_t print_pkt(struct nfq_data *tb)
 	if (ifi)
 		fprintf(stdout, "physoutdev=%u ", ifi);
 
-	ret = nfq_get_payload(tb, &data);
-	if (ret >= 0)
-		fprintf(stdout, "payload_len=%d ", ret);
+	data_size = nfq_get_payload(tb, &data);
+	if (data_size >= 0)
+		fprintf(stdout, "payload_len=%d ", data_size);
 
 	fputc('\n', stdout);
 
-	// Reading information relevant for firewall decision
+	// =============================================================================================================
+	//    Reading information relevant for firewall decision
+	// =============================================================================================================
+
+	// --------------------------------- IP Decoding ---------------------------------
+
     struct iphdr *ip;
-    struct in_addr ipa;
+    // struct in_addr ipa;
     char src_ip_str[20];
     char dst_ip_str[20];
 	
 	// Get IP addresses in char form
 	ip = (struct iphdr *) data;
-	ipa.s_addr=ip->saddr;
-	strcpy (src_ip_str, inet_ntoa(ipa));
-	ipa.s_addr=ip->daddr;
-	strcpy (dst_ip_str, inet_ntoa(ipa));
-	fprintf(stdout, "Source IP: %s   Destination IP: %s\n", src_ip_str, dst_ip_str);
+
+	//// Printing the IP altogether with TCP infos
+	// ipa.s_addr=ip->saddr;
+	// strcpy (src_ip_str, inet_ntoa(ipa));
+	// ipa.s_addr=ip->daddr;
+	// strcpy (dst_ip_str, inet_ntoa(ipa));
+	// fprintf(stdout, "Source IP: %s   Destination IP: %s\n", src_ip_str, dst_ip_str);
 	
+	    
+	fprintf(stdout, "Protocol-Type:");
+	bool isTcp = false;
+
+    switch (ip->protocol) //Check the Protocol and do accordingly...
+    {
+        case 1:  //ICMP Protocol
+            fprintf(stdout, "ICMP --> ignoring package.\n");
+            break;
+         
+        case 2:  //IGMP Protocol
+            fprintf(stdout, "IGMP --> ignoring package.\n");
+            break;
+         
+        case 6:  //TCP Protocol
+        	isTcp = true;
+        	fprintf(stdout, "TCP --> forwarding info to firewall...\n");
+            // print_tcp_packet(buffer , size);
+            break;
+         
+        case 17: //UDP Protocol
+            fprintf(stdout, "UDP --> ignoring package.\n");
+            break;
+         
+        default: //Some Other Protocol like ARP etc.
+			fprintf(stdout, "<unknown protocol> --> ignoring package.\n");
+            break;
+    }
+
+    if (!isTcp) 
+    {
+    	return id;
+    }
+
+	// --------------------------------- TCP Decoding ---------------------------------
+
+    print_tcp_packet(data, data_size);
+
 	return id;
 }
 
