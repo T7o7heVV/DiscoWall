@@ -26,19 +26,18 @@ import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecuteExceptions;
 public class FirewallService extends IntentService {
     private static final String LOG_TAG = FirewallService.class.getSimpleName();
 
-    private final AppManagement appManagement;
-    private NfqueueControl control;
-
     /** This variable is currently only used to create log-messages which specify whether the service is already running.
      */
     private boolean serviceRunning = false;
+    private final Firewall firewall;
 
     public FirewallService() {
         super("FirewallService");
+        firewall = new Firewall(this);
+    }
 
-        Log.i(LOG_TAG, "initializing firewall service...");
-        appManagement = new AppManagement(this);
-        Log.i(LOG_TAG, "firewall service running.");
+    public Firewall getFirewall() {
+        return firewall;
     }
 
     @Override
@@ -47,10 +46,10 @@ public class FirewallService extends IntentService {
 
         // making sure, that no nfqueue rules remain - otherwise the host system's tcp/ip network would become unusable
         try {
-            disableFirewall();
+            firewall.disableFirewall();
         } catch (Exception e) {
             Log.e(LOG_TAG, e.getMessage());
-            Log.e(LOG_TAG, "Could not remove iptable rules. Please check your rules for any nfqueue-call by using typing 'iptables -L -n -v' via a root-shell.");
+            Log.e(LOG_TAG, "Could not stop all firewall-modules. Please check your rules for any nfqueue-call by using typing 'iptables -L -n -v' via a root-shell.");
         }
 
         Log.i(LOG_TAG, "firewall service destroyed.");
@@ -71,7 +70,15 @@ public class FirewallService extends IntentService {
         }
 
         serviceRunning = true;
-        createPermanentNotification();
+
+        // WARNING: Has to be called during the lifetime of this Service. This implies NOT being called from within the constructor.
+        Notification notification = new Notification.Builder(this)
+                .setContentTitle(getString(R.string.firewall_service_notification_title))
+                .setContentText(getString(R.string.firewall_service_notification_message))
+                .setSmallIcon(R.mipmap.firewall)
+                .build();
+
+        startForeground(DiscoWallConstants.NotificationIDs.firewallService, notification);
 
         Log.i(LOG_TAG, "service started.");
 
@@ -98,7 +105,7 @@ public class FirewallService extends IntentService {
 
         // making sure, that no nfqueue rules remain - otherwise the host system's tcp/ip network would become unusable
         try {
-            disableFirewall();
+            firewall.disableFirewall();
             Log.i(LOG_TAG, "service stopped.");
         } catch (Exception e) {
             Log.e(LOG_TAG, "Error while stopping firewall service: " + e.getMessage());
@@ -118,22 +125,6 @@ public class FirewallService extends IntentService {
         stopSelf();
     }
 
-    /**
-     * Creates permanent notification required for service to run indefinitely.
-     * <p>
-     * <b>WARNING: </b> Has to be called during the lifetime of this Service. This implies NOT being called from within the constructor.
-     * </p>
-     */
-    private void createPermanentNotification() {
-        Notification notification = new Notification.Builder(this)
-                .setContentTitle(getString(R.string.firewall_service_notification_title))
-                .setContentText(getString(R.string.firewall_service_notification_message))
-                .setSmallIcon(R.mipmap.firewall)
-                .build();
-
-        startForeground(DiscoWallConstants.NotificationIDs.firewallService, notification);
-    }
-
     @Override
     public IBinder onBind(Intent intent) {
         return new FirewallBinder();
@@ -148,43 +139,6 @@ public class FirewallService extends IntentService {
         public FirewallService getService() {
             return FirewallService.this;
         }
-    }
-
-    public boolean isFirewallRunning() throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.NonZeroReturnValueException {
-        if (control == null)
-            return false;
-        else
-            return control.isBridgeConnected();
-    }
-
-    public void enableFirewall(int port) throws ShellExecuteExceptions.CallException, NetfilterExceptions.NetfilterBridgeDeploymentException, ShellExecuteExceptions.ReturnValueException {
-        Log.i(LOG_TAG, "starting firewall...");
-
-        if (isFirewallRunning())
-        {
-            Log.i(LOG_TAG, "firewall already running. nothing to do.");
-        } else {
-            control = new NfqueueControl(appManagement, appManagement.getSettings().getFirewallPort());
-            Log.i(LOG_TAG, "firewall started.");
-        }
-    }
-
-    public void disableFirewall() throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException, IOException {
-        Log.i(LOG_TAG, "disabling firewall...");
-
-        if (control == null) {
-            Log.i(LOG_TAG, "firewall already disabled. nothing to do.");
-            return;
-        }
-
-        // I will try disconnecting the bridge - even if the communication itself is already down.
-        // This is being done to make sure the user can deactivate the firewall even in an unexpected/erroneous state.
-
-        // Disable iptables hooking-rules, so that no package will be sent to netfilter-bridge binary
-        Log.v(LOG_TAG, "disconnecting bridge");
-        control.disconnectBridge();
-
-        Log.i(LOG_TAG, "firewall disabled.");
     }
 
 }

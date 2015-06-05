@@ -67,7 +67,7 @@ public class MainActivity extends ActionBarActivity {
 
         try {
 //            firewallService.stopFirewallService();
-            firewallService.enableFirewall(1337);
+            firewallService.getFirewall().enableFirewall(1337);
         } catch (Exception e) {
             e.printStackTrace();
         }

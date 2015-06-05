@@ -8,9 +8,18 @@
 #include <errno.h>
 
 #include <linux/netfilter_ipv4.h>
-#include <linux/tcp.h>
-#include <linux/ip.h>
+// #include <linux/tcp.h>
+// #include <linux/ip.h>
 #include <linux/in.h>
+
+/* Package handling */
+#include<string.h>    //memset
+#include<netinet/ip_icmp.h>   //Provides declarations for icmp header
+#include<netinet/udp.h>   //Provides declarations for udp header
+#include<netinet/tcp.h>   //Provides declarations for tcp header
+#include<netinet/ip.h>    //Provides declarations for ip header
+#include<arpa/inet.h>
+
 
 /* for tcp-communication */
 #include <stdio.h>
@@ -51,6 +60,11 @@ void error(const char *msg)
     exit(1);
 }
 
+
+/* ======================================================================================== */
+/* Package-Handling */
+/* ======================================================================================== */
+
 void print_ip_header(unsigned char* Buffer, int Size)
 {
     unsigned short iphdrlen;
@@ -81,7 +95,8 @@ void print_ip_header(unsigned char* Buffer, int Size)
     fprintf(stdout,"   |-Destination IP   : %s\n",inet_ntoa(dest.sin_addr));
 }
 
-void print_tcp_packet(unsigned char* Buffer, int Size)
+/* Returns true, if the package should be accepted, false otherwise */
+bool handle_tcp_packet(unsigned char* Buffer, int Size)
 {
     unsigned short iphdrlen;
      
@@ -126,17 +141,54 @@ void print_tcp_packet(unsigned char* Buffer, int Size)
     // PrintData(Buffer + iphdrlen + tcph->doff*4 , (Size - tcph->doff*4-iph->ihl*4) );
                          
     fprintf(stdout,"\n###########################################################");
+
+    return true;
 }
 
+ 
+/* Returns true, if the package should be accepted, false otherwise */
+bool handle_udp_packet(unsigned char *Buffer , int Size)
+{
+     
+    unsigned short iphdrlen;
+     
+    struct iphdr *iph = (struct iphdr *)Buffer;
+    iphdrlen = iph->ihl*4;
+     
+    struct udphdr *udph = (struct udphdr*)(Buffer + iphdrlen);
+     
+    fprintf(stdout,"\n\n***********************UDP Packet*************************\n");
+     
+    print_ip_header(Buffer,Size);           
+     
+    fprintf(stdout,"\nUDP Header\n");
+    fprintf(stdout,"   |-Source Port      : %d\n" , ntohs(udph->source));
+    fprintf(stdout,"   |-Destination Port : %d\n" , ntohs(udph->dest));
+    fprintf(stdout,"   |-UDP Length       : %d\n" , ntohs(udph->len));
+    fprintf(stdout,"   |-UDP Checksum     : %d\n" , ntohs(udph->check));
+     
+    fprintf(stdout,"\n");
+    fprintf(stdout,"IP Header\n");
+    // PrintData(Buffer , iphdrlen);
+         
+    fprintf(stdout,"UDP Header\n");
+    // PrintData(Buffer+iphdrlen , sizeof udph);
+         
+    fprintf(stdout,"Data Payload\n");  
+    // PrintData(Buffer + iphdrlen + sizeof udph ,( Size - sizeof udph - iph->ihl * 4 ));
+     
+    fprintf(stdout,"\n###########################################################");
 
+    return true;
+}
 
-
+ 
 /* ======================================================================================== */
 /* Netfilter Stuff */
 /* ======================================================================================== */
 
 /* returns packet id */
-static u_int32_t print_pkt(struct nfq_data *tb)
+static u_int32_t handle_pkt(struct nfq_data *tb)
 {
 	int id = 0;
 	struct nfqnl_msg_packet_hdr *ph;
@@ -162,24 +214,24 @@ static u_int32_t print_pkt(struct nfq_data *tb)
 		fprintf(stdout, "%02x ", hwph->hw_addr[hlen-1]);
 	}
 
-	mark = nfq_get_nfmark(tb);
-	if (mark)
-		fprintf(stdout, "mark=%u ", mark);
+	// mark = nfq_get_nfmark(tb);
+	// if (mark)
+	// 	fprintf(stdout, "mark=%u ", mark);
 
-	ifi = nfq_get_indev(tb);
-	if (ifi)
-		fprintf(stdout, "indev=%u ", ifi);
+	// ifi = nfq_get_indev(tb);
+	// if (ifi)
+	// 	fprintf(stdout, "indev=%u ", ifi);
 
-	ifi = nfq_get_outdev(tb);
-	if (ifi)
-		fprintf(stdout, "outdev=%u ", ifi);
-	ifi = nfq_get_physindev(tb);
-	if (ifi)
-		fprintf(stdout, "physindev=%u ", ifi);
+	// ifi = nfq_get_outdev(tb);
+	// if (ifi)
+	// 	fprintf(stdout, "outdev=%u ", ifi);
+	// ifi = nfq_get_physindev(tb);
+	// if (ifi)
+	// 	fprintf(stdout, "physindev=%u ", ifi);
 
-	ifi = nfq_get_physoutdev(tb);
-	if (ifi)
-		fprintf(stdout, "physoutdev=%u ", ifi);
+	// ifi = nfq_get_physoutdev(tb);
+	// if (ifi)
+	// 	fprintf(stdout, "physoutdev=%u ", ifi);
 
 	data_size = nfq_get_payload(tb, &data);
 	if (data_size >= 0)
@@ -187,9 +239,11 @@ static u_int32_t print_pkt(struct nfq_data *tb)
 
 	fputc('\n', stdout);
 
-	// =============================================================================================================
+
+	// -------------------------------------------------------------------------------
 	//    Reading information relevant for firewall decision
-	// =============================================================================================================
+	// -------------------------------------------------------------------------------
+
 
 	// --------------------------------- IP Decoding ---------------------------------
 
@@ -209,8 +263,8 @@ static u_int32_t print_pkt(struct nfq_data *tb)
 	// fprintf(stdout, "Source IP: %s   Destination IP: %s\n", src_ip_str, dst_ip_str);
 	
 	    
+	// --------------------------------- TCP/UDP Decoding ---------------------------------
 	fprintf(stdout, "Protocol-Type:");
-	bool isTcp = false;
 
     switch (ip->protocol) //Check the Protocol and do accordingly...
     {
@@ -223,13 +277,13 @@ static u_int32_t print_pkt(struct nfq_data *tb)
             break;
          
         case 6:  //TCP Protocol
-        	isTcp = true;
         	fprintf(stdout, "TCP --> forwarding info to firewall...\n");
-            // print_tcp_packet(buffer , size);
+    		handle_tcp_packet(data, data_size);
             break;
          
         case 17: //UDP Protocol
-            fprintf(stdout, "UDP --> ignoring package.\n");
+            fprintf(stdout, "UDP --> forwarding info to firewall...\n");
+            handle_udp_packet(data, data_size);
             break;
          
         default: //Some Other Protocol like ARP etc.
@@ -237,16 +291,22 @@ static u_int32_t print_pkt(struct nfq_data *tb)
             break;
     }
 
-    if (!isTcp) 
-    {
-    	return id;
-    }
-
-	// --------------------------------- TCP Decoding ---------------------------------
-
-    print_tcp_packet(data, data_size);
-
 	return id;
+}
+
+
+void sendMessageToServer(char *message)
+{
+	char buffer[256];
+    bzero(buffer,256); // overwrite buffer with zeros
+	strcpy(buffer, message);
+	fprintf(stdout, "SEND: sending message through channel: %s", buffer);
+
+	// TCP send: write from buffer into socket 
+    int n = write(sockfd,buffer,strlen(buffer));
+
+    if (n < 0) 
+     error("ERROR writing to socket");
 }
 
 	
@@ -255,20 +315,9 @@ static int cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
 	      struct nfq_data *nfa, void *data)
 {
 	fprintf(stdout, "\n================ Package Received ================\n");
-	u_int32_t id = print_pkt(nfa);
+	u_int32_t id = handle_pkt(nfa);
 
-	char buffer[256];
-    bzero(buffer,256); // overwrite buffer with zeros
-    char *message = "#COMMENT#package received.\n";
-	strcpy(buffer, message);
-	fprintf(stdout, "SEND: sending message through channel: %s", buffer);
-
-	// TCP send: write from buffer into socket 
-    int n = write(sockfd,buffer,strlen(buffer));
-    fprintf(stdout, "SEND: greeting-message sent.\n");
-
-    if (n < 0) 
-         error("ERROR writing to socket");
+	sendMessageToServer("#COMMENT#package received.\n");
 
 	return nfq_set_verdict(qh, id, NF_ACCEPT, 0, NULL);
 	// return nfq_set_verdict(qh, id, NF_DROP, 0, NULL);
