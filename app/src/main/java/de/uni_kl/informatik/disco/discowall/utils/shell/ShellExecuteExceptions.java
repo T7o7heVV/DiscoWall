@@ -38,7 +38,7 @@ public class ShellExecuteExceptions {
 
     public static class ShellExecuteCommandNotFoundException extends CallException {
         public ShellExecuteCommandNotFoundException(ShellExecute.ShellExecuteResult shellExecuteResult, IOException cause) {
-            super("Could not execute command because executable was not found. "
+            super("Could not start command because executable was not found. "
                     + "\n"  + "Command: " + shellExecuteResult.commandsAsString
                     + "\n" + "Call-Exception: " + cause.getMessage(),
                     shellExecuteResult, cause);

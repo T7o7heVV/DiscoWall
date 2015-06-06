@@ -49,7 +49,7 @@
  *    - The server never querries the client
  * 	  - The server only responds to inquerries from the client
  *    - For each message sent to the server, the server will respond with exactly one message
- *  + Message-Schema:
+ *  + Message-Format:
  *    - A message is exactly one line (and therefore ends with a "\n")
  *  + Session-Schema:
  *    1) Welcome-Messages:
@@ -60,14 +60,15 @@
  *       ==> Filter-Query: Netfilter-Bridge sends package-information to server
  *			 * EXAMPLE: #Packet.QueryAction##protocol=tcp##ip.src=173.194.116.152##ip.dst=192.168.178.28##tcp.src.port=80##tcp.dst.port=54845#
  *       <== Filter-Decision: Server sends response containing action to be taken [ a) accept  b) drop ]
- * 			 + RESPONSES: ACCEPT == 'A', DROP == 'D'
+ * 			 + RESPONSES: ACCEPT == "#Packet.QueryAction.Resonse##ACCEPT#"
+ 						  DROP   == "#Packet.QueryAction.Resonse##DROP#"
  *    3) Example-Communication:
-         ==> #COMMENT#Netfilter-Bridge says hello.
-         <== #COMMENT#DiscoWall App says hello.
-         ==> #Packet.QueryAction##protocol=tcp##ip.src=173.194.116.152##ip.dst=192.168.178.28##tcp.src.port=80##tcp.dst.port=54845#
-         <== 'D' // i.e. package will be dropped
-         ==> #Packet.QueryAction##protocol=tcp##ip.src=173.194.116.152##ip.dst=192.168.178.28##tcp.src.port=80##tcp.dst.port=54845#
-         <== 'A' // i.e. package will be accepted
+         ==> "#COMMENT#Netfilter-Bridge says hello."
+         <== "#COMMENT#DiscoWall App says hello."
+         ==> "#Packet.QueryAction##protocol=tcp##ip.src=173.194.116.152##ip.dst=192.168.178.28##tcp.src.port=80##tcp.dst.port=54845#"
+         <== "#Packet.QueryAction.Resonse##DROP#" // i.e. package will be dropped
+         ==> "#Packet.QueryAction##protocol=tcp##ip.src=173.194.116.152##ip.dst=192.168.178.28##tcp.src.port=80##tcp.dst.port=54845#"
+         <== "#Packet.QueryAction.Resonse##ACCEPT#" // i.e. package will be accepted
  */
 
 
@@ -143,38 +144,40 @@ int receiveMessageFromServer(char* buffer, int size)
 }
 
 
-char receiveCharFromServer()
-{
-	char buffer[1];
-    bzero(buffer,1); // fill buffer with zeros
-
-	// TCP receive: read from tcp stream and write to buffer 
-	fprintf(stdout, "RECEIVE: waiting for response...\n");
-    // int n = read(sockfd,buffer,255);
-    int n = read(sockfd,buffer,1);
-    if (n < 0) 
-         error("ERROR reading from socket");
-    
-    fprintf(stdout, "RECEIVE: response received: %s\n", buffer);
-    return buffer[1];    
-}
-
-
 bool receiveProtocolResponseAcceptOrDropPackage()
 {
-	char responseAction = receiveCharFromServer();
+	char buffer[256];
+	receiveMessageFromServer(buffer, 256);
 
-    if (responseAction == 'A') // i.e. accept
-    {
-    	return true;
-    } 
-    else if (responseAction == 'D') // i.e. drop
-    {
-    	return false;
-    } 
+	char responseAccept[40]   = "#Packet.QueryAction.Resonse##ACCEPT#"; // 36 chars
+	char responseDrop[40]     = "#Packet.QueryAction.Resonse##DROP#";   // 34 chars
+	char receivedResponse[40];
+
+	// Test if message is ACCEPT
+	strncpy(receivedResponse, buffer, 36);
+	receivedResponse[36] = '\0'; // Adding the End-Of-String symbol
+	bool isAccept = strcmp(receivedResponse, responseAccept) == 0;
+
+	// Test if message is DROP
+	strncpy(receivedResponse, buffer, 34);
+	receivedResponse[34] = '\0'; // Adding the End-Of-String symbol
+	bool isDrop = strcmp(receivedResponse, responseDrop) == 0;
+
+	// fprintf(stdout, "Vergleich receivedResponse mit responseAccept (after null char added): %d\n", strcmp(receivedResponse, responseAccept));
+
+	if (isAccept)
+	{
+		// fprintf(stdout, "IS ACCEPT!\n");
+		return true;
+	} 
+	else if (isDrop)
+	{
+		// fprintf(stdout, "IS DROP!\n");
+		return false;
+	}
     else 
     {
-    	error("Invalid Server-Response! Expected 'A' or 'D'.");
+    	error("Invalid Server-Response! Expected '#Packet.QueryAction.Resonse##ACCEPT#' or '#Packet.QueryAction.Resonse##DROP#'.");
     }
 }
 
@@ -411,7 +414,7 @@ bool handle_tcp_packet(unsigned char* Buffer, int Size)
 	    printPackagePayload(Buffer + iphdrlen + tcph->doff*4 , (Size - tcph->doff*4-iph->ihl*4) );
     }
                          
-    fprintf(stdout,"\n###########################################################");
+    fprintf(stdout,"\n###########################################################\n");
 
     // ----------------------------- Firewall-Communication ----------------------------
     // Send TCP-Packet-Information to server
@@ -476,7 +479,7 @@ bool handle_udp_packet(unsigned char *Buffer , int Size)
 	    printPackagePayload(Buffer + iphdrlen + sizeof udph ,( Size - sizeof udph - iph->ihl * 4 ));
 	}
      
-    fprintf(stdout,"\n###########################################################");
+    fprintf(stdout,"\n###########################################################\n");
 
     // ----------------------------- Firewall-Communication ----------------------------
     // Send IP-UDP-Information to server
@@ -501,14 +504,10 @@ bool handle_udp_packet(unsigned char *Buffer , int Size)
 /* ======================================================================================== */
 
 /* returns packet id */
-static u_int32_t handle_pkt(struct nfq_data *tb)
+static u_int32_t handle_pkt_get_id(struct nfq_data *tb)
 {
 	int id = 0;
 	struct nfqnl_msg_packet_hdr *ph;
-	struct nfqnl_msg_packet_hw *hwph;
-	u_int32_t mark,ifi; 
-	int data_size;
-	unsigned char *data;
 
 	ph = nfq_get_msg_packet_hdr(tb);
 	if (ph) {
@@ -517,15 +516,36 @@ static u_int32_t handle_pkt(struct nfq_data *tb)
 			ntohs(ph->hw_protocol), ph->hook, id);
 	}
 
-	hwph = nfq_get_packet_hw(tb);
-	if (hwph) {
-		int i, hlen = ntohs(hwph->hw_addrlen);
+	return id;
+}
 
-		fprintf(stdout, "hw_src_addr=");
-		for (i = 0; i < hlen-1; i++)
-			fprintf(stdout, "%02x:", hwph->hw_addr[i]);
-		fprintf(stdout, "%02x ", hwph->hw_addr[hlen-1]);
-	}
+
+/* returns packet id */
+static u_int32_t handle_pkt(struct nfq_data *tb)
+{
+	// int id = 0;
+	// struct nfqnl_msg_packet_hdr *ph;
+	// struct nfqnl_msg_packet_hw *hwph;
+	// u_int32_t mark,ifi; 
+	int data_size;
+	unsigned char *data;
+
+	// ph = nfq_get_msg_packet_hdr(tb);
+	// if (ph) {
+	// 	id = ntohl(ph->packet_id);
+	// 	fprintf(stdout, "hw_protocol=0x%04x hook=%u id=%u ",
+	// 		ntohs(ph->hw_protocol), ph->hook, id);
+	// }
+
+	// hwph = nfq_get_packet_hw(tb);
+	// if (hwph) {
+	// 	int i, hlen = ntohs(hwph->hw_addrlen);
+
+	// 	fprintf(stdout, "hw_src_addr=");
+	// 	for (i = 0; i < hlen-1; i++)
+	// 		fprintf(stdout, "%02x:", hwph->hw_addr[i]);
+	// 	fprintf(stdout, "%02x ", hwph->hw_addr[hlen-1]);
+	// }
 
 	// mark = nfq_get_nfmark(tb);
 	// if (mark)
@@ -557,27 +577,13 @@ static u_int32_t handle_pkt(struct nfq_data *tb)
 	//    Reading information relevant for firewall decision
 	// -------------------------------------------------------------------------------
 
-
-	// --------------------------------- IP Decoding ---------------------------------
-
+	// --------------------------------- IP Decoding ------------------------------
     struct iphdr *ip;
-    // struct in_addr ipa;
-    char src_ip_str[20];
-    char dst_ip_str[20];
-	
-	// Get IP addresses in char form
-	ip = (struct iphdr *) data;
+	ip = (struct iphdr *) data; // Get IP addresses in char form
 
-	//// Printing the IP altogether with TCP infos
-	// ipa.s_addr=ip->saddr;
-	// strcpy (src_ip_str, inet_ntoa(ipa));
-	// ipa.s_addr=ip->daddr;
-	// strcpy (dst_ip_str, inet_ntoa(ipa));
-	// fprintf(stdout, "Source IP: %s   Destination IP: %s\n", src_ip_str, dst_ip_str);
-	
-	    
-	// --------------------------------- TCP/UDP Decoding ---------------------------------
+	// --------------------------------- TCP/UDP Decoding -------------------------
 	fprintf(stdout, "Protocol-Type:");
+	bool accept = true;
 
     switch (ip->protocol) //Check the Protocol and do accordingly...
     {
@@ -591,12 +597,12 @@ static u_int32_t handle_pkt(struct nfq_data *tb)
          
         case 6:  //TCP Protocol
         	fprintf(stdout, "TCP --> forwarding info to firewall...\n");
-    		handle_tcp_packet(data, data_size);
+    		accept = handle_tcp_packet(data, data_size);
             break;
          
         case 17: //UDP Protocol
             fprintf(stdout, "UDP --> forwarding info to firewall...\n");
-            handle_udp_packet(data, data_size);
+            accept = handle_udp_packet(data, data_size);
             break;
          
         default: //Some Other Protocol like ARP etc.
@@ -604,7 +610,7 @@ static u_int32_t handle_pkt(struct nfq_data *tb)
             break;
     }
 
-	return id;
+	return accept;
 }
 
 
@@ -613,12 +619,21 @@ static int cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
 	      struct nfq_data *nfa, void *data)
 {
 	fprintf(stdout, "\n================ Package Received ================\n");
-	u_int32_t id = handle_pkt(nfa);
 
-	// sendMessageToServer("#COMMENT#package received.\n"); // the only information about a received package will be sent when handling the tcp and ip content
+	u_int32_t id = handle_pkt_get_id(nfa);
 
-	return nfq_set_verdict(qh, id, NF_ACCEPT, 0, NULL);
-	// return nfq_set_verdict(qh, id, NF_DROP, 0, NULL);
+	bool acceptPacket = handle_pkt(nfa);
+
+	if (acceptPacket)
+	{
+		fprintf(stdout, "ACCEPT package.\n");
+		return nfq_set_verdict(qh, id, NF_ACCEPT, 0, NULL);
+	}
+	else 
+	{
+		fprintf(stdout, "DROP package.\n");
+		return nfq_set_verdict(qh, id, NF_DROP, 0, NULL);
+	}
 }
 
 void startNfqueueCallbacks()

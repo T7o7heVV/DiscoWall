@@ -15,15 +15,17 @@ public class NetfilterBridgeControl {
 //    private static final String IPTABLES_NFQUEUE_RULE = "-p tcp -j NFQUEUE --queue-num 0";
     private static final String IPTABLES_NFQUEUE_RULE = "-p tcp -j NFQUEUE --queue-num 0 --queue-bypass"; // '--queue-bypass' will allow all packages, when no application is bound to the --queue-num 0
     private final AppManagement appManagement;
+    private final NetfilterBridgeCommunicator.EventsHandler bridgeEventsHandler;
 
     private final NetfilterBridgeBinaryHandler bridgeBinaryHandler;
     private NetfilterBridgeCommunicator bridgeCommunicator;
     private final int bridgeCommunicationPort;
     private final String IPTABLES_FIREWALL_BRIDGE_COM_SOURCE_EXCEPTION_RULE, IPTABLES_FIREWALL_BRIDGE_COM_DESTINATION_EXCEPTION_RULE;
 
-    public NetfilterBridgeControl(AppManagement appManagement, int bridgeCommunicationPort) throws NetfilterExceptions.NetfilterBridgeDeploymentException, ShellExecuteExceptions.ReturnValueException, ShellExecuteExceptions.CallException {
+    public NetfilterBridgeControl(NetfilterBridgeCommunicator.EventsHandler bridgeEventsHandler, AppManagement appManagement, int bridgeCommunicationPort) throws NetfilterExceptions.NetfilterBridgeDeploymentException, ShellExecuteExceptions.ReturnValueException, ShellExecuteExceptions.CallException {
         Log.d(LOG_TAG, "initializing NetfilterBridgeControl...");
 
+        this.bridgeEventsHandler = bridgeEventsHandler;
         this.bridgeCommunicationPort = bridgeCommunicationPort;
         this.IPTABLES_FIREWALL_BRIDGE_COM_SOURCE_EXCEPTION_RULE = "-p tcp --destination-port " + bridgeCommunicationPort + " -j ACCEPT";
         this.IPTABLES_FIREWALL_BRIDGE_COM_DESTINATION_EXCEPTION_RULE = "-p tcp --source-port " + bridgeCommunicationPort + " -j ACCEPT";
@@ -58,7 +60,7 @@ public class NetfilterBridgeControl {
         rulesEnableAll();
 
         Log.d(LOG_TAG, "starting netfilter bridge communicator as listening server...");
-        bridgeCommunicator = new NetfilterBridgeCommunicator(bridgeCommunicationPort);
+        bridgeCommunicator = new NetfilterBridgeCommunicator(bridgeEventsHandler, bridgeCommunicationPort);
         Log.d(LOG_TAG, "listening on port: " + bridgeCommunicationPort);
 
         Log.d(LOG_TAG, "killing all possibly running netfilter bridge instances...");
@@ -66,7 +68,7 @@ public class NetfilterBridgeControl {
 
         // Disabled for DEBUGGING - using external instance within shell
 //        Log.d(LOG_TAG, "executing netfilter bridge binary...");
-//        bridgeBinaryHandler.execute(bridgeCommunicationPort);
+//        bridgeBinaryHandler.start(bridgeCommunicationPort);
 
         Log.d(LOG_TAG, "netfilter-bridge connected.");
     }

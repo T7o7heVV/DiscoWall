@@ -6,11 +6,13 @@ import android.util.Log;
 import java.io.IOException;
 
 import de.uni_kl.informatik.disco.discowall.AppManagement;
+import de.uni_kl.informatik.disco.discowall.netfilter.bridge.NetfilterBridgeCommunicator;
 import de.uni_kl.informatik.disco.discowall.netfilter.bridge.NetfilterBridgeControl;
 import de.uni_kl.informatik.disco.discowall.netfilter.NetfilterExceptions;
+import de.uni_kl.informatik.disco.discowall.netfilter.bridge.NetfilterBridgePackages;
 import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecuteExceptions;
 
-public class Firewall {
+public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
     private static final String LOG_TAG = FirewallService.class.getSimpleName();
 
     private final AppManagement appManagement;
@@ -36,7 +38,7 @@ public class Firewall {
         {
             Log.i(LOG_TAG, "firewall already running. nothing to do.");
         } else {
-            control = new NetfilterBridgeControl(appManagement, appManagement.getSettings().getFirewallPort());
+            control = new NetfilterBridgeControl(this, appManagement, appManagement.getSettings().getFirewallPort());
             Log.i(LOG_TAG, "firewall started.");
         }
     }
@@ -57,5 +59,10 @@ public class Firewall {
         control.disconnectBridge();
 
         Log.i(LOG_TAG, "firewall disabled.");
+    }
+
+    @Override
+    public boolean onPackageReceived(NetfilterBridgePackages.TransportLayerPackage tlPackage) {
+        return true;
     }
 }

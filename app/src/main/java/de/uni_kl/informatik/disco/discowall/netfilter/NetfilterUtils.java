@@ -8,7 +8,7 @@ import de.uni_kl.informatik.disco.discowall.utils.SystemUtils;
 
 public class NetfilterUtils {
     public static boolean isIptablesModuleInstalled() throws ShellExecuteExceptions.NonZeroReturnValueException, IOException, ShellExecuteExceptions.CallException {
-//        ShellExecute.ShellExecuteResult result = new RootShellExecute().execute("gunzip -c /proc/config.gz | grep -i netfilter config | grep -i =y");
+//        ShellExecute.ShellExecuteResult result = new RootShellExecute().start("gunzip -c /proc/config.gz | grep -i netfilter config | grep -i =y");
 
         LinkedList<String> configContent = SystemUtils.getKernelConfig(); // will throw FileNotFoundException if /proc/config.gz is missing for this kernel
 

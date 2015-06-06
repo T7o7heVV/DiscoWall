@@ -55,7 +55,9 @@ public class MainActivity extends ActionBarActivity {
 
         EditText editText = (EditText) findViewById(R.id.editText);
         Log.v("Main", "edit text: " + editText.getText());
+    }
 
+    private void test() {
         try {
 //            firewallService.stopFirewallService();
             firewallService.getFirewall().enableFirewall(1337);
@@ -94,6 +96,9 @@ public class MainActivity extends ActionBarActivity {
 
             FirewallService.FirewallBinder binder = (FirewallService.FirewallBinder) service;
             firewallService = binder.getService();
+
+
+            test();
         }
 
         @Override

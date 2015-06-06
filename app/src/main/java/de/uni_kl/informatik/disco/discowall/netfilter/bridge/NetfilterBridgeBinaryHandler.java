@@ -2,13 +2,10 @@ package de.uni_kl.informatik.disco.discowall.netfilter.bridge;
 
 import android.util.Log;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 
 import de.uni_kl.informatik.disco.discowall.AppManagement;
 import de.uni_kl.informatik.disco.discowall.netfilter.NetfilterExceptions;
@@ -59,15 +56,17 @@ class NetfilterBridgeBinaryHandler {
         Log.d(LOG_TAG, "netfilter bridge: deployed and ready to use.");
     }
 
-    public void execute(int communicationPort) throws ShellExecuteExceptions.CallException {
-//        ProcessBuilder builder = new ProcessBuilder("su -c \"/data/data/nfqnltest/netfilter_bridge localhost 1337\"");
-//        builder.redirectErrorStream(true);
-//        try {
-//            builder.start();
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
+    /**
+     * Kills all running instances (if any) and then starts a new instance.
+     * @param communicationPort
+     * @throws ShellExecuteExceptions.CallException
+     */
+    public void restart(int communicationPort) throws ShellExecuteExceptions.CallException {
+        killAllInstances();
+        start(communicationPort);
+    }
 
+    public void start(int communicationPort) throws ShellExecuteExceptions.CallException {
         // It will NOT be waited until this method returns!
         // The bridge binary runs as background process continuously.
         bridgeBinaryExecuteResult = RootShellExecute.build()
@@ -75,7 +74,6 @@ class NetfilterBridgeBinaryHandler {
                 .doNotWaitForTermination()
                 .doRedirectStderrToStdout()
                 .appendCommand(getFile().getAbsolutePath() + " localhost " + communicationPort)
-//                .appendCommand(getFile().getAbsolutePath() + " localhost " + communicationPort)
 //                .appendCommand("/data/data/nfqnltest/netfilter_bridge localhost 1337")
                 .execute(); // non-blocking call, as ShellExecute.doWaitForTermination==false
     }

@@ -1,8 +1,33 @@
 package de.uni_kl.informatik.disco.discowall.netfilter.bridge;
 
 public class NetfilterBridgeProtocol {
+//    public static class ProtocolException extends Exception {
+//        public ProtocolException(String message) {
+//            super(message);
+//        }
+//    }
+//
+//    public static class ProtocolFormatException extends ProtocolException {
+//        private final String receivedProtocolString;
+//
+//        public String getReceivedProtocolString() {
+//            return receivedProtocolString;
+//        }
+//
+//        public ProtocolFormatException(String message, String receivedProtocolString) {
+//            super(message);
+//            this.receivedProtocolString = receivedProtocolString;
+//        }
+//    }
+
     public static class Comment {
         public static final String MSG_PREFIX = "#COMMENT#";
+    }
+
+    public static class QueryPackageActionResponse {
+        public static final String MSG_PREFIX = "#Packet.QueryAction.Resonse#";
+        public static final String ACCEPT_PACKAGE = "#ACCEPT#";
+        public static final String DROP_PACKAGE = "#DROP#";
     }
 
     public static class QueryPackageAction {

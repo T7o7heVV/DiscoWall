@@ -217,7 +217,7 @@ public class ShellExecute {
                 throw new ShellExecuteExceptions.CallInterruptedException(shellExecuteResult, e);
             }
 
-            // Forward exception back to execute-caller, if reader-thread encountered an exception
+            // Forward exception back to start-caller, if reader-thread encountered an exception
             if (shellExecuteResult.readerThreadException != null)
                 throw new ShellExecuteExceptions.ShellExecuteProcessCommunicationException(shellExecuteResult, shellExecuteResult.readerThreadException);
 
