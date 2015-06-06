@@ -82,7 +82,7 @@ int sockfd; // server (android app) connection
 struct sockaddr_in source,dest; // printer-methods
 
 // debugging stuff:
-bool debug_printPackageHeader = true;
+bool debug_printPackageHeader = false;
 bool debug_printPackagePayload = false;
 
 

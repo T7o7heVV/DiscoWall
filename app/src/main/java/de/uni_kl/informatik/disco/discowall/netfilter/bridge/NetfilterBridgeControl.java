@@ -67,8 +67,8 @@ public class NetfilterBridgeControl {
         bridgeBinaryHandler.killAllInstances();
 
         // Disabled for DEBUGGING - using external instance within shell
-//        Log.d(LOG_TAG, "executing netfilter bridge binary...");
-//        bridgeBinaryHandler.start(bridgeCommunicationPort);
+        Log.d(LOG_TAG, "executing netfilter bridge binary...");
+        bridgeBinaryHandler.start(bridgeCommunicationPort);
 
         Log.d(LOG_TAG, "netfilter-bridge connected.");
     }
