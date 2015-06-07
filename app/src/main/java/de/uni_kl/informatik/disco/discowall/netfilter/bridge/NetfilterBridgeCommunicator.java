@@ -34,11 +34,15 @@ public class NetfilterBridgeCommunicator implements Runnable {
     private PrintWriter socketOut;
     private BufferedReader socketIn;
 
-    public NetfilterBridgeCommunicator(EventsHandler eventsHandler, int listeningPort) {
+    public NetfilterBridgeCommunicator(EventsHandler eventsHandler, int listeningPort) throws IOException {
         this.eventsHandler = eventsHandler;
         this.listeningPort = listeningPort;
 
         Log.v(LOG_TAG, "starting listening thread...");
+
+        Log.v(LOG_TAG, "opening listening port: " + listeningPort);
+        serverSocket = new ServerSocket(listeningPort);
+
         new Thread(this).start();
     }
 
@@ -47,9 +51,6 @@ public class NetfilterBridgeCommunicator implements Runnable {
         connected = false;
 
         try {
-            Log.v(LOG_TAG, "opening listening port: " + listeningPort);
-            serverSocket = new ServerSocket(listeningPort);
-
             Log.v(LOG_TAG, "waiting for client...");
             clientSocket = serverSocket.accept();
 

@@ -463,7 +463,7 @@ bool handle_tcp_packet(unsigned char* Buffer, int Size)
 	sendMessageToServer("#tcp.checksum=");
     sendIntToServer(ntohs(tcph->check));
     sendMessageToServer("#");
-    
+
     sendMessageToServer("#tcp.seqnr=");
     sendIntToServer(ntohl(tcph->seq));
     sendMessageToServer("#");
@@ -708,11 +708,15 @@ static int cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
 
 	if (acceptPacket)
 	{
+		// NOTE: documentation says: The package will continue iterating through the chain (and the super-chains where it jumped from, if any)
+		// BUT: In truth the package will jump to ACCEPT instantly and NOT continue traversing the chain. 
+		//      Has been tested: Any follow-up rule (even reject) will have no effect on the package after it has been accepted.
 		fprintf(stdout, "ACCEPT package.\n");
 		return nfq_set_verdict(qh, id, NF_ACCEPT, 0, NULL);
 	}
 	else 
 	{
+		// NOTE: The package will be discarted right here 
 		fprintf(stdout, "DROP package.\n");
 		return nfq_set_verdict(qh, id, NF_DROP, 0, NULL);
 	}

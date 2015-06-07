@@ -21,7 +21,7 @@ public class NetfilterBridgeControl {
     private NetfilterBridgeCommunicator bridgeCommunicator;
     private final int bridgeCommunicationPort;
 
-    public NetfilterBridgeControl(NetfilterBridgeCommunicator.EventsHandler bridgeEventsHandler, AppManagement appManagement, int bridgeCommunicationPort) throws NetfilterExceptions.NetfilterBridgeDeploymentException, ShellExecuteExceptions.ReturnValueException, ShellExecuteExceptions.CallException {
+    public NetfilterBridgeControl(NetfilterBridgeCommunicator.EventsHandler bridgeEventsHandler, AppManagement appManagement, int bridgeCommunicationPort) throws NetfilterExceptions.NetfilterBridgeDeploymentException, ShellExecuteExceptions.ReturnValueException, ShellExecuteExceptions.CallException, IOException {
         Log.d(LOG_TAG, "initializing NetfilterBridgeControl...");
 
         this.bridgeEventsHandler = bridgeEventsHandler;
@@ -31,17 +31,10 @@ public class NetfilterBridgeControl {
         this.bridgeBinaryHandler = new NetfilterBridgeBinaryHandler(appManagement);
         this.iptablesHandler = new NetfilterBridgeIptablesHandler(bridgeCommunicationPort);
 
-        connectToBridge();
-    }
+        // -----------------------------------------------------------------------------------------------------------
+        // Connect to bridge
+        // -----------------------------------------------------------------------------------------------------------
 
-    public boolean isBridgeConnected() {
-        if (bridgeCommunicator == null)
-            return false;
-        else
-            return bridgeCommunicator.isConnected() && bridgeBinaryHandler.isProcessRunning();
-    }
-
-    private void connectToBridge() throws NetfilterExceptions.NetfilterBridgeDeploymentException, ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
         Log.d(LOG_TAG, "connecting to netfilter-bridge...");
         Log.v(LOG_TAG, "netfilter bridge is deployed: " + bridgeBinaryHandler.isDeployed());
 
@@ -69,6 +62,13 @@ public class NetfilterBridgeControl {
         bridgeBinaryHandler.start(bridgeCommunicationPort);
 
         Log.d(LOG_TAG, "netfilter-bridge connected.");
+    }
+
+    public boolean isBridgeConnected() {
+        if (bridgeCommunicator == null)
+            return false;
+        else
+            return bridgeCommunicator.isConnected() && bridgeBinaryHandler.isProcessRunning();
     }
 
     public void disconnectBridge() throws IOException, ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {

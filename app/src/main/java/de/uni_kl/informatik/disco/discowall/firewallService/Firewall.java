@@ -4,6 +4,8 @@ import android.content.Context;
 import android.util.Log;
 
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 
 import de.uni_kl.informatik.disco.discowall.AppManagement;
 import de.uni_kl.informatik.disco.discowall.netfilter.bridge.NetfilterBridgeCommunicator;
@@ -31,7 +33,7 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
             return control.isBridgeConnected();
     }
 
-    public void enableFirewall(int port) throws ShellExecuteExceptions.CallException, NetfilterExceptions.NetfilterBridgeDeploymentException, ShellExecuteExceptions.ReturnValueException {
+    public void enableFirewall(int port) throws ShellExecuteExceptions.CallException, NetfilterExceptions.NetfilterBridgeDeploymentException, ShellExecuteExceptions.ReturnValueException, IOException {
         Log.i(LOG_TAG, "starting firewall...");
 
         if (isFirewallRunning())
@@ -63,6 +65,11 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
 
     @Override
     public boolean onPackageReceived(NetfilterBridgePackages.TransportLayerPackage tlPackage) {
+//        try {
+//            InetAddress.getByName("google.de");
+//        } catch (UnknownHostException e) {
+//        }
+
         return true;
     }
 
