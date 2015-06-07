@@ -51,6 +51,9 @@
  *    - For each message sent to the server, the server will respond with exactly one message
  *  + Message-Format:
  *    - A message is exactly one line (and therefore ends with a "\n")
+ * 	  - Each message begins with an action-information in format "#<action>#"
+ * 	  - Each message is a list of values having the format "#<value>#" or "#<valueID>=<value>#"
+ *    MESSAGE := #<action>##value1#...#valueN#
  *  + Session-Schema:
  *    1) Welcome-Messages:
  		 ==> Netfilter-Bridge sends welcome-message after
@@ -149,18 +152,18 @@ bool receiveProtocolResponseAcceptOrDropPackage()
 	char buffer[256];
 	receiveMessageFromServer(buffer, 256);
 
-	char responseAccept[40]   = "#Packet.QueryAction.Resonse##ACCEPT#"; // 36 chars
-	char responseDrop[40]     = "#Packet.QueryAction.Resonse##DROP#";   // 34 chars
+	char responseAccept[40]   = "#Packet.QueryAction.Response##ACCEPT#"; // 37 chars
+	char responseDrop[40]     = "#Packet.QueryAction.Response##DROP#";   // 35 chars
 	char receivedResponse[40];
 
 	// Test if message is ACCEPT
-	strncpy(receivedResponse, buffer, 36);
-	receivedResponse[36] = '\0'; // Adding the End-Of-String symbol
+	strncpy(receivedResponse, buffer, 37);
+	receivedResponse[37] = '\0'; // Adding the End-Of-String symbol
 	bool isAccept = strcmp(receivedResponse, responseAccept) == 0;
 
 	// Test if message is DROP
-	strncpy(receivedResponse, buffer, 34);
-	receivedResponse[34] = '\0'; // Adding the End-Of-String symbol
+	strncpy(receivedResponse, buffer, 35);
+	receivedResponse[35] = '\0'; // Adding the End-Of-String symbol
 	bool isDrop = strcmp(receivedResponse, responseDrop) == 0;
 
 	// fprintf(stdout, "Vergleich receivedResponse mit responseAccept (after null char added): %d\n", strcmp(receivedResponse, responseAccept));
@@ -344,12 +347,39 @@ void handle_ip_packet(unsigned char* Buffer, int Size)
 
     // ----------------------------- Firewall-Communication ----------------------------
     // Send IP-Packet-Information to server
+    
     sendMessageToServer("#ip.src=");
     sendMessageToServer(inet_ntoa(source.sin_addr));
     sendMessageToServer("#");
+
     sendMessageToServer("#ip.dst=");
     sendMessageToServer(inet_ntoa(dest.sin_addr));
     sendMessageToServer("#");
+
+	sendMessageToServer("#ip.ttl=");
+    sendIntToServer((unsigned int)iph->ttl);
+    sendMessageToServer("#");
+
+	sendMessageToServer("#ip.id=");
+    sendIntToServer(ntohs(iph->id));
+    sendMessageToServer("#");
+
+	sendMessageToServer("#ip.tos=");
+    sendIntToServer((unsigned int)iph->tos);
+    sendMessageToServer("#");
+
+	sendMessageToServer("#ip.version=");
+    sendIntToServer((unsigned int)iph->version);
+    sendMessageToServer("#");
+
+	sendMessageToServer("#ip.length=");
+    sendIntToServer(((unsigned int)(iph->ihl))*4);
+    sendMessageToServer("#");
+
+	sendMessageToServer("#ip.checksum=");
+    sendIntToServer(ntohs(iph->check));
+    sendMessageToServer("#");
+
     // ---------------------------------------------------------------------------------
 }
 
@@ -421,9 +451,51 @@ bool handle_tcp_packet(unsigned char* Buffer, int Size)
     sendMessageToServer("#tcp.src.port=");
     sendIntToServer(ntohs(tcph->source));
     sendMessageToServer("#");
+
     sendMessageToServer("#tcp.dst.port=");
     sendIntToServer(ntohs(tcph->dest));
     sendMessageToServer("#");
+
+    sendMessageToServer("#tcp.length=");
+    sendIntToServer((unsigned int)tcph->doff*4);
+    sendMessageToServer("#");
+
+	sendMessageToServer("#tcp.checksum=");
+    sendIntToServer(ntohs(tcph->check));
+    sendMessageToServer("#");
+    
+    sendMessageToServer("#tcp.seqnr=");
+    sendIntToServer(ntohl(tcph->seq));
+    sendMessageToServer("#");
+
+    sendMessageToServer("#tcp.acknr=");
+    sendIntToServer(ntohl(tcph->ack_seq));
+    sendMessageToServer("#");
+
+    sendMessageToServer("#tcp.flag.urgent=");
+    sendIntToServer((unsigned int)tcph->urg);
+    sendMessageToServer("#");
+
+    sendMessageToServer("#tcp.flag.ack=");
+    sendIntToServer((unsigned int)tcph->ack);
+    sendMessageToServer("#");
+
+    sendMessageToServer("#tcp.flag.push=");
+    sendIntToServer((unsigned int)tcph->psh);
+    sendMessageToServer("#");
+
+    sendMessageToServer("#tcp.flag.reset=");
+    sendIntToServer((unsigned int)tcph->rst);
+    sendMessageToServer("#");
+
+	sendMessageToServer("#tcp.flag.syn=");
+    sendIntToServer((unsigned int)tcph->syn);
+    sendMessageToServer("#");
+
+	sendMessageToServer("#tcp.flag.fin=");
+    sendIntToServer((unsigned int)tcph->fin);
+    sendMessageToServer("#");
+
     sendMessageToServer("\n"); // message-end
 
     // Receive server-response
@@ -486,9 +558,19 @@ bool handle_udp_packet(unsigned char *Buffer , int Size)
     sendMessageToServer("#udp.src.port=");
     sendIntToServer(ntohs(udph->source));
     sendMessageToServer("#");
+
     sendMessageToServer("#udp.dst.port=");
     sendIntToServer(ntohs(udph->dest));
     sendMessageToServer("#");
+
+    sendMessageToServer("#udp.length=");
+    sendIntToServer(ntohs(udph->len));
+    sendMessageToServer("#");
+
+    sendMessageToServer("#udp.checksum=");
+    sendIntToServer(ntohs(udph->check));
+    sendMessageToServer("#");
+
     sendMessageToServer("\n"); // message-end
 
     // Receive server-response

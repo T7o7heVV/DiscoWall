@@ -65,4 +65,8 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
     public boolean onPackageReceived(NetfilterBridgePackages.TransportLayerPackage tlPackage) {
         return true;
     }
+
+    @Override
+    public void onInternalERROR(String message, Exception e) {
+    }
 }

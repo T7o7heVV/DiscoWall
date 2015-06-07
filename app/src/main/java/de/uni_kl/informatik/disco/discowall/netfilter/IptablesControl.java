@@ -48,6 +48,23 @@ public class IptablesControl {
         return false;
     }
 
+
+    public static String chainAdd(String chain) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.NonZeroReturnValueException {
+        return execute("-N " + chain);
+    }
+
+    public static String chainAddIgnoreIfExisting(String chain) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
+        return execute("-N " + chain, new int[] {0, 1});
+    }
+
+    public static String chainRemove(String chain) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.NonZeroReturnValueException {
+        return execute("-X " + chain);
+    }
+
+    public static String chainRemoveIgnoreIfMissing(String chain) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
+        return execute("-X " + chain, new int[] {0, 1});
+    }
+
     public static String ruleAdd(String chain, String rule) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.NonZeroReturnValueException {
         return execute("-A " + chain + " " + rule);
     }
@@ -66,6 +83,19 @@ public class IptablesControl {
 
     public static String ruleDeleteIgnoreIfMissing(String chain, String rule) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
         return execute("-D " + chain + " " + rule, new int[] {0, 1});
+    }
+
+    public static String rulesDeleteAll(String chain) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.NonZeroReturnValueException {
+        return execute("-F " + chain);
+    }
+
+    public static String rulesDeleteAllIgnoreIfChainMissing(String chain) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
+        return execute("-F " + chain, new int[] {0, 1});
+    }
+
+    public static boolean chainExists(String chain) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
+        ShellExecute.ShellExecuteResult executeResult = executeEx("-L " + chain, new int[] {0, 1}); // if 1 is returned, the chain does not exist
+        return executeResult.returnValue == 0; // else, value is 1 since all others will raise an exception
     }
 
     /**
@@ -87,8 +117,12 @@ public class IptablesControl {
             return (result.returnValue == 0); // chain exists, if the return-value is 0.
     }
 
-    public static String rulesListAll() throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.NonZeroReturnValueException {
-        return execute("-L -n -v");
+    public static String getRuleInfoText(boolean numericFormat, boolean verbose) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.NonZeroReturnValueException {
+        return execute("-L" + (numericFormat?" -n":"") + (verbose?" -v":""));
+    }
+
+    public static String getRuleInfoText(String chain, boolean numericFormat, boolean verbose) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.NonZeroReturnValueException {
+        return execute("-L " + chain + (numericFormat?" -n":"") + (verbose?" -v":""));
     }
 
     public static String execute(String command) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.NonZeroReturnValueException {
@@ -101,6 +135,10 @@ public class IptablesControl {
     }
 
     public static String execute(String command, int[] allowedReturnValues) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
+        return executeEx(command, allowedReturnValues).processOutput;
+    }
+
+    private static ShellExecute.ShellExecuteResult executeEx(String command, int[] allowedReturnValues) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
         ShellExecute.ShellExecuteResult result = executeEx(command);
 
         boolean returnValueAllowed = false;
@@ -114,7 +152,7 @@ public class IptablesControl {
         if (!returnValueAllowed)
             throw new ShellExecuteExceptions.ReturnValueException("Return-Value-Exception: Got return value of "+result.returnValue + " but expected return value of: " + Arrays.toString(allowedReturnValues), result, allowedReturnValues);
 
-        return result.processOutput;
+        return result;
     }
 
     private static ShellExecute.ShellExecuteResult executeEx(String command) throws ShellExecuteExceptions.CallException {

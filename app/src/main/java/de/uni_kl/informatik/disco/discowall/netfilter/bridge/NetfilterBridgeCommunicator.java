@@ -11,7 +11,14 @@ import java.net.Socket;
 
 public class NetfilterBridgeCommunicator implements Runnable {
     public static interface EventsHandler {
-        public boolean onPackageReceived(NetfilterBridgePackages.TransportLayerPackage tlPackage);
+        boolean onPackageReceived(NetfilterBridgePackages.TransportLayerPackage tlPackage);
+
+        /**
+         * This method should NEVER be called. It only exists to make debugging simpler, so that errors do not get stuck within LOGCAT only.
+         * @param e
+         * @return
+         */
+        void onInternalERROR(String message, Exception e);
     }
 
     private static final String LOG_TAG = "NfBridgeCommunicator";
@@ -116,63 +123,54 @@ public class NetfilterBridgeCommunicator implements Runnable {
         socketOut.flush();
     }
 
-    private void handleReceivedMessage(String message) {
+    private void handleReceivedMessage(final String message) {
         if (message.startsWith(NetfilterBridgeProtocol.QueryPackageAction.MSG_PREFIX)) {
             // Example: #Packet.QueryAction##protocol=tcp##ip.src=192.168.178.28##ip.dst=173.194.116.159##tcp.src.port=35251##tcp.dst.port=80#
 
-            String srcIP = extractValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.IP.SRC_PREFIX, NetfilterBridgeProtocol.QueryPackageAction.IP.SRC_SUFFIX);
-            String dstIP = extractValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.IP.DST_PREFIX, NetfilterBridgeProtocol.QueryPackageAction.IP.DST_SUFFIX);
-
-            String srcPortStr, dstPortStr;
-            NetfilterBridgePackages.PackageType packageType;
-
-            // Handling of different protocols - currently TCP/UDP
-            if (message.contains(NetfilterBridgeProtocol.QueryPackageAction.IP.PROTOCOL_TYPE_TCP)) {
-                // Handle TCP Package
-                srcPortStr = extractValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.IP.TCP.SRC_PORT_PREFIX, NetfilterBridgeProtocol.QueryPackageAction.IP.TCP.SRC_PORT_SUFFIX);
-                dstPortStr = extractValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.IP.TCP.DST_PORT_PREFIX, NetfilterBridgeProtocol.QueryPackageAction.IP.TCP.DST_PORT_SUFFIX);
-                packageType = NetfilterBridgePackages.PackageType.TCP;
-            } else if (message.contains(NetfilterBridgeProtocol.QueryPackageAction.IP.PROTOCOL_TYPE_UDP)) {
-                // Handle UDP  Package
-                srcPortStr = extractValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.IP.UDP.SRC_PORT_PREFIX, NetfilterBridgeProtocol.QueryPackageAction.IP.UDP.SRC_PORT_SUFFIX);
-                dstPortStr = extractValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.IP.UDP.DST_PORT_PREFIX, NetfilterBridgeProtocol.QueryPackageAction.IP.UDP.DST_PORT_SUFFIX);
-                packageType = NetfilterBridgePackages.PackageType.UDP;
-            } else {
-                Log.e(LOG_TAG, "Unknown message format (no transport-layer defined): " + message);
-                return;
-            }
-
-            if (srcIP == null) {
-                Log.e(LOG_TAG, "Source-IP expected but got: " + srcIP);
-                return;
-            }
-            if (dstIP == null) {
-                Log.e(LOG_TAG, "Destination-IP expected but got: " + dstIP);
-                return;
-            }
-
-            // Decode ports:
-            int srcPort, dstPort;
-            try {
-                srcPort = Integer.parseInt(srcPortStr);
-                dstPort = Integer.parseInt(dstPortStr);
-            } catch(Exception e) {
-                Log.e(LOG_TAG, "Transport-Layer ports expected to be int but are string: srcPort=" + srcPortStr + ", dstPort=" + dstPortStr);
-                return;
-            }
-
-            // Create Package-Instance
             NetfilterBridgePackages.TransportLayerPackage tlPackage;
-            switch(packageType) {
-                case TCP:
-                    tlPackage = new NetfilterBridgePackages.TcpPackage(srcIP, dstIP, srcPort, dstPort);
-                    break;
-                case UDP:
-                    tlPackage = new NetfilterBridgePackages.TcpPackage(srcIP, dstIP, srcPort, dstPort);
-                    break;
-                default:
+
+            try {
+                String srcIP = extractStringValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.IP.VALUE_SOURCE);
+                String dstIP = extractStringValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.IP.VALUE_DESTINATION);
+
+                // Handling of different protocols - currently TCP/UDP
+                if (message.contains(NetfilterBridgeProtocol.QueryPackageAction.IP.FLAG_PROTOCOL_TYPE_TCP)) {
+                    // Handle TCP Package
+                    int srcPort = extractIntValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.IP.TCP.VALUE_SOURCE_PORT);
+                    int dstPort = extractIntValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.IP.TCP.VALUE_DESTINATION_PORT);
+                    int length = extractIntValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.IP.TCP.VALUE_LENGTH);
+                    int checksum = extractIntValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.IP.TCP.VALUE_CHECKSUM);
+                    int seqNumber = extractIntValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.IP.TCP.VALUE_SEQUENCE_NUMBER);
+                    int ackNumber = extractIntValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.IP.TCP.VALUE_ACK_NUMBER);
+                    boolean hasFlagACK = extractBitValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.IP.TCP.VALUE_FLAG_IS_ACK);
+                    boolean hasFlagFIN = extractBitValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.IP.TCP.VALUE_FLAG_FIN);
+                    boolean hasFlagSYN = extractBitValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.IP.TCP.VALUE_FLAG_SYN);
+                    boolean hasFlagPush = extractBitValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.IP.TCP.VALUE_FLAG_PUSH);
+                    boolean hasFlagReset = extractBitValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.IP.TCP.VALUE_FLAG_RESET);
+                    boolean hasFlagUrgent = extractBitValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.IP.TCP.VALUE_FLAG_URGENT);
+
+                    tlPackage = new NetfilterBridgePackages.TcpPackage(srcIP, dstIP, srcPort, dstPort, length, checksum,
+                            seqNumber, ackNumber,
+                            hasFlagACK, hasFlagFIN, hasFlagSYN, hasFlagPush, hasFlagReset, hasFlagUrgent
+                        );
+                } else if (message.contains(NetfilterBridgeProtocol.QueryPackageAction.IP.FLAG_PROTOCOL_TYPE_UDP)) {
+                    // Handle UDP  Package
+                    int srcPort = extractIntValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.IP.UDP.VALUE_SOURCE_PORT);
+                    int dstPort = extractIntValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.IP.UDP.VALUE_DESTINATION_PORT);
+                    int length = extractIntValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.IP.UDP.VALUE_LENGTH);
+                    int checksum = extractIntValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.IP.UDP.VALUE_CHECKSUM);
+
+                    tlPackage = new NetfilterBridgePackages.UdpPackage(srcIP, dstIP, srcPort, dstPort, length, checksum);
+                } else {
                     Log.e(LOG_TAG, "Unknown message format (no transport-layer defined): " + message);
+                    NetfilterBridgeProtocol.ProtocolFormatException formatException = new NetfilterBridgeProtocol.ProtocolFormatException("Unknown message format: no transport-layer defined", message);
+                    eventsHandler.onInternalERROR(message, formatException);
                     return;
+                }
+            } catch(NetfilterBridgeProtocol.ProtocolException e) {
+                Log.e(LOG_TAG, "Error while decoding message: " + message + "\n" + e.getMessage());
+                eventsHandler.onInternalERROR("Error while decoding message: " + message + "\n" + e.getMessage(), e);
+                return;
             }
 
             Log.v(LOG_TAG, "Decoded package-information: " + tlPackage);
@@ -187,13 +185,34 @@ public class NetfilterBridgeCommunicator implements Runnable {
         }
     }
 
-    private String extractValueFromMessage(String message, String valuePrefix, String valueSuffix) {
+    private boolean extractBitValueFromMessage(final String message, final String valueName) throws NetfilterBridgeProtocol.ProtocolValueException {
+        int value = extractIntValueFromMessage(message, valueName);
+        if (value != 0 && value != 1)
+            throw new NetfilterBridgeProtocol.ProtocolValueException(message, value + "", message);
+
+        return value == 0;
+    }
+
+    private int extractIntValueFromMessage(final String message, final String valueName) throws NetfilterBridgeProtocol.ProtocolValueMissingException, NetfilterBridgeProtocol.ProtocolValueTypeException {
+        String intValueStr = extractStringValueFromMessage(message, valueName);
+
+        try {
+            return Integer.parseInt(intValueStr);
+        } catch(Exception e) {
+            throw new NetfilterBridgeProtocol.ProtocolValueTypeException(Integer.class, intValueStr, message);
+        }
+    }
+
+    private String extractStringValueFromMessage(final String message, final String valueName) throws NetfilterBridgeProtocol.ProtocolValueMissingException {
+        String valuePrefix = NetfilterBridgeProtocol.VALUE_PREFIX + valueName + NetfilterBridgeProtocol.VALUE_KEY_DELIM;
+        String valueSuffix = NetfilterBridgeProtocol.VALUE_SUFFIX;
+
         if (! (message.contains(valuePrefix) && message.contains(valueSuffix)))
-            return null;
+            throw new NetfilterBridgeProtocol.ProtocolValueMissingException(valueName, message);
 
         String messageStartingWithValue = message.substring(message.indexOf(valuePrefix) + valuePrefix.length());
         if (!messageStartingWithValue.contains(valueSuffix)) // checking again, in case the suffix is a substring of the prefix
-            return null;
+            throw new NetfilterBridgeProtocol.ProtocolValueMissingException(valueName, message);
 
         return messageStartingWithValue.substring(0, messageStartingWithValue.indexOf(valueSuffix));
     }
@@ -203,11 +222,11 @@ public class NetfilterBridgeCommunicator implements Runnable {
 
         if (acceptPackage) {
             Log.v(LOG_TAG, "Accepting package: " + tlPackage);
-            sendMessage(NetfilterBridgeProtocol.QueryPackageActionResponse.MSG_PREFIX, NetfilterBridgeProtocol.QueryPackageActionResponse.ACCEPT_PACKAGE);
+            sendMessage(NetfilterBridgeProtocol.QueryPackageActionResponse.MSG_PREFIX, NetfilterBridgeProtocol.QueryPackageActionResponse.FLAG_ACCEPT_PACKAGE);
 //            sendMessage("#Packet.QueryAction.Resonse#", "#ACCEPT#");
         } else {
             Log.v(LOG_TAG, "Dropping package: " + tlPackage);
-            sendMessage(NetfilterBridgeProtocol.QueryPackageActionResponse.MSG_PREFIX, NetfilterBridgeProtocol.QueryPackageActionResponse.DROP_PACKAGE);
+            sendMessage(NetfilterBridgeProtocol.QueryPackageActionResponse.MSG_PREFIX, NetfilterBridgeProtocol.QueryPackageActionResponse.FLAG_DROP_PACKAGE);
 //            sendMessage("#Packet.QueryAction.Resonse#", "#DROP#");
         }
     }

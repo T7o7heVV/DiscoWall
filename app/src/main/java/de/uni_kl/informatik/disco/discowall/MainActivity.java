@@ -55,6 +55,12 @@ public class MainActivity extends ActionBarActivity {
 
         EditText editText = (EditText) findViewById(R.id.editText);
         Log.v("Main", "edit text: " + editText.getText());
+
+        try {
+            firewallService.stopFirewallService();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     private void test() {

@@ -70,12 +70,14 @@ class NetfilterBridgeBinaryHandler {
         // It will NOT be waited until this method returns!
         // The bridge binary runs as background process continuously.
         bridgeBinaryExecuteResult = RootShellExecute.build()
-                .doReadResult()
+                .doNotReadResult()
                 .doNotWaitForTermination()
-                .doRedirectStderrToStdout()
-                .appendCommand(getFile().getAbsolutePath() + " localhost " + communicationPort)
+                .doRedirectStderrToStdout() // so that the stdout only contains error-data
+                .appendCommand(getFile().getAbsolutePath() + " localhost " + communicationPort + " > /dev/null")
 //                .appendCommand("/data/data/nfqnltest/netfilter_bridge localhost 1337")
                 .execute(); // non-blocking call, as ShellExecute.doWaitForTermination==false
+
+        // note that any output is being redirected to /dev/null in order to not create buffer-problems
     }
 
     public void killAllInstances() throws ShellExecuteExceptions.CallException {
