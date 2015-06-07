@@ -119,7 +119,7 @@ public class NetfilterBridgeCommunicator implements Runnable {
     }
 
     private void sendMessage(String prefix, String message) {
-        Log.d(LOG_TAG, "sendMessage(): " + prefix + message);
+        Log.v(LOG_TAG, "sendMessage(): " + prefix + message);
         socketOut.println(prefix + message);
         socketOut.flush();
     }

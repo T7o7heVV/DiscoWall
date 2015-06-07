@@ -84,7 +84,7 @@ public class NetfilterBridgePackages {
         public String toString() {
             return "[TCP] " + super.toString() + " { #SEQ="+ seqNumber +", #ACK= " + ackNumber
                     + ", isACK= " +hasFlagACK + ", isSYN=" + hasFlagSYN +", isFIN=" +hasFlagFIN + ", isRST=" + hasFlagReset + ", isPSH=" + hasFlagPush + ", isURG=" + hasFlagUrgent
-                    + "  }";
+                    + " }";
         }
     }
 

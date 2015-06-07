@@ -55,9 +55,9 @@ public class ShellExecute {
             // Workaround: If the process is still running, calling Process.exitValue() will throw an exception.
             try {
                 process.exitValue();
-                return true;
-            } catch (IllegalThreadStateException e) {
                 return false;
+            } catch (IllegalThreadStateException e) {
+                return true;
             }
         }
     }

@@ -15,6 +15,8 @@ import de.uni_kl.informatik.disco.discowall.netfilter.bridge.NetfilterBridgePack
 import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecuteExceptions;
 
 public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
+    public static enum FirewallState { RUNNING, PAUSED, STOPPED }
+
     private static final String LOG_TAG = FirewallService.class.getSimpleName();
 
     private final AppManagement appManagement;
@@ -59,8 +61,51 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
         // Disable iptables hooking-rules, so that no package will be sent to netfilter-bridge binary
         Log.v(LOG_TAG, "disconnecting bridge");
         control.disconnectBridge();
+        control = null;
 
         Log.i(LOG_TAG, "firewall disabled.");
+    }
+
+    public boolean isFirewallPaused() throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException, FirewallExceptions.FirewallInvalidStateException {
+        if (!isFirewallRunning()) {
+            Log.e(LOG_TAG, "Firewall is not enabled - it is neither paused nor unpaused.");
+            throw new FirewallExceptions.FirewallInvalidStateException("Firewall needs to be running in order to pause/unpause it.", FirewallState.STOPPED);
+        }
+
+        return isFirewallPausedEx();
+    }
+
+    private boolean isFirewallPausedEx() throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
+        return !control.isIptableJumpsToFirewallEnabled(); // the firewall is paused, when the iptable jump-rules to the firewall chain are not set
+    }
+
+    /**
+     * Will add/remove the iptable-rules which forward the packages into the firewall main-chain.
+     * Removing those rules will circumvent the entire firewall functionality.
+     * @param paused
+     */
+    public void setFirewallPaused(boolean paused) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException, FirewallExceptions.FirewallInvalidStateException {
+        if (!isFirewallRunning()) {
+            Log.e(LOG_TAG, "Firewall is not enabled - cannot pause/unpause the firewall");
+            throw new FirewallExceptions.FirewallInvalidStateException("Firewall needs to be running in order to pause/unpause it.", FirewallState.STOPPED);
+        }
+
+        if (paused)
+            Log.d(LOG_TAG, "Changing firewall state to paused.");
+        else
+            Log.d(LOG_TAG, "Changing firewall state to running.");
+
+        control.setIptableJumpsToFirewallEnabled(!paused);
+    }
+
+    public FirewallState getFirewallState() throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
+        if (!isFirewallRunning())
+            return FirewallState.STOPPED;
+
+        if (isFirewallPausedEx())
+            return FirewallState.PAUSED;
+        else
+            return FirewallState.RUNNING;
     }
 
     @Override
@@ -76,4 +121,5 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
     @Override
     public void onInternalERROR(String message, Exception e) {
     }
+
 }

@@ -89,4 +89,15 @@ public class NetfilterBridgeControl {
         bridgeBinaryHandler.killAllInstances();
     }
 
+    public boolean isIptableJumpsToFirewallEnabled() throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
+        return iptablesHandler.isMainChainJumpsEnabled();
+    }
+
+    public void setIptableJumpsToFirewallEnabled(boolean jumpsEnabled) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
+        iptablesHandler.setMainChainJumpsEnabled(jumpsEnabled);
+    }
+
+    public void setDefaultPackageHandlingMode(NetfilterBridgeIptablesHandler.PackageHandlingMode mode) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
+        iptablesHandler.setDefaultPackageHandlingMode(mode);
+    }
 }

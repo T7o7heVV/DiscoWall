@@ -7,20 +7,26 @@ import de.uni_kl.informatik.disco.discowall.netfilter.IptablesControl;
 import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecuteExceptions;
 
 public class NetfilterBridgeIptablesHandler {
+    public static enum PackageHandlingMode { ACCEPT_PACKAGE, REJECT_PACKAGE, INTERACTIVE }
+
     private static final String LOG_TAG = NetfilterBridgeIptablesHandler.class.getSimpleName();
     private final int bridgeCommunicationPort;
+    private PackageHandlingMode packageHandlingMode = PackageHandlingMode.INTERACTIVE;
 
     // chains
     private static final String CHAIN_FIREWALL_MAIN = "discowall";
     private static final String CHAIN_FIREWALL_INTERFACE_3G = "discowall-3g";
     private static final String CHAIN_FIREWALL_INTERFACE_WIFI = "discowall-wifi";
-    private static final String CHAIN_FIREWALL_ACTION_ACCEPTED = "discowall-accepted";
-    private static final String CHAIN_FIREWALL_ACTION_REJECTED = "discowall-rejected";
+    private static final String CHAIN_FIREWALL_ACTION_ACCEPT = "discowall-accept";
+    private static final String CHAIN_FIREWALL_ACTION_REJECT = "discowall-reject";
+    private static final String CHAIN_FIREWALL_ACTION_INTERACTIVE = "discowall-interactive";
 
     // rules
     private static final String RULE_JUMP_TO_FIREWALL_CHAIN = "-p tcp -j " + CHAIN_FIREWALL_MAIN;
     private static final String RULE_JUMP_TO_NFQUEUE = "-j NFQUEUE --queue-num 0 --queue-bypass"; // '--queue-bypass' will allow all packages, when no application is bound to the --queue-num 0
-    private static final String RULE_JUMP_TO_FIREWALL_ACCEPTED = "-j " + CHAIN_FIREWALL_ACTION_ACCEPTED;
+    private static final String RULE_JUMP_TO_FIREWALL_ACCEPTED = "-j " + CHAIN_FIREWALL_ACTION_ACCEPT;
+    private static final String RULE_JUMP_TO_FIREWALL_INTERACTIVE = "-j " + CHAIN_FIREWALL_ACTION_INTERACTIVE;
+    private static final String RULE_JUMP_TO_FIREWALL_REJECTED = "-j " + CHAIN_FIREWALL_ACTION_REJECT;
     private final String RULE_BRIDGE_COM_EXCEPTION_SERVER;
     private final String RULE_BRIDGE_COM_EXCEPTION_CLIENT;
 
@@ -45,7 +51,7 @@ public class NetfilterBridgeIptablesHandler {
      * @throws ShellExecuteExceptions.NonZeroReturnValueException
      */
     public void rulesEnableAll() throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
-        Log.d(LOG_TAG, "Relevant IPTABLE chains BEFORE adding rules:\n" + IptablesControl.getRuleInfoText(true, true));
+        Log.v(LOG_TAG, "iptable chains BEFORE adding rules:\n" + IptablesControl.getRuleInfoText(true, true));
 
         // To make sure the rule-order is correct: Remove all rules first
         rulesDisableAll(false);
@@ -55,13 +61,15 @@ public class NetfilterBridgeIptablesHandler {
         IptablesControl.chainAdd(CHAIN_FIREWALL_MAIN);
         IptablesControl.chainAdd(CHAIN_FIREWALL_INTERFACE_3G);
         IptablesControl.chainAdd(CHAIN_FIREWALL_INTERFACE_WIFI);
-        IptablesControl.chainAdd(CHAIN_FIREWALL_ACTION_ACCEPTED);
-        IptablesControl.chainAdd(CHAIN_FIREWALL_ACTION_REJECTED);
+        IptablesControl.chainAdd(CHAIN_FIREWALL_ACTION_ACCEPT);
+        IptablesControl.chainAdd(CHAIN_FIREWALL_ACTION_REJECT);
+        IptablesControl.chainAdd(CHAIN_FIREWALL_ACTION_INTERACTIVE);
 
         // chain: INPUT, OUTPUT
         // rule: forward all TCP to firewall chain
         IptablesControl.ruleAdd(IptableConstants.Chains.INPUT, RULE_JUMP_TO_FIREWALL_CHAIN);
         IptablesControl.ruleAdd(IptableConstants.Chains.OUTPUT, RULE_JUMP_TO_FIREWALL_CHAIN);
+        // NOTE: setMainChainJumpsEnabled() will add or remove those chains
 
         // chain MAIN:
         {
@@ -75,44 +83,48 @@ public class NetfilterBridgeIptablesHandler {
             for(String interfaceDevice : DEVICES_WIFI) // forward from all wifi-interfaces to wifi-chain
                 IptablesControl.ruleAdd(CHAIN_FIREWALL_MAIN, "-i "+interfaceDevice+" -j " + CHAIN_FIREWALL_INTERFACE_WIFI);
 
-            // rule: jump to NFQUEUE is last action ==> Everything what is not ACCEPTED or REJECTED at this point will become INTERACTIVELY handled.
-            IptablesControl.ruleAdd(CHAIN_FIREWALL_MAIN, RULE_JUMP_TO_NFQUEUE);
-
-            // rule: jump to ACCEPTED
-            IptablesControl.ruleAdd(CHAIN_FIREWALL_MAIN, RULE_JUMP_TO_FIREWALL_ACCEPTED);
+            // Default-Action on the end of the MAIN chain will be set according to the wishes of the user
+            // rule: jump to INTERACTIVE is last action ==> Everything what is not ACCEPTED or REJECTED at this point will be INTERACTIVELY handled.
+            IptablesControl.ruleAdd(CHAIN_FIREWALL_MAIN, RULE_JUMP_TO_FIREWALL_INTERACTIVE); // setDefaultPackageHandlingMode() does the same thing - setting the rules directly is more effecient, as it does not perform cleanup first.
+//            setDefaultPackageHandlingMode(PackageHandlingMode.INTERACTIVE);
         }
 
         // chain ACCEPTED:
         // rule: jumpt to accept
-        IptablesControl.ruleAdd(CHAIN_FIREWALL_ACTION_ACCEPTED, "-j ACCEPT");
+        IptablesControl.ruleAdd(CHAIN_FIREWALL_ACTION_ACCEPT, "-j ACCEPT");
 
         // chain REJECTED:
         // rule: reject with specific package
-        IptablesControl.ruleAdd(CHAIN_FIREWALL_ACTION_REJECTED, "-j REJECT --reject-with icmp-host-unreachable"); // alternatively: "--reject-with icmp-port-unreachable"
+        IptablesControl.ruleAdd(CHAIN_FIREWALL_ACTION_REJECT, "-j REJECT --reject-with icmp-port-unreachable"); // alternatively: "--reject-with icmp-host-unreachable"
 
-        Log.d(LOG_TAG, "Relevant IPTABLE chains AFTER adding rules:\n" + IptablesControl.getRuleInfoText(true, true));
+        // chain INTERACTIVE:
+        // rule: jump to NFQUEUE and handle package interactively
+        IptablesControl.ruleAdd(CHAIN_FIREWALL_ACTION_INTERACTIVE, RULE_JUMP_TO_NFQUEUE);
+
+        Log.v(LOG_TAG, "iptable chains AFTER adding rules:\n" + IptablesControl.getRuleInfoText(true, true));
     }
 
     public void rulesDisableAll(boolean logChainStatesBeforeAndAfter) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
         // If a iptable-chain does not exist, it implies that no references (i.e. --jump rules) exist either.
 
         if (logChainStatesBeforeAndAfter)
-            Log.d(LOG_TAG, "Relevant IPTABLE chains BEFORE removing rules:\n" + IptablesControl.getRuleInfoText(true, true));
+            Log.i(LOG_TAG, "iptable chains BEFORE removing rules:\n" + IptablesControl.getRuleInfoText(true, true));
 
         /*
         *  Note:
         *  + MAIN = CHAIN_FIREWALL_MAIN
         *  + 3G = CHAIN_FIREWALL_INTERFACE_3G
         *  + WIFI = CHAIN_FIREWALL_INTERFACE_WIFI
-        *  + ACCEPTED = CHAIN_FIREWALL_ACTION_ACCEPTED
-        *  + REJECTED = CHAIN_FIREWALL_ACTION_REJECTED
+        *  + ACCEPT= CHAIN_FIREWALL_ACTION_ACCEPT
+        *  + REJECT = CHAIN_FIREWALL_ACTION_REJECT
+        *  + INTERACTIVE = CHAIN_FIREWALL_ACTION_INTERACTIVE
         *
         *  Dependencies are as follows:
         *  + INPUT -> MAIN
         *  + OUTPUT -> MAIN
-        *  + MAIN -> 3G
+        *  + MAIN -> 3G, WIFI, ACCEPT, REJECT, INTERACTIVE
         *  + MAIN -> WIFI
-        *  ( + MAIN -> NFQUEUE )
+        *  + INTERACTIVE -> NFQUEUE
         *
         *  The rules have to be deleted from the leafs up to the root of the dependency-tree.
         *  ==> Start with INPUT/OUTPUT chain, then MAIN, then 3G & WIFI, then ACCEPTED & REJECTED
@@ -135,39 +147,75 @@ public class NetfilterBridgeIptablesHandler {
         }
 
         // Removing 3G chain:
-        if (IptablesControl.chainExists(CHAIN_FIREWALL_INTERFACE_3G)) {
-            // 1. First all references to the chain
-            IptablesControl.rulesDeleteAll(CHAIN_FIREWALL_INTERFACE_3G);
-            // 2. the chain itself can be removed
-            IptablesControl.chainRemove(CHAIN_FIREWALL_INTERFACE_3G);
-        }
+        safelyRemoveChain(CHAIN_FIREWALL_INTERFACE_3G);
 
         // Removing WIFI chain:
-        if (IptablesControl.chainExists(CHAIN_FIREWALL_INTERFACE_WIFI)) {
-            // 1. First all references to the chain
-            IptablesControl.rulesDeleteAll(CHAIN_FIREWALL_INTERFACE_WIFI);
-            // 2. the chain itself can be removed
-            IptablesControl.chainRemove(CHAIN_FIREWALL_INTERFACE_WIFI);
-        }
+        safelyRemoveChain(CHAIN_FIREWALL_INTERFACE_WIFI);
 
         // Removing ACCEPT chain:
-        if (IptablesControl.chainExists(CHAIN_FIREWALL_ACTION_ACCEPTED)) {
-            // 1. First all references to the chain
-            IptablesControl.rulesDeleteAll(CHAIN_FIREWALL_ACTION_ACCEPTED);
-            // 2. the chain itself can be removed
-            IptablesControl.chainRemove(CHAIN_FIREWALL_ACTION_ACCEPTED);
-        }
+        safelyRemoveChain(CHAIN_FIREWALL_ACTION_ACCEPT);
 
-        // Removing REJECTED chain:
-        if (IptablesControl.chainExists(CHAIN_FIREWALL_ACTION_REJECTED)) {
-            // 1. First all references to the chain
-            IptablesControl.rulesDeleteAll(CHAIN_FIREWALL_ACTION_REJECTED);
-            // 2. the chain itself can be removed
-            IptablesControl.chainRemove(CHAIN_FIREWALL_ACTION_REJECTED);
-        }
+        // Removing REJECT chain:
+        safelyRemoveChain(CHAIN_FIREWALL_ACTION_REJECT);
+
+        // Removing INTERACTIVE chain:
+        safelyRemoveChain(CHAIN_FIREWALL_ACTION_INTERACTIVE);
+
 
         if (logChainStatesBeforeAndAfter)
-            Log.d(LOG_TAG, "iptable chains AFTER removing rules:\n" + IptablesControl.getRuleInfoText(true, true));
+            Log.i(LOG_TAG, "iptable chains AFTER removing rules:\n" + IptablesControl.getRuleInfoText(true, true));
+    }
+
+    public boolean isMainChainJumpsEnabled() throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
+        return IptablesControl.ruleExists(IptableConstants.Chains.INPUT, RULE_JUMP_TO_FIREWALL_CHAIN)
+                && IptablesControl.ruleExists(IptableConstants.Chains.OUTPUT, RULE_JUMP_TO_FIREWALL_CHAIN);
+    }
+
+    /**
+     * Adds/Removes the rules forwarding packages to the firewall main-chain. Can be used "pause" the firewall.
+     * @param enableJumpsToMainChain
+     * @throws ShellExecuteExceptions.CallException
+     * @throws ShellExecuteExceptions.ReturnValueException
+     */
+    public void setMainChainJumpsEnabled(boolean enableJumpsToMainChain) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
+        if (enableJumpsToMainChain) {
+            IptablesControl.ruleAddIfMissing(IptableConstants.Chains.INPUT, RULE_JUMP_TO_FIREWALL_CHAIN);
+            IptablesControl.ruleAddIfMissing(IptableConstants.Chains.OUTPUT, RULE_JUMP_TO_FIREWALL_CHAIN);
+        } else {
+            IptablesControl.ruleDeleteIgnoreIfMissing(IptableConstants.Chains.INPUT, RULE_JUMP_TO_FIREWALL_CHAIN);
+            IptablesControl.ruleDeleteIgnoreIfMissing(IptableConstants.Chains.OUTPUT, RULE_JUMP_TO_FIREWALL_CHAIN);
+        }
+    }
+
+    public void setDefaultPackageHandlingMode(PackageHandlingMode mode) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
+        // Delete rule for current behavior
+        IptablesControl.ruleDeleteIgnoreIfMissing(CHAIN_FIREWALL_MAIN, RULE_JUMP_TO_FIREWALL_ACCEPTED);
+        IptablesControl.ruleDeleteIgnoreIfMissing(CHAIN_FIREWALL_MAIN, RULE_JUMP_TO_FIREWALL_REJECTED);
+        IptablesControl.ruleDeleteIgnoreIfMissing(CHAIN_FIREWALL_MAIN, RULE_JUMP_TO_FIREWALL_INTERACTIVE);
+
+        // set new behavior
+        switch (mode) {
+            case ACCEPT_PACKAGE:
+                IptablesControl.ruleAdd(CHAIN_FIREWALL_MAIN, RULE_JUMP_TO_FIREWALL_ACCEPTED);
+                return;
+            case REJECT_PACKAGE:
+                IptablesControl.ruleAdd(CHAIN_FIREWALL_MAIN, RULE_JUMP_TO_FIREWALL_REJECTED);
+                return;
+            case INTERACTIVE:
+                IptablesControl.ruleAdd(CHAIN_FIREWALL_MAIN, RULE_JUMP_TO_FIREWALL_INTERACTIVE);
+                return;
+        }
+
+        packageHandlingMode = mode;
+    }
+
+    private void safelyRemoveChain(String chain) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
+        if (IptablesControl.chainExists(chain)) {
+            // 1. First all references to the chain
+            IptablesControl.rulesDeleteAll(chain);
+            // 2. the chain itself can be removed
+            IptablesControl.chainRemove(chain);
+        }
     }
 
     private boolean rulesAreEnabled() throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.NonZeroReturnValueException {
