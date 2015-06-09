@@ -1,8 +1,5 @@
-package de.uni_kl.informatik.disco.discowall.netfilter;
+package de.uni_kl.informatik.disco.discowall.netfilter.iptables;
 
-import android.util.Log;
-
-import java.io.IOException;
 import java.util.Arrays;
 
 import de.uni_kl.informatik.disco.discowall.utils.shell.RootShellExecute;

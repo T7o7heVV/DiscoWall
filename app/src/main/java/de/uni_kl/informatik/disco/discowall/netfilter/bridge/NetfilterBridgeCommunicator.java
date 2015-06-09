@@ -9,9 +9,11 @@ import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 
+import de.uni_kl.informatik.disco.discowall.packages.Packages;
+
 public class NetfilterBridgeCommunicator implements Runnable {
     public static interface EventsHandler {
-        boolean onPackageReceived(NetfilterBridgePackages.TransportLayerPackage tlPackage);
+        boolean onPackageReceived(Packages.TransportLayerPackage tlPackage);
 
         /**
          * This method should NEVER be called. It only exists to make debugging simpler, so that errors do not get stuck within LOGCAT only.
@@ -40,8 +42,10 @@ public class NetfilterBridgeCommunicator implements Runnable {
 
         Log.v(LOG_TAG, "starting listening thread...");
 
-        Log.v(LOG_TAG, "opening listening port: " + listeningPort);
+        Log.d(LOG_TAG, "testing availability of listening port: " + listeningPort);
         serverSocket = new ServerSocket(listeningPort);
+        serverSocket.close();
+        Log.d(LOG_TAG, "Seems to be available. Port will be used: " + listeningPort);
 
         new Thread(this).start();
     }
@@ -51,6 +55,9 @@ public class NetfilterBridgeCommunicator implements Runnable {
         connected = false;
 
         try {
+            Log.v(LOG_TAG, "opening listening port: " + listeningPort);
+            serverSocket = new ServerSocket(listeningPort);
+
             Log.v(LOG_TAG, "waiting for client...");
             clientSocket = serverSocket.accept();
 
@@ -128,7 +135,7 @@ public class NetfilterBridgeCommunicator implements Runnable {
         if (message.startsWith(NetfilterBridgeProtocol.QueryPackageAction.MSG_PREFIX)) {
             // Example: #Packet.QueryAction##protocol=tcp##ip.src=192.168.178.28##ip.dst=173.194.116.159##tcp.src.port=35251##tcp.dst.port=80#
 
-            NetfilterBridgePackages.TransportLayerPackage tlPackage;
+            Packages.TransportLayerPackage tlPackage;
 
             try {
                 String srcIP = extractStringValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.IP.VALUE_SOURCE);
@@ -150,7 +157,7 @@ public class NetfilterBridgeCommunicator implements Runnable {
                     boolean hasFlagReset = extractBitValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.IP.TCP.VALUE_FLAG_RESET);
                     boolean hasFlagUrgent = extractBitValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.IP.TCP.VALUE_FLAG_URGENT);
 
-                    tlPackage = new NetfilterBridgePackages.TcpPackage(srcIP, dstIP, srcPort, dstPort, length, checksum,
+                    tlPackage = new Packages.TcpPackage(srcIP, dstIP, srcPort, dstPort, length, checksum,
                             seqNumber, ackNumber,
                             hasFlagACK, hasFlagFIN, hasFlagSYN, hasFlagPush, hasFlagReset, hasFlagUrgent
                         );
@@ -161,7 +168,7 @@ public class NetfilterBridgeCommunicator implements Runnable {
                     int length = extractIntValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.IP.UDP.VALUE_LENGTH);
                     int checksum = extractIntValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.IP.UDP.VALUE_CHECKSUM);
 
-                    tlPackage = new NetfilterBridgePackages.UdpPackage(srcIP, dstIP, srcPort, dstPort, length, checksum);
+                    tlPackage = new Packages.UdpPackage(srcIP, dstIP, srcPort, dstPort, length, checksum);
                 } else {
                     Log.e(LOG_TAG, "Unknown message format (no transport-layer defined): " + message);
                     NetfilterBridgeProtocol.ProtocolFormatException formatException = new NetfilterBridgeProtocol.ProtocolFormatException("Unknown message format: no transport-layer defined", message);
@@ -218,7 +225,7 @@ public class NetfilterBridgeCommunicator implements Runnable {
         return messageStartingWithValue.substring(0, messageStartingWithValue.indexOf(valueSuffix));
     }
 
-    private void onPackageReceived(NetfilterBridgePackages.TransportLayerPackage tlPackage) {
+    private void onPackageReceived(Packages.TransportLayerPackage tlPackage) {
         boolean acceptPackage = eventsHandler.onPackageReceived(tlPackage);
 
         if (acceptPackage) {

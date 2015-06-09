@@ -1,4 +1,4 @@
-package de.uni_kl.informatik.disco.discowall.netfilter;
+package de.uni_kl.informatik.disco.discowall.netfilter.iptables;
 
 public class IptableConstants {
     public static class Chains {

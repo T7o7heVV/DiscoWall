@@ -4,14 +4,16 @@ import android.content.Context;
 import android.util.Log;
 
 import java.io.IOException;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 
 import de.uni_kl.informatik.disco.discowall.AppManagement;
+import de.uni_kl.informatik.disco.discowall.firewallService.rules.FirewallRules;
+import de.uni_kl.informatik.disco.discowall.firewallService.rules.FirewallRulesManager;
 import de.uni_kl.informatik.disco.discowall.netfilter.bridge.NetfilterBridgeCommunicator;
 import de.uni_kl.informatik.disco.discowall.netfilter.bridge.NetfilterBridgeControl;
 import de.uni_kl.informatik.disco.discowall.netfilter.NetfilterExceptions;
-import de.uni_kl.informatik.disco.discowall.netfilter.bridge.NetfilterBridgePackages;
+import de.uni_kl.informatik.disco.discowall.packages.ConnectionManager;
+import de.uni_kl.informatik.disco.discowall.packages.Connections;
+import de.uni_kl.informatik.disco.discowall.packages.Packages;
 import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecuteExceptions;
 
 public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
@@ -19,8 +21,11 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
 
     private static final String LOG_TAG = FirewallService.class.getSimpleName();
 
-    private final AppManagement appManagement;
     private NetfilterBridgeControl control;
+
+    private final ConnectionManager connectionManager = new ConnectionManager();
+    private final AppManagement appManagement;
+    private final FirewallRulesManager rulesManager = new FirewallRulesManager();
 
     public Firewall(Context context) {
         Log.i(LOG_TAG, "initializing firewall service...");
@@ -91,11 +96,16 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
         }
 
         if (paused)
-            Log.d(LOG_TAG, "Changing firewall state to paused.");
+            Log.v(LOG_TAG, "Changing firewall state to paused...");
         else
-            Log.d(LOG_TAG, "Changing firewall state to running.");
+            Log.v(LOG_TAG, "Changing firewall state to running...");
 
         control.setIptableJumpsToFirewallEnabled(!paused);
+
+        if (paused)
+            Log.d(LOG_TAG, "new firewall state: paused");
+        else
+            Log.d(LOG_TAG, "new firewall state: running");
     }
 
     public FirewallState getFirewallState() throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
@@ -109,11 +119,23 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
     }
 
     @Override
-    public boolean onPackageReceived(NetfilterBridgePackages.TransportLayerPackage tlPackage) {
-//        try {
-//            InetAddress.getByName("google.de");
-//        } catch (UnknownHostException e) {
-//        }
+    public boolean onPackageReceived(Packages.TransportLayerPackage tlPackage) {
+        if (tlPackage instanceof Packages.TcpPackage) {
+            Packages.TcpPackage tcpPackage = (Packages.TcpPackage) tlPackage;
+
+//            if (!connectionManager.containsConnection(tlPackage)) {
+//                try {
+//                    new FirewallRulesManager().createRule_Accept(FirewallRules.DeviceFilter.WIFI, tlPackage).setRuleEnabled(true);
+//                } catch (ShellExecuteExceptions.CallException e) {
+//                    e.printStackTrace();
+//                } catch (ShellExecuteExceptions.ReturnValueException e) {
+//                    e.printStackTrace();
+//                }
+//            }
+
+            Connections.Connection connection = connectionManager.getConnection(tcpPackage);
+            Log.v(LOG_TAG, "Connection: " + connection);
+        }
 
         return true;
     }

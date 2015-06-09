@@ -5,14 +5,13 @@ import android.util.Log;
 import java.io.IOException;
 
 import de.uni_kl.informatik.disco.discowall.AppManagement;
-import de.uni_kl.informatik.disco.discowall.firewallService.Firewall;
-import de.uni_kl.informatik.disco.discowall.netfilter.IptableConstants;
-import de.uni_kl.informatik.disco.discowall.netfilter.IptablesControl;
 import de.uni_kl.informatik.disco.discowall.netfilter.NetfilterExceptions;
 import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecuteExceptions;
 
 public class NetfilterBridgeControl {
     private static final String LOG_TAG = NetfilterBridgeControl.class.getSimpleName();
+    public static final boolean DEBUG_USE_EXTERNAL_BINARY = true;
+
     private final AppManagement appManagement;
     private final NetfilterBridgeCommunicator.EventsHandler bridgeEventsHandler;
 
@@ -57,9 +56,12 @@ public class NetfilterBridgeControl {
         Log.d(LOG_TAG, "killing all possibly running netfilter bridge instances...");
         bridgeBinaryHandler.killAllInstances();
 
-        // Disabled for DEBUGGING - using external instance within shell
-        Log.d(LOG_TAG, "executing netfilter bridge binary...");
-        bridgeBinaryHandler.start(bridgeCommunicationPort);
+        if (!DEBUG_USE_EXTERNAL_BINARY) {
+            Log.d(LOG_TAG, "executing netfilter bridge binary...");
+            bridgeBinaryHandler.start(bridgeCommunicationPort);
+        } else {
+            Log.i(LOG_TAG, "DEBUG-Flag set. The netfilter-bridge has to be started externally. It will NOT be started from here. Typically an adb-shell will be used to start it directly.");
+        }
 
         Log.d(LOG_TAG, "netfilter-bridge connected.");
     }

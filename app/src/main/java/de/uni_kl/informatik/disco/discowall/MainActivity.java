@@ -14,7 +14,12 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 
+import de.uni_kl.informatik.disco.discowall.firewallService.Firewall;
 import de.uni_kl.informatik.disco.discowall.firewallService.FirewallService;
+import de.uni_kl.informatik.disco.discowall.firewallService.rules.FirewallRules;
+import de.uni_kl.informatik.disco.discowall.firewallService.rules.FirewallRulesManager;
+import de.uni_kl.informatik.disco.discowall.firewallService.rules.StaticFirewallRules;
+import de.uni_kl.informatik.disco.discowall.packages.Packages;
 
 
 public class MainActivity extends ActionBarActivity {
@@ -57,7 +62,14 @@ public class MainActivity extends ActionBarActivity {
         Log.v("Main", "edit text: " + editText.getText());
 
         try {
-            firewallService.stopFirewallService();
+            Firewall firewall = firewallService.getFirewall();
+
+            StaticFirewallRules.StaticTcpRule rule = new FirewallRulesManager().createRule_AcceptTCP(FirewallRules.DeviceFilter.WIFI, null, new Packages.IpPortPair("google.de", 80));
+            rule.setRuleEnabled(true);
+
+//            boolean paused = firewall.isFirewallPaused();
+//            Log.d("Main", "Firewall paused: " + paused);
+//            firewall.setFirewallPaused(!paused);
         } catch (Exception e) {
             e.printStackTrace();
         }

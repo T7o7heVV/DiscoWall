@@ -2,8 +2,8 @@ package de.uni_kl.informatik.disco.discowall.netfilter.bridge;
 
 import android.util.Log;
 
-import de.uni_kl.informatik.disco.discowall.netfilter.IptableConstants;
-import de.uni_kl.informatik.disco.discowall.netfilter.IptablesControl;
+import de.uni_kl.informatik.disco.discowall.netfilter.iptables.IptableConstants;
+import de.uni_kl.informatik.disco.discowall.netfilter.iptables.IptablesControl;
 import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecuteExceptions;
 
 public class NetfilterBridgeIptablesHandler {
@@ -15,14 +15,15 @@ public class NetfilterBridgeIptablesHandler {
 
     // chains
     private static final String CHAIN_FIREWALL_MAIN = "discowall";
-    private static final String CHAIN_FIREWALL_INTERFACE_3G = "discowall-3g";
-    private static final String CHAIN_FIREWALL_INTERFACE_WIFI = "discowall-wifi";
-    private static final String CHAIN_FIREWALL_ACTION_ACCEPT = "discowall-accept";
-    private static final String CHAIN_FIREWALL_ACTION_REJECT = "discowall-reject";
-    private static final String CHAIN_FIREWALL_ACTION_INTERACTIVE = "discowall-interactive";
+    public static final String CHAIN_FIREWALL_INTERFACE_3G = "discowall-if-3g";
+    public static final String CHAIN_FIREWALL_INTERFACE_WIFI = "discowall-if-wifi";
+    public static final String CHAIN_FIREWALL_ACTION_ACCEPT = "discowall-action-accept";
+    public static final String CHAIN_FIREWALL_ACTION_REJECT = "discowall-action-reject";
+    public static final String CHAIN_FIREWALL_ACTION_INTERACTIVE = "discowall-interactive";
 
     // rules
-    private static final String RULE_JUMP_TO_FIREWALL_CHAIN = "-p tcp -j " + CHAIN_FIREWALL_MAIN;
+    private static final String RULE_TCP_JUMP_TO_FIREWALL_CHAIN = "-p tcp -j " + CHAIN_FIREWALL_MAIN;
+    private static final String RULE_UDP_JUMP_TO_FIREWALL_CHAIN = "-p udp -j " + CHAIN_FIREWALL_MAIN;
     private static final String RULE_JUMP_TO_NFQUEUE = "-j NFQUEUE --queue-num 0 --queue-bypass"; // '--queue-bypass' will allow all packages, when no application is bound to the --queue-num 0
     private static final String RULE_JUMP_TO_FIREWALL_ACCEPTED = "-j " + CHAIN_FIREWALL_ACTION_ACCEPT;
     private static final String RULE_JUMP_TO_FIREWALL_INTERACTIVE = "-j " + CHAIN_FIREWALL_ACTION_INTERACTIVE;
@@ -51,7 +52,7 @@ public class NetfilterBridgeIptablesHandler {
      * @throws ShellExecuteExceptions.NonZeroReturnValueException
      */
     public void rulesEnableAll() throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
-        Log.v(LOG_TAG, "iptable chains BEFORE adding rules:\n" + IptablesControl.getRuleInfoText(true, true));
+        Log.i(LOG_TAG, "iptable chains BEFORE adding rules:\n" + IptablesControl.getRuleInfoText(true, true));
 
         // To make sure the rule-order is correct: Remove all rules first
         rulesDisableAll(false);
@@ -66,10 +67,16 @@ public class NetfilterBridgeIptablesHandler {
         IptablesControl.chainAdd(CHAIN_FIREWALL_ACTION_INTERACTIVE);
 
         // chain: INPUT, OUTPUT
-        // rule: forward all TCP to firewall chain
-        IptablesControl.ruleAdd(IptableConstants.Chains.INPUT, RULE_JUMP_TO_FIREWALL_CHAIN);
-        IptablesControl.ruleAdd(IptableConstants.Chains.OUTPUT, RULE_JUMP_TO_FIREWALL_CHAIN);
+        // rule: forward all TCP packages to firewall chain
+        IptablesControl.ruleAdd(IptableConstants.Chains.INPUT, RULE_TCP_JUMP_TO_FIREWALL_CHAIN);
+        IptablesControl.ruleAdd(IptableConstants.Chains.OUTPUT, RULE_TCP_JUMP_TO_FIREWALL_CHAIN);
         // NOTE: setMainChainJumpsEnabled() will add or remove those chains
+
+        // adding those rules will add the rules for forwarding UDP packages into the firewall MAIN chain
+        // chain: INPUT, OUTPUT
+        // rule: forward all UDP packages to firewall chain
+        IptablesControl.ruleAdd(IptableConstants.Chains.INPUT, RULE_UDP_JUMP_TO_FIREWALL_CHAIN);
+        IptablesControl.ruleAdd(IptableConstants.Chains.OUTPUT, RULE_UDP_JUMP_TO_FIREWALL_CHAIN);
 
         // chain MAIN:
         {
@@ -77,11 +84,20 @@ public class NetfilterBridgeIptablesHandler {
             IptablesControl.ruleAdd(CHAIN_FIREWALL_MAIN, RULE_BRIDGE_COM_EXCEPTION_CLIENT); // client
             IptablesControl.ruleAdd(CHAIN_FIREWALL_MAIN, RULE_BRIDGE_COM_EXCEPTION_SERVER); // server
 
-            // rule: filter by interface (3g/WLAN) and jump to according chain
-            for(String interfaceDevice : DEVICES_3G) // forward from all 3G-interfaces to 3G-chain
-                IptablesControl.ruleAdd(CHAIN_FIREWALL_MAIN, "-i "+interfaceDevice+" -j " + CHAIN_FIREWALL_INTERFACE_3G);
-            for(String interfaceDevice : DEVICES_WIFI) // forward from all wifi-interfaces to wifi-chain
-                IptablesControl.ruleAdd(CHAIN_FIREWALL_MAIN, "-i "+interfaceDevice+" -j " + CHAIN_FIREWALL_INTERFACE_WIFI);
+            // rule: forward to according interface
+            {
+                // interface 3G
+                for(String interfaceDevice : DEVICES_3G)
+                    IptablesControl.ruleAdd(CHAIN_FIREWALL_MAIN, "-i " + interfaceDevice + " -j " + CHAIN_FIREWALL_INTERFACE_3G); // for incomming packets
+                for(String interfaceDevice : DEVICES_3G)
+                    IptablesControl.ruleAdd(CHAIN_FIREWALL_MAIN, "-o " + interfaceDevice + " -j " + CHAIN_FIREWALL_INTERFACE_3G); // for outgoing packets
+
+                // interface WIFI
+                for(String interfaceDevice : DEVICES_WIFI)
+                    IptablesControl.ruleAdd(CHAIN_FIREWALL_MAIN, "-i "+interfaceDevice+" -j " + CHAIN_FIREWALL_INTERFACE_WIFI);  // for incomming packets
+                for(String interfaceDevice : DEVICES_WIFI)
+                    IptablesControl.ruleAdd(CHAIN_FIREWALL_MAIN, "-o "+interfaceDevice+" -j " + CHAIN_FIREWALL_INTERFACE_WIFI);  // for outgoing packets
+            }
 
             // Default-Action on the end of the MAIN chain will be set according to the wishes of the user
             // rule: jump to INTERACTIVE is last action ==> Everything what is not ACCEPTED or REJECTED at this point will be INTERACTIVELY handled.
@@ -101,7 +117,7 @@ public class NetfilterBridgeIptablesHandler {
         // rule: jump to NFQUEUE and handle package interactively
         IptablesControl.ruleAdd(CHAIN_FIREWALL_ACTION_INTERACTIVE, RULE_JUMP_TO_NFQUEUE);
 
-        Log.v(LOG_TAG, "iptable chains AFTER adding rules:\n" + IptablesControl.getRuleInfoText(true, true));
+        Log.i(LOG_TAG, "iptable chains AFTER adding rules:\n" + IptablesControl.getRuleInfoText(true, true));
     }
 
     public void rulesDisableAll(boolean logChainStatesBeforeAndAfter) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
@@ -134,8 +150,11 @@ public class NetfilterBridgeIptablesHandler {
         if (IptablesControl.chainExists(CHAIN_FIREWALL_MAIN)) {
             // 1. First all references to the chain "discowall" have to be removed
             // remove rules: forward all TCP to firewall chain
-            IptablesControl.ruleDeleteIgnoreIfMissing(IptableConstants.Chains.INPUT, RULE_JUMP_TO_FIREWALL_CHAIN);
-            IptablesControl.ruleDeleteIgnoreIfMissing(IptableConstants.Chains.OUTPUT, RULE_JUMP_TO_FIREWALL_CHAIN);
+            IptablesControl.ruleDeleteIgnoreIfMissing(IptableConstants.Chains.INPUT, RULE_TCP_JUMP_TO_FIREWALL_CHAIN);
+            IptablesControl.ruleDeleteIgnoreIfMissing(IptableConstants.Chains.OUTPUT, RULE_TCP_JUMP_TO_FIREWALL_CHAIN);
+            // remove rules: forward all UDP to firewall chain
+            IptablesControl.ruleDeleteIgnoreIfMissing(IptableConstants.Chains.INPUT, RULE_UDP_JUMP_TO_FIREWALL_CHAIN);
+            IptablesControl.ruleDeleteIgnoreIfMissing(IptableConstants.Chains.OUTPUT, RULE_UDP_JUMP_TO_FIREWALL_CHAIN);
 
             // 2. Then the chain itself can be cleared from all contained rules
             // remove all rules from "discowall" chain
@@ -167,8 +186,8 @@ public class NetfilterBridgeIptablesHandler {
     }
 
     public boolean isMainChainJumpsEnabled() throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
-        return IptablesControl.ruleExists(IptableConstants.Chains.INPUT, RULE_JUMP_TO_FIREWALL_CHAIN)
-                && IptablesControl.ruleExists(IptableConstants.Chains.OUTPUT, RULE_JUMP_TO_FIREWALL_CHAIN);
+        return IptablesControl.ruleExists(IptableConstants.Chains.INPUT, RULE_TCP_JUMP_TO_FIREWALL_CHAIN)
+                && IptablesControl.ruleExists(IptableConstants.Chains.OUTPUT, RULE_TCP_JUMP_TO_FIREWALL_CHAIN);
     }
 
     /**
@@ -179,11 +198,11 @@ public class NetfilterBridgeIptablesHandler {
      */
     public void setMainChainJumpsEnabled(boolean enableJumpsToMainChain) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
         if (enableJumpsToMainChain) {
-            IptablesControl.ruleAddIfMissing(IptableConstants.Chains.INPUT, RULE_JUMP_TO_FIREWALL_CHAIN);
-            IptablesControl.ruleAddIfMissing(IptableConstants.Chains.OUTPUT, RULE_JUMP_TO_FIREWALL_CHAIN);
+            IptablesControl.ruleAddIfMissing(IptableConstants.Chains.INPUT, RULE_TCP_JUMP_TO_FIREWALL_CHAIN);
+            IptablesControl.ruleAddIfMissing(IptableConstants.Chains.OUTPUT, RULE_TCP_JUMP_TO_FIREWALL_CHAIN);
         } else {
-            IptablesControl.ruleDeleteIgnoreIfMissing(IptableConstants.Chains.INPUT, RULE_JUMP_TO_FIREWALL_CHAIN);
-            IptablesControl.ruleDeleteIgnoreIfMissing(IptableConstants.Chains.OUTPUT, RULE_JUMP_TO_FIREWALL_CHAIN);
+            IptablesControl.ruleDeleteIgnoreIfMissing(IptableConstants.Chains.INPUT, RULE_TCP_JUMP_TO_FIREWALL_CHAIN);
+            IptablesControl.ruleDeleteIgnoreIfMissing(IptableConstants.Chains.OUTPUT, RULE_TCP_JUMP_TO_FIREWALL_CHAIN);
         }
     }
 
@@ -219,8 +238,8 @@ public class NetfilterBridgeIptablesHandler {
     }
 
     private boolean rulesAreEnabled() throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.NonZeroReturnValueException {
-        return IptablesControl.ruleExists(IptableConstants.Chains.INPUT, RULE_JUMP_TO_FIREWALL_CHAIN)
-                || IptablesControl.ruleExists(IptableConstants.Chains.OUTPUT, RULE_JUMP_TO_FIREWALL_CHAIN);
+        return IptablesControl.ruleExists(IptableConstants.Chains.INPUT, RULE_TCP_JUMP_TO_FIREWALL_CHAIN)
+                || IptablesControl.ruleExists(IptableConstants.Chains.OUTPUT, RULE_TCP_JUMP_TO_FIREWALL_CHAIN);
     }
 
 }

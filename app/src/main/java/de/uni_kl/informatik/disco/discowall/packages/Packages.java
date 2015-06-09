@@ -1,7 +1,55 @@
-package de.uni_kl.informatik.disco.discowall.netfilter.bridge;
+package de.uni_kl.informatik.disco.discowall.packages;
 
-public class NetfilterBridgePackages {
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.security.Timestamp;
+
+public class Packages {
     public enum PackageType { TCP, UDP }
+
+    public static class IpPortPair {
+        private final String ip;
+        private final int port;
+
+        public int getPort() { return port; }
+        public String getIp() { return ip; }
+
+        public IpPortPair(String ip, int port) {
+            if (ip == null)
+                throw new IllegalArgumentException("IP address cannot be null.");
+
+            this.ip = ip.trim();
+            this.port = port;
+        }
+
+        @Override
+        public String toString() {
+            return (ip.isEmpty()?"*":ip) + ":" + (port<1?"*":port); // examples: *:*, 127.0.0.1:*, 127.0.0.1:1337, *:1337
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (o == null)
+                return false;
+
+            if (o instanceof IpPortPair) {
+                IpPortPair pair = (IpPortPair)o;
+                return pair.getIp().equals(getIp()) && pair.getPort() == getPort();
+            } else {
+                return super.equals(o);
+            }
+        }
+
+        public String getHostname() {
+            try {
+                InetAddress ia = InetAddress.getByName(ip);
+                return ia.getHostName();
+            } catch (UnknownHostException e) {
+                return null;
+            }
+        }
+
+    }
 
 //    public static class PackageException extends Exception {
 //        private final TransportLayerPackage pkg;
@@ -14,48 +62,55 @@ public class NetfilterBridgePackages {
 //    }
 
     private static abstract class IpPackage {
-        protected final String sourceIP;
-        protected final String destinationIP;
+        public abstract String getSourceIP();
+        public abstract String getDestinationIP();
+        private final long timestamp = System.nanoTime();
 
-        public String getDestinationIP() { return destinationIP; }
-        public String getSourceIP() { return sourceIP; }
+        public long getTimestamp() {
+            return timestamp;
+        }
 
-        public IpPackage(String sourceIP, String destinationIP) {
-            this.sourceIP = sourceIP;
-            this.destinationIP = destinationIP;
+        public IpPackage() {
         }
     }
 
-    public static abstract class TransportLayerPackage extends IpPackage {
-        protected final int sourcePort;
-        protected final int destinationPort;
-        protected final PackageType type;
-        protected final int checksum;
-        protected final int length;
+    public static abstract class TransportLayerPackage extends IpPackage implements Connections.IConnection {
+        private final PackageType type;
+        private final IpPortPair source, destination;
+        private final int checksum, length;
 
         public PackageType getType() { return type; }
-        public int getSourcePort() { return sourcePort; }
+
+        @Override public IpPortPair getSource() { return source; }
+        @Override public int getSourcePort() { return source.getPort(); }
+        @Override public String getSourceIP() { return source.getIp(); }
+
+        @Override public IpPortPair getDestination() { return destination; }
+        @Override public int getDestinationPort() { return destination.getPort(); }
+        @Override public String getDestinationIP() { return destination.getIp(); }
+
         public int getLength() { return length; }
         public int getChecksum() { return checksum; }
 
         public TransportLayerPackage(PackageType type, String sourceIP, String destinationIP, int sourcePort, int destinationPort, int checksum, int length) {
-            super(sourceIP, destinationIP);
+            super();
             this.type = type;
-            this.sourcePort = sourcePort;
-            this.destinationPort = destinationPort;
             this.checksum = checksum;
             this.length = length;
+
+            source = new IpPortPair(sourceIP, sourcePort);
+            destination = new IpPortPair(destinationIP, destinationPort);
         }
 
         @Override
         public String toString() {
-            return sourceIP +":" + sourcePort + " -> " + destinationIP + ":" + destinationPort + " { length="+ length +", checksum=" + checksum +" }";
+            return source + " -> " + destination + " { length="+ length +", checksum=" + checksum +" }";
         }
     }
 
     public static  class TcpPackage extends TransportLayerPackage {
-        protected final int seqNumber, ackNumber;
-        protected final boolean hasFlagACK, hasFlagFIN, hasFlagSYN, hasFlagPush, hasFlagReset, hasFlagUrgent;
+        private final int seqNumber, ackNumber;
+        private final boolean hasFlagACK, hasFlagFIN, hasFlagSYN, hasFlagPush, hasFlagReset, hasFlagUrgent;
 
         public int getSeqNumber() { return seqNumber; }
         public int getAckNumber() { return ackNumber; }

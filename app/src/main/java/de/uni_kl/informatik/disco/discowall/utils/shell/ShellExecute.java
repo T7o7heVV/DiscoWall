@@ -145,7 +145,7 @@ public class ShellExecute {
 
     public static ShellExecuteResult execute(boolean readResult, boolean waitForTermination, String shell, String[] cmds, boolean redirectStderrToStdout) throws ShellExecuteExceptions.CallException {
         final ShellExecuteResult shellExecuteResult = new ShellExecuteResult(shell, cmds);
-        Log.v(LOG_TAG, "executing command [shell="+shellExecuteResult.shell+"]: " + shellExecuteResult.commandsAsString);
+        Log.d(LOG_TAG, "executing command [shell="+shellExecuteResult.shell+"]: " + shellExecuteResult.commandsAsString);
 
         ProcessBuilder builder = new ProcessBuilder(shell);
         try {

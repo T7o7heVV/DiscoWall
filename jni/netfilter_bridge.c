@@ -85,7 +85,9 @@ int sockfd; // server (android app) connection
 struct sockaddr_in source,dest; // printer-methods
 
 // debugging stuff:
-bool debug_printPackageHeader = false;
+bool debug_printTcpPackages = false;
+bool debug_printUdpPackages = false;
+bool debug_printPackageHeader = true;
 bool debug_printPackagePayload = false;
 
 
@@ -384,8 +386,7 @@ void handle_ip_packet(unsigned char* Buffer, int Size)
 }
 
 
-/* Returns true, if the package should be accepted, false otherwise */
-bool handle_tcp_packet(unsigned char* Buffer, int Size)
+void handle_tcp_packet(unsigned char* Buffer, int Size)
 {
     unsigned short iphdrlen;
      
@@ -394,19 +395,14 @@ bool handle_tcp_packet(unsigned char* Buffer, int Size)
      
     struct tcphdr *tcph=(struct tcphdr*)(Buffer + iphdrlen);
              
-    if (debug_printPackageHeader | debug_printPackagePayload)
+    if (debug_printTcpPackages && (debug_printPackageHeader | debug_printPackagePayload))
     {
 	    fprintf(stdout,"\n\n***********************TCP Packet*************************\n");    
 	}
 
-    // ----------------------------- Firewall-Communication ----------------------------
-    sendMessageToServer("#Packet.QueryAction#");
-    sendMessageToServer("#protocol=tcp#");
-    // --------------------------------------------------------------------------------
-
     handle_ip_packet(Buffer,Size); // will also send packet-information to server
 
-    if (debug_printPackageHeader)
+    if (debug_printTcpPackages && debug_printPackageHeader)
     {
 	    fprintf(stdout,"\n");
 	    fprintf(stdout,"TCP Header\n");
@@ -429,7 +425,7 @@ bool handle_tcp_packet(unsigned char* Buffer, int Size)
 	    fprintf(stdout,"\n");
     }
 
-    if (debug_printPackagePayload)
+    if (debug_printTcpPackages && debug_printPackagePayload)
     {
     	fprintf(stdout,"                     TCP DATA Dump                         ");
 	    fprintf(stdout,"\n");
@@ -496,18 +492,11 @@ bool handle_tcp_packet(unsigned char* Buffer, int Size)
     sendIntToServer((unsigned int)tcph->fin);
     sendMessageToServer("#");
 
-    sendMessageToServer("\n"); // message-end
-
-    // Receive server-response
-    bool acceptPackage = receiveProtocolResponseAcceptOrDropPackage();
     // --------------------------------------------------------------------------------
-
-    return acceptPackage;
 }
 
 
-/* Returns true, if the package should be accepted, false otherwise */
-bool handle_udp_packet(unsigned char *Buffer , int Size)
+void handle_udp_packet(unsigned char *Buffer , int Size)
 {
      
     unsigned short iphdrlen;
@@ -517,19 +506,14 @@ bool handle_udp_packet(unsigned char *Buffer , int Size)
      
     struct udphdr *udph = (struct udphdr*)(Buffer + iphdrlen);
      
-    if (debug_printPackageHeader | debug_printPackagePayload) 
+    if ( debug_printUdpPackages && (debug_printPackageHeader | debug_printPackagePayload) )
     {
     	fprintf(stdout,"\n\n***********************UDP Packet*************************\n");
     }
     
-    // ----------------------------- Firewall-Communication ----------------------------
-    sendMessageToServer("#Packet.QueryAction#");
-    sendMessageToServer("#protocol=udp#");
-    // --------------------------------------------------------------------------------
-
 	handle_ip_packet(Buffer,Size);           
 
-    if (debug_printPackageHeader)  
+    if (debug_printUdpPackages && debug_printPackageHeader)  
     {
 	    fprintf(stdout,"\nUDP Header\n");
 	    fprintf(stdout,"   |-Source Port      : %d\n" , ntohs(udph->source));
@@ -539,7 +523,7 @@ bool handle_udp_packet(unsigned char *Buffer , int Size)
 	    fprintf(stdout,"\n");
 	}
 
-	if (debug_printPackagePayload) 
+	if (debug_printUdpPackages && debug_printPackagePayload) 
 	{
 	    fprintf(stdout,"IP Header\n");
 	    printPackagePayload(Buffer , iphdrlen);
@@ -570,14 +554,7 @@ bool handle_udp_packet(unsigned char *Buffer , int Size)
     sendMessageToServer("#udp.checksum=");
     sendIntToServer(ntohs(udph->check));
     sendMessageToServer("#");
-
-    sendMessageToServer("\n"); // message-end
-
-    // Receive server-response
-    bool acceptPackage = receiveProtocolResponseAcceptOrDropPackage();
     // --------------------------------------------------------------------------------
-
-    return acceptPackage;
 }
 
  
@@ -605,48 +582,8 @@ static u_int32_t handle_pkt_get_id(struct nfq_data *tb)
 /* returns packet id */
 static u_int32_t handle_pkt(struct nfq_data *tb)
 {
-	// int id = 0;
-	// struct nfqnl_msg_packet_hdr *ph;
-	// struct nfqnl_msg_packet_hw *hwph;
-	// u_int32_t mark,ifi; 
 	int data_size;
 	unsigned char *data;
-
-	// ph = nfq_get_msg_packet_hdr(tb);
-	// if (ph) {
-	// 	id = ntohl(ph->packet_id);
-	// 	fprintf(stdout, "hw_protocol=0x%04x hook=%u id=%u ",
-	// 		ntohs(ph->hw_protocol), ph->hook, id);
-	// }
-
-	// hwph = nfq_get_packet_hw(tb);
-	// if (hwph) {
-	// 	int i, hlen = ntohs(hwph->hw_addrlen);
-
-	// 	fprintf(stdout, "hw_src_addr=");
-	// 	for (i = 0; i < hlen-1; i++)
-	// 		fprintf(stdout, "%02x:", hwph->hw_addr[i]);
-	// 	fprintf(stdout, "%02x ", hwph->hw_addr[hlen-1]);
-	// }
-
-	// mark = nfq_get_nfmark(tb);
-	// if (mark)
-	// 	fprintf(stdout, "mark=%u ", mark);
-
-	// ifi = nfq_get_indev(tb);
-	// if (ifi)
-	// 	fprintf(stdout, "indev=%u ", ifi);
-
-	// ifi = nfq_get_outdev(tb);
-	// if (ifi)
-	// 	fprintf(stdout, "outdev=%u ", ifi);
-	// ifi = nfq_get_physindev(tb);
-	// if (ifi)
-	// 	fprintf(stdout, "physindev=%u ", ifi);
-
-	// ifi = nfq_get_physoutdev(tb);
-	// if (ifi)
-	// 	fprintf(stdout, "physoutdev=%u ", ifi);
 
 	data_size = nfq_get_payload(tb, &data);
 	if (data_size >= 0)
@@ -665,34 +602,114 @@ static u_int32_t handle_pkt(struct nfq_data *tb)
 
 	// --------------------------------- TCP/UDP Decoding -------------------------
 	fprintf(stdout, "Protocol-Type:");
-	bool accept = true;
 
     switch (ip->protocol) //Check the Protocol and do accordingly...
     {
         case 1:  //ICMP Protocol
             fprintf(stdout, "ICMP --> ignoring package.\n");
-            break;
+            return true;
          
         case 2:  //IGMP Protocol
             fprintf(stdout, "IGMP --> ignoring package.\n");
-            break;
+            return true;
          
         case 6:  //TCP Protocol
         	fprintf(stdout, "TCP --> forwarding info to firewall...\n");
-    		accept = handle_tcp_packet(data, data_size);
-            break;
-         
+
+			sendMessageToServer("#Packet.QueryAction#");
+		    sendMessageToServer("#protocol=tcp#");
+
+    		handle_tcp_packet(data, data_size);
+         	break;
+
         case 17: //UDP Protocol
             fprintf(stdout, "UDP --> forwarding info to firewall...\n");
-            accept = handle_udp_packet(data, data_size);
-            break;
-         
+
+		    sendMessageToServer("#Packet.QueryAction#");
+		    sendMessageToServer("#protocol=udp#");
+
+            handle_udp_packet(data, data_size);
+         	break;
+
         default: //Some Other Protocol like ARP etc.
 			fprintf(stdout, "<unknown protocol> --> ignoring package.\n");
-            break;
+            return true;
     }
 
-	return accept;
+    /* Note that this function will already have returned for any non-supported protocol.
+     * I.e. the following code will only be executed for those packages, which are of interest to the firewall.
+     */ 
+
+	// ----------------------------- Physical-Layer Decoding ------------------------------
+
+	fprintf(stdout, "Physical-Layer infos:  ");
+
+	struct nfqnl_msg_packet_hdr *ph;
+	struct nfqnl_msg_packet_hw *hwph;
+	u_int32_t mark,ifi; 
+
+	hwph = nfq_get_packet_hw(tb);
+	if (hwph) {
+		int i, hlen = ntohs(hwph->hw_addrlen);
+
+		fprintf(stdout, "hw_src_addr=");
+		for (i = 0; i < hlen-1; i++)
+			fprintf(stdout, "%02x:", hwph->hw_addr[i]);
+		fprintf(stdout, "%02x ", hwph->hw_addr[hlen-1]);
+	}
+
+	mark = nfq_get_nfmark(tb);
+	if (mark)
+		fprintf(stdout, "mark=%u ", mark);
+
+	ifi = nfq_get_indev(tb);
+	if (ifi)
+		fprintf(stdout, "indev=%u ", ifi);
+
+	ifi = nfq_get_outdev(tb);
+	if (ifi)
+		fprintf(stdout, "outdev=%u ", ifi);
+	ifi = nfq_get_physindev(tb);
+	if (ifi)
+		fprintf(stdout, "physindev=%u ", ifi);
+
+	ifi = nfq_get_physoutdev(tb);
+	if (ifi)
+		fprintf(stdout, "physoutdev=%u ", ifi);
+
+	fprintf(stdout, "\n\n");
+
+    // ----------------------------- Firewall-Communication ----------------------------
+
+	// input device:
+	ifi = nfq_get_indev(tb);
+	if (ifi) 
+	{
+		sendMessageToServer("#phys.dev.in=");
+		sendIntToServer(ifi);
+		sendMessageToServer("#");
+	}	
+
+	// output device:
+	ifi = nfq_get_outdev(tb);
+	if (ifi) 
+	{
+		sendMessageToServer("#phys.dev.out=");
+		sendIntToServer(ifi);
+		sendMessageToServer("#");
+	}
+
+    // send end-of-message (line-feed) symbol. 
+    // The TCP/UDP/IP information has been transmitted when handling the TCP/UPD package.
+    sendMessageToServer("\n"); // message-end
+
+    // Receive server-response
+    bool acceptPackage = receiveProtocolResponseAcceptOrDropPackage();
+
+    // ---------------------------------------------------------------------------------
+
+
+	return acceptPackage;
 }
 
 
