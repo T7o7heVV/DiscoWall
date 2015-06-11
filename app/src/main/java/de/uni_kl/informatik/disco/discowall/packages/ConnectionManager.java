@@ -4,35 +4,56 @@ import java.util.HashMap;
 import java.util.LinkedList;
 
 public class ConnectionManager {
-    private final ConnectionHash connectionHash = new ConnectionHash();
+    private final ConnectionHash<Connections.TcpConnection> tcpConnectionHash = new ConnectionHash();
+    private final ConnectionHash<Connections.UdpConnection> udpConnectionHash = new ConnectionHash();
 
-    public Connections.Connection getConnection(Packages.IpPortPair source, Packages.IpPortPair destination) {
-        Connections.Connection connection = connectionHash.get(source, destination);
+    public Connections.TcpConnection getTcpConnection(Packages.IpPortPair source, Packages.IpPortPair destination) {
+        Connections.TcpConnection connection = tcpConnectionHash.get(source, destination);
 
         if (connection == null) {
-            connection = new Connections.Connection(source, destination);
-            connectionHash.put(connection);
+            connection = new Connections.TcpConnection(source, destination);
+            tcpConnectionHash.put(connection);
         }
 
         return connection;
     }
 
-    public Connections.Connection getConnection(Connections.IConnection connection) {
-        return getConnection(connection.getSource(), connection.getDestination());
+    public Connections.TcpConnection getTcpConnection(Packages.TcpPackage tcpPackage) {
+        return getTcpConnection(tcpPackage.getSource(), tcpPackage.getDestination());
     }
 
-    public boolean containsConnection(Connections.IConnection connection) {
-        return connectionHash.contains(connection);
+    public boolean containsTcpConnection(Connections.IConnection connection) {
+        return tcpConnectionHash.contains(connection);
     }
 
-    private static class ConnectionHash {
-        private final HashMap<String, Connections.Connection> connectionIdToConnectionMap = new HashMap<>();
+    public Connections.UdpConnection getUdpConnection(Packages.IpPortPair source, Packages.IpPortPair destination) {
+        Connections.UdpConnection connection = udpConnectionHash.get(source, destination);
 
-        public LinkedList<Connections.Connection> getConnections() {
+        if (connection == null) {
+            connection = new Connections.UdpConnection(source, destination);
+            udpConnectionHash.put(connection);
+        }
+
+        return connection;
+    }
+
+    public Connections.UdpConnection getUdpConnection(Packages.UdpPackage udpPackage) {
+        return getUdpConnection(udpPackage.getSource(), udpPackage.getDestination());
+    }
+
+    public boolean containsUdpConnection(Connections.IConnection connection) {
+        return udpConnectionHash.contains(connection);
+    }
+
+
+    private static class ConnectionHash<TConnection extends Connections.Connection> {
+        private final HashMap<String, TConnection> connectionIdToConnectionMap = new HashMap<>();
+
+        public LinkedList<TConnection> getConnections() {
             return new LinkedList<>(connectionIdToConnectionMap.values());
         }
 
-        public void put(Connections.Connection connection) {
+        public void put(TConnection connection) {
             connectionIdToConnectionMap.put(connection.getID(), connection);
         }
 
@@ -48,7 +69,7 @@ public class ConnectionManager {
             return get(connection.getSource(), connection.getDestination());
         }
 
-        public Connections.Connection get(Packages.IpPortPair source, Packages.IpPortPair destination) {
+        public TConnection get(Packages.IpPortPair source, Packages.IpPortPair destination) {
             return connectionIdToConnectionMap.get(getConnectionID(source, destination));
         }
 

@@ -9,6 +9,7 @@ import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 
+import de.uni_kl.informatik.disco.discowall.DiscoWallConstants;
 import de.uni_kl.informatik.disco.discowall.packages.Packages;
 
 public class NetfilterBridgeCommunicator implements Runnable {
@@ -144,18 +145,18 @@ public class NetfilterBridgeCommunicator implements Runnable {
                 // Handling of different protocols - currently TCP/UDP
                 if (message.contains(NetfilterBridgeProtocol.QueryPackageAction.IP.FLAG_PROTOCOL_TYPE_TCP)) {
                     // Handle TCP Package
-                    int srcPort = extractIntValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.IP.TCP.VALUE_SOURCE_PORT);
-                    int dstPort = extractIntValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.IP.TCP.VALUE_DESTINATION_PORT);
-                    int length = extractIntValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.IP.TCP.VALUE_LENGTH);
-                    int checksum = extractIntValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.IP.TCP.VALUE_CHECKSUM);
-                    int seqNumber = extractIntValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.IP.TCP.VALUE_SEQUENCE_NUMBER);
-                    int ackNumber = extractIntValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.IP.TCP.VALUE_ACK_NUMBER);
-                    boolean hasFlagACK = extractBitValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.IP.TCP.VALUE_FLAG_IS_ACK);
-                    boolean hasFlagFIN = extractBitValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.IP.TCP.VALUE_FLAG_FIN);
-                    boolean hasFlagSYN = extractBitValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.IP.TCP.VALUE_FLAG_SYN);
-                    boolean hasFlagPush = extractBitValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.IP.TCP.VALUE_FLAG_PUSH);
-                    boolean hasFlagReset = extractBitValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.IP.TCP.VALUE_FLAG_RESET);
-                    boolean hasFlagUrgent = extractBitValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.IP.TCP.VALUE_FLAG_URGENT);
+                    int srcPort = extractIntValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.TCP.VALUE_SOURCE_PORT);
+                    int dstPort = extractIntValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.TCP.VALUE_DESTINATION_PORT);
+                    int length = extractIntValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.TCP.VALUE_LENGTH);
+                    int checksum = extractIntValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.TCP.VALUE_CHECKSUM);
+                    int seqNumber = extractIntValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.TCP.VALUE_SEQUENCE_NUMBER);
+                    int ackNumber = extractIntValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.TCP.VALUE_ACK_NUMBER);
+                    boolean hasFlagACK = extractBitValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.TCP.VALUE_FLAG_IS_ACK);
+                    boolean hasFlagFIN = extractBitValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.TCP.VALUE_FLAG_FIN);
+                    boolean hasFlagSYN = extractBitValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.TCP.VALUE_FLAG_SYN);
+                    boolean hasFlagPush = extractBitValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.TCP.VALUE_FLAG_PUSH);
+                    boolean hasFlagReset = extractBitValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.TCP.VALUE_FLAG_RESET);
+                    boolean hasFlagUrgent = extractBitValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.TCP.VALUE_FLAG_URGENT);
 
                     tlPackage = new Packages.TcpPackage(srcIP, dstIP, srcPort, dstPort, length, checksum,
                             seqNumber, ackNumber,
@@ -163,21 +164,36 @@ public class NetfilterBridgeCommunicator implements Runnable {
                         );
                 } else if (message.contains(NetfilterBridgeProtocol.QueryPackageAction.IP.FLAG_PROTOCOL_TYPE_UDP)) {
                     // Handle UDP  Package
-                    int srcPort = extractIntValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.IP.UDP.VALUE_SOURCE_PORT);
-                    int dstPort = extractIntValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.IP.UDP.VALUE_DESTINATION_PORT);
-                    int length = extractIntValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.IP.UDP.VALUE_LENGTH);
-                    int checksum = extractIntValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.IP.UDP.VALUE_CHECKSUM);
+                    int srcPort = extractIntValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.UDP.VALUE_SOURCE_PORT);
+                    int dstPort = extractIntValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.UDP.VALUE_DESTINATION_PORT);
+                    int length = extractIntValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.UDP.VALUE_LENGTH);
+                    int checksum = extractIntValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.UDP.VALUE_CHECKSUM);
 
                     tlPackage = new Packages.UdpPackage(srcIP, dstIP, srcPort, dstPort, length, checksum);
                 } else {
                     Log.e(LOG_TAG, "Unknown message format (no transport-layer defined): " + message);
                     NetfilterBridgeProtocol.ProtocolFormatException formatException = new NetfilterBridgeProtocol.ProtocolFormatException("Unknown message format: no transport-layer defined", message);
                     eventsHandler.onInternalERROR(message, formatException);
+
+                    onErroneousPackageReceived();
                     return;
                 }
+
+                // ------------------- Decode netfilter- information ---------------------
+                tlPackage.setMark(extractIntValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.Netfilter.VALUE_MARK));
+
+                // ---------------- Decode physical-layer- information -------------------
+                // add input- & output-device information, if package has any
+                if (messageContainsValue(message, NetfilterBridgeProtocol.QueryPackageAction.Physical.OPT_VALUE_INPUT_DEVICE))
+                    tlPackage.setInputDeviceIndex(extractIntValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.Physical.OPT_VALUE_INPUT_DEVICE));
+                if (messageContainsValue(message, NetfilterBridgeProtocol.QueryPackageAction.Physical.OPT_VALUE_OUTPUT_DEVICE))
+                    tlPackage.setOutputDeviceIndex(extractIntValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.Physical.OPT_VALUE_OUTPUT_DEVICE));
+
             } catch(NetfilterBridgeProtocol.ProtocolException e) {
                 Log.e(LOG_TAG, "Error while decoding message: " + message + "\n" + e.getMessage());
                 eventsHandler.onInternalERROR("Error while decoding message: " + message + "\n" + e.getMessage(), e);
+
+                onErroneousPackageReceived();
                 return;
             }
 
@@ -198,7 +214,7 @@ public class NetfilterBridgeCommunicator implements Runnable {
         if (value != 0 && value != 1)
             throw new NetfilterBridgeProtocol.ProtocolValueException(message, value + "", message);
 
-        return value == 0;
+        return value == 1;
     }
 
     private int extractIntValueFromMessage(final String message, final String valueName) throws NetfilterBridgeProtocol.ProtocolValueMissingException, NetfilterBridgeProtocol.ProtocolValueTypeException {
@@ -209,6 +225,17 @@ public class NetfilterBridgeCommunicator implements Runnable {
         } catch(Exception e) {
             throw new NetfilterBridgeProtocol.ProtocolValueTypeException(Integer.class, intValueStr, message);
         }
+    }
+
+    private boolean messageContainsValue(final String message, final String valueName) {
+        String valuePrefix = NetfilterBridgeProtocol.VALUE_PREFIX + valueName + NetfilterBridgeProtocol.VALUE_KEY_DELIM;
+        String valueSuffix = NetfilterBridgeProtocol.VALUE_SUFFIX;
+
+        if (! (message.contains(valuePrefix) && message.contains(valueSuffix)))
+            return false;
+
+        String messageStartingWithValue = message.substring(message.indexOf(valuePrefix) + valuePrefix.length());
+        return messageStartingWithValue.contains(valueSuffix); // checking again, in case the suffix is a substring of the prefix
     }
 
     private String extractStringValueFromMessage(final String message, final String valueName) throws NetfilterBridgeProtocol.ProtocolValueMissingException {
@@ -228,15 +255,24 @@ public class NetfilterBridgeCommunicator implements Runnable {
     private void onPackageReceived(Packages.TransportLayerPackage tlPackage) {
         boolean acceptPackage = eventsHandler.onPackageReceived(tlPackage);
 
-        if (acceptPackage) {
+        if (acceptPackage)
             Log.v(LOG_TAG, "Accepting package: " + tlPackage);
-            sendMessage(NetfilterBridgeProtocol.QueryPackageActionResponse.MSG_PREFIX, NetfilterBridgeProtocol.QueryPackageActionResponse.FLAG_ACCEPT_PACKAGE);
-//            sendMessage("#Packet.QueryAction.Resonse#", "#ACCEPT#");
-        } else {
+        else
             Log.v(LOG_TAG, "Dropping package: " + tlPackage);
+
+        sendPackageQueryResponse(acceptPackage);
+    }
+
+    private void onErroneousPackageReceived() {
+        Log.d(LOG_TAG, "Accepting erroneous package, so that the netfilter-bridge will not stay blocked while waiting for response.");
+        sendPackageQueryResponse(true);
+    }
+
+    private void sendPackageQueryResponse(boolean accept) {
+        if (accept)
+            sendMessage(NetfilterBridgeProtocol.QueryPackageActionResponse.MSG_PREFIX, NetfilterBridgeProtocol.QueryPackageActionResponse.FLAG_ACCEPT_PACKAGE);
+        else
             sendMessage(NetfilterBridgeProtocol.QueryPackageActionResponse.MSG_PREFIX, NetfilterBridgeProtocol.QueryPackageActionResponse.FLAG_DROP_PACKAGE);
-//            sendMessage("#Packet.QueryAction.Resonse#", "#DROP#");
-        }
     }
 
     public boolean isConnected() {
@@ -247,7 +283,7 @@ public class NetfilterBridgeCommunicator implements Runnable {
         return connectionException;
     }
 
-    public void disconnect() throws IOException {
+    public void disconnect() {
         runCommunicationLoop = false;
     }
 

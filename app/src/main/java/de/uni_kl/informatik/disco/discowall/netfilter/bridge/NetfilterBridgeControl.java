@@ -3,6 +3,7 @@ package de.uni_kl.informatik.disco.discowall.netfilter.bridge;
 import android.util.Log;
 
 import java.io.IOException;
+import java.util.LinkedList;
 
 import de.uni_kl.informatik.disco.discowall.AppManagement;
 import de.uni_kl.informatik.disco.discowall.netfilter.NetfilterExceptions;
@@ -102,4 +103,17 @@ public class NetfilterBridgeControl {
     public void setDefaultPackageHandlingMode(NetfilterBridgeIptablesHandler.PackageHandlingMode mode) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
         iptablesHandler.setDefaultPackageHandlingMode(mode);
     }
+
+    public NetfilterBridgeIptablesHandler.PackageHandlingMode getDefaultPackageHandlingMode() throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.NonZeroReturnValueException {
+        return iptablesHandler.getDefaultPackageHandlingMode();
+    }
+
+    public void setUserPackagesForwardToFirewall(int uid, boolean forward) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
+        iptablesHandler.setUserPackagesForwardToFirewall(uid, forward);
+    }
+
+    public boolean isUserPackagesForwardedToFirewall(int uid) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
+        return iptablesHandler.isUserPackagesForwardedToFirewall(uid);
+    }
+
 }

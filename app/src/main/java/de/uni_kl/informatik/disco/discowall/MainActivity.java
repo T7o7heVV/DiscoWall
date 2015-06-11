@@ -4,6 +4,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.net.Network;
 import android.os.IBinder;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
@@ -20,6 +21,8 @@ import de.uni_kl.informatik.disco.discowall.firewallService.rules.FirewallRules;
 import de.uni_kl.informatik.disco.discowall.firewallService.rules.FirewallRulesManager;
 import de.uni_kl.informatik.disco.discowall.firewallService.rules.StaticFirewallRules;
 import de.uni_kl.informatik.disco.discowall.packages.Packages;
+import de.uni_kl.informatik.disco.discowall.utils.NetworkInterfaceHelper;
+import de.uni_kl.informatik.disco.discowall.utils.NetworkUtils;
 
 
 public class MainActivity extends ActionBarActivity {
@@ -63,10 +66,7 @@ public class MainActivity extends ActionBarActivity {
 
         try {
             Firewall firewall = firewallService.getFirewall();
-
-            StaticFirewallRules.StaticTcpRule rule = new FirewallRulesManager().createRule_AcceptTCP(FirewallRules.DeviceFilter.WIFI, null, new Packages.IpPortPair("google.de", 80));
-            rule.setRuleEnabled(true);
-
+            firewall.DEBUG_TEST();
 //            boolean paused = firewall.isFirewallPaused();
 //            Log.d("Main", "Firewall paused: " + paused);
 //            firewall.setFirewallPaused(!paused);

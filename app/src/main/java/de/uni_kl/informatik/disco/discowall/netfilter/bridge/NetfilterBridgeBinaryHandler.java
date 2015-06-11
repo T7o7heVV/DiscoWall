@@ -29,7 +29,7 @@ class NetfilterBridgeBinaryHandler {
 
     public File getFile() { return DroidWallFiles.NETFILTER_BRIDGE_BINARY__FILE.getFile(appManagement.getContext()); }
 
-    public boolean isProcessRunning() { return bridgeBinaryExecuteResult.isRunning(); }
+    public boolean isProcessRunning() { return (bridgeBinaryExecuteResult==null) ? false : bridgeBinaryExecuteResult.isRunning(); }
 
     public void deploy() throws NetfilterExceptions.NetfilterBridgeDeploymentException {
         Log.d(LOG_TAG, "netfilter bridge: deploying...");

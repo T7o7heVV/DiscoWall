@@ -63,34 +63,43 @@ public class NetfilterBridgeProtocol {
     public static class QueryPackageAction {
         public static final String MSG_PREFIX = "#Packet.QueryAction#";
 
+        public static class Physical {
+            public static final String OPT_VALUE_INPUT_DEVICE = "phys.dev.in";
+            public static final String OPT_VALUE_OUTPUT_DEVICE = "phys.dev.out";
+        }
+
+        public static class Netfilter {
+            public static final String VALUE_MARK = "netfilter.mark";
+        }
+
         public static class IP {
             public static final String VALUE_SOURCE = "ip.src";
             public static final String VALUE_DESTINATION = "ip.dst";
             public static final String FLAG_PROTOCOL_TYPE_TCP = "protocol=tcp";
             public static final String FLAG_PROTOCOL_TYPE_UDP = "protocol=udp";
-
-            public static class TCP {
-                public static final String VALUE_SOURCE_PORT = "tcp.src.port";
-                public static final String VALUE_DESTINATION_PORT = "tcp.dst.port";
-                public static final String VALUE_LENGTH = "tcp.length";
-                public static final String VALUE_CHECKSUM = "tcp.checksum";
-                public static final String VALUE_SEQUENCE_NUMBER = "tcp.seqnr";
-                public static final String VALUE_ACK_NUMBER = "tcp.acknr";
-                public static final String VALUE_FLAG_URGENT = "tcp.flag.urgent";
-                public static final String VALUE_FLAG_IS_ACK = "tcp.flag.ack";
-                public static final String VALUE_FLAG_PUSH = "tcp.flag.push";
-                public static final String VALUE_FLAG_RESET = "tcp.flag.reset";
-                public static final String VALUE_FLAG_SYN = "tcp.flag.syn";
-                public static final String VALUE_FLAG_FIN = "tcp.flag.fin";
-            }
-
-            public static class UDP {
-                public static final String VALUE_SOURCE_PORT = "udp.src.port";
-                public static final String VALUE_DESTINATION_PORT = "udp.dst.port";
-                public static final String VALUE_LENGTH = "udp.length";
-                public static final String VALUE_CHECKSUM = "udp.checksum";
-            }
         }
+        public static class TCP {
+            public static final String VALUE_SOURCE_PORT = "tcp.src.port";
+            public static final String VALUE_DESTINATION_PORT = "tcp.dst.port";
+            public static final String VALUE_LENGTH = "tcp.length";
+            public static final String VALUE_CHECKSUM = "tcp.checksum";
+            public static final String VALUE_SEQUENCE_NUMBER = "tcp.seqnr";
+            public static final String VALUE_ACK_NUMBER = "tcp.acknr";
+            public static final String VALUE_FLAG_URGENT = "tcp.flag.urgent";
+            public static final String VALUE_FLAG_IS_ACK = "tcp.flag.ack";
+            public static final String VALUE_FLAG_PUSH = "tcp.flag.push";
+            public static final String VALUE_FLAG_RESET = "tcp.flag.reset";
+            public static final String VALUE_FLAG_SYN = "tcp.flag.syn";
+            public static final String VALUE_FLAG_FIN = "tcp.flag.fin";
+        }
+
+        public static class UDP {
+            public static final String VALUE_SOURCE_PORT = "udp.src.port";
+            public static final String VALUE_DESTINATION_PORT = "udp.dst.port";
+            public static final String VALUE_LENGTH = "udp.length";
+            public static final String VALUE_CHECKSUM = "udp.checksum";
+        }
+
     }
 
 }

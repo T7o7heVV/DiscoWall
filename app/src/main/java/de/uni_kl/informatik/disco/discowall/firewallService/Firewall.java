@@ -4,32 +4,42 @@ import android.content.Context;
 import android.util.Log;
 
 import java.io.IOException;
+import java.util.LinkedList;
 
 import de.uni_kl.informatik.disco.discowall.AppManagement;
+import de.uni_kl.informatik.disco.discowall.DiscoWallConstants;
 import de.uni_kl.informatik.disco.discowall.firewallService.rules.FirewallRules;
 import de.uni_kl.informatik.disco.discowall.firewallService.rules.FirewallRulesManager;
 import de.uni_kl.informatik.disco.discowall.netfilter.bridge.NetfilterBridgeCommunicator;
 import de.uni_kl.informatik.disco.discowall.netfilter.bridge.NetfilterBridgeControl;
 import de.uni_kl.informatik.disco.discowall.netfilter.NetfilterExceptions;
+import de.uni_kl.informatik.disco.discowall.netfilter.bridge.NetfilterBridgeIptablesHandler;
 import de.uni_kl.informatik.disco.discowall.packages.ConnectionManager;
 import de.uni_kl.informatik.disco.discowall.packages.Connections;
 import de.uni_kl.informatik.disco.discowall.packages.Packages;
+import de.uni_kl.informatik.disco.discowall.utils.AppUtils;
+import de.uni_kl.informatik.disco.discowall.utils.NetworkInterfaceHelper;
+import de.uni_kl.informatik.disco.discowall.utils.NetworkUtils;
+import de.uni_kl.informatik.disco.discowall.utils.ressources.DroidWallAssets;
 import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecuteExceptions;
 
 public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
     public static enum FirewallState { RUNNING, PAUSED, STOPPED }
 
-    private static final String LOG_TAG = FirewallService.class.getSimpleName();
-
-    private NetfilterBridgeControl control;
+    private static final String LOG_TAG = Firewall.class.getSimpleName();
 
     private final ConnectionManager connectionManager = new ConnectionManager();
     private final AppManagement appManagement;
     private final FirewallRulesManager rulesManager = new FirewallRulesManager();
+    private final NetworkInterfaceHelper networkInterfaceHelper = new NetworkInterfaceHelper();
+
+    private NetfilterBridgeControl control;
 
     public Firewall(Context context) {
         Log.i(LOG_TAG, "initializing firewall service...");
+
         appManagement = new AppManagement(context);
+
         Log.i(LOG_TAG, "firewall service running.");
     }
 
@@ -120,28 +130,49 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
 
     @Override
     public boolean onPackageReceived(Packages.TransportLayerPackage tlPackage) {
-        if (tlPackage instanceof Packages.TcpPackage) {
-            Packages.TcpPackage tcpPackage = (Packages.TcpPackage) tlPackage;
-
-//            if (!connectionManager.containsConnection(tlPackage)) {
-//                try {
-//                    new FirewallRulesManager().createRule_Accept(FirewallRules.DeviceFilter.WIFI, tlPackage).setRuleEnabled(true);
-//                } catch (ShellExecuteExceptions.CallException e) {
-//                    e.printStackTrace();
-//                } catch (ShellExecuteExceptions.ReturnValueException e) {
-//                    e.printStackTrace();
-//                }
-//            }
-
-            Connections.Connection connection = connectionManager.getConnection(tcpPackage);
-            Log.v(LOG_TAG, "Connection: " + connection);
+        // Find device-name for package:
+        if (tlPackage.getInputDeviceIndex() >= 0) {
+            tlPackage.setNetworkInterface(networkInterfaceHelper.getPackageInterfaceById(tlPackage.getInputDeviceIndex()));
+        } else if (tlPackage.getOutputDeviceIndex() >= 0) {
+            tlPackage.setNetworkInterface(networkInterfaceHelper.getPackageInterfaceById(tlPackage.getOutputDeviceIndex()));
         }
 
-        return true;
+        // Store user-id within package
+        tlPackage.setUserId(tlPackage.getMark() - NetfilterBridgeIptablesHandler.PACKAGE_UID_MARK_OFFSET);
+
+        boolean accepted;
+
+        if (tlPackage instanceof Packages.TcpPackage) {
+            Packages.TcpPackage tcpPackage = (Packages.TcpPackage) tlPackage;
+            Connections.TcpConnection tcpConnection = connectionManager.getTcpConnection(tcpPackage);
+
+            accepted = rulesManager.isPackageAccepted(tcpPackage, tcpConnection);
+            if (accepted)
+                tcpConnection.update(tcpPackage);
+        } else if (tlPackage instanceof Packages.UdpPackage) {
+            Packages.UdpPackage udpPackage = (Packages.UdpPackage) tlPackage;
+            Connections.UdpConnection udpConnection = connectionManager.getUdpConnection(udpPackage);
+
+            accepted = rulesManager.isPackageAccepted(udpPackage, udpConnection);
+            if (accepted)
+                udpConnection.update(udpPackage);
+        } else {
+            Log.e(LOG_TAG, "No handler package-protocol implemented! Package is: " + tlPackage);
+            return true;
+        }
+
+        return accepted;
     }
 
     @Override
     public void onInternalERROR(String message, Exception e) {
     }
 
+    public void DEBUG_TEST() {
+        try {
+            control.setUserPackagesForwardToFirewall(0, true);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 }

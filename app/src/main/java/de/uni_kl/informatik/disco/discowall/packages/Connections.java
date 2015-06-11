@@ -16,10 +16,11 @@ public class Connections {
     public static interface IConnection extends IConnectionSource, IConnectionDestination {
     }
 
-    public static class Connection implements IConnection {
+    public static abstract class Connection implements IConnection {
         private final Packages.IpPortPair source, destination;
         private final long timestamp = System.nanoTime();
-//        private final LinkedList<Packages.TcpPackage> tcpPackages = new LinkedList<>();
+        private int packagesCount = 0;
+        private int totalLength = 0;
 
         @Override public Packages.IpPortPair getSource() { return source; }
         @Override public int getSourcePort() { return source.getPort(); }
@@ -44,36 +45,9 @@ public class Connections {
             destination = new Packages.IpPortPair(destinationIP, destinationPort);
         }
 
-//        /**
-//         * Adds a package to the list of packages within this connection.
-//         * @param tcpPackage
-//         * @see #isPackagePartOfConnection(Packages.TcpPackage)
-//         * @return <code>true</code> if the package has been added. <code>false</code> if the package is not part of this connection.
-//         */
-//        public boolean addPackage(Packages.TcpPackage tcpPackage) {
-//            if (!isPackagePartOfConnection(tcpPackage))
-//                return false;
-//
-//            tcpPackages.add(tcpPackage);
-//            return true;
-//        }
-//
-//        public LinkedList<Packages.TcpPackage> getPackages() {
-//            return new LinkedList<>(tcpPackages);
-//        }
-//
-//        public int getPackagesCount() {
-//            return tcpPackages.size();
-//        }
-
-        public boolean isPackagePartOfConnection(Packages.TcpPackage tcpPackage) {
-            return ( tcpPackage.getSource().equals(source) && tcpPackage.getDestination().equals(destination) )
-                    || ( tcpPackage.getSource().equals(destination) && tcpPackage.getDestination().equals(source) );
-        }
-
         @Override
         public String toString() {
-            return source + " -> " + destination + " { timestamp="+ timestamp +" }";
+            return source + " -> " + destination + " { timestamp="+ timestamp + ", #packages=" + packagesCount + ", totalBytes=" + totalLength +" }";
         }
 
         @Override
@@ -89,6 +63,14 @@ public class Connections {
             }
         }
 
+        public int getPackagesCount() {
+            return packagesCount;
+        }
+
+        public int getTotalLength() {
+            return totalLength;
+        }
+
         /**
          * The connection ID is a ordered string of source->destination.
          * @return
@@ -101,6 +83,89 @@ public class Connections {
                 return sourceID + "->" + destinationID;
             else
                 return destinationID + "->" + sourceID;
+        }
+
+        protected boolean update(Packages.TransportLayerPackage tlPackage) {
+            if (!isPackagePartOfConnection(tlPackage))
+                return false;
+
+            packagesCount++;
+            totalLength += tlPackage.getLength();
+
+            return true;
+        }
+
+        public boolean isPackagePartOfConnection(Packages.TransportLayerPackage tlPackage) {
+            return ( tlPackage.getSource().equals(getSource()) && tlPackage.getDestination().equals(getDestination()) )
+                    || ( tlPackage.getSource().equals(getDestination()) && tlPackage.getDestination().equals(getSource()) );
+        }
+    }
+
+    public static class UdpConnection extends Connection {
+        UdpConnection(IConnection connectionData) {
+            super(connectionData);
+        }
+
+        UdpConnection(Packages.IpPortPair source, Packages.IpPortPair destination) {
+            super(source, destination);
+        }
+
+        UdpConnection(String sourceIP, int sourcePort, String destinationIP, int destinationPort) {
+            super(sourceIP, sourcePort, destinationIP, destinationPort);
+        }
+
+        public boolean update(Packages.UdpPackage udpPackage) {
+            return super.update(udpPackage);
+        }
+    }
+
+    public static class TcpConnection extends Connection {
+        public enum TcpConnectionState { UNKNOWN, OPEN, CLOSED, RESET }
+        private int lastSeqNumber = -1;
+        private TcpConnectionState state = TcpConnectionState.UNKNOWN;
+
+        TcpConnection(IConnection connectionData) {
+            super(connectionData);
+        }
+
+        TcpConnection(Packages.IpPortPair source, Packages.IpPortPair destination) {
+            super(source, destination);
+        }
+
+        TcpConnection(String sourceIP, int sourcePort, String destinationIP, int destinationPort) {
+            super(sourceIP, sourcePort, destinationIP, destinationPort);
+        }
+
+        public int getLastSeqNumber() {
+            return lastSeqNumber;
+        }
+
+        public TcpConnectionState getState() {
+            return state;
+        }
+
+        public boolean update(Packages.TcpPackage tcpPackage) {
+            if (!super.update(tcpPackage))
+                return false;
+
+            if (tcpPackage.getSeqNumber() <= lastSeqNumber)
+                return false;
+
+            lastSeqNumber = tcpPackage.getSeqNumber();
+
+            if (tcpPackage.hasFlagFIN())
+                state = TcpConnectionState.CLOSED;
+            else if (tcpPackage.hasFlagSYN())
+                state = TcpConnectionState.OPEN;
+            else if (tcpPackage.hasFlagReset())
+                state = TcpConnectionState.RESET;
+
+            return true;
+        }
+
+        @Override
+        public String toString() {
+            return super.toString() + " { state=" + state + ", lastSeqNr=" + lastSeqNumber + " }";
         }
     }
 }

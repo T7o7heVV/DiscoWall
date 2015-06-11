@@ -9,6 +9,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.LinkedList;
 
+import de.uni_kl.informatik.disco.discowall.DiscoWallConstants;
 import de.uni_kl.informatik.disco.discowall.utils.shell.RootShellExecute;
 import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecute;
 import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecuteExceptions;
@@ -68,5 +69,16 @@ public class SystemUtils {
 
         return configFileContent;
     }
+
+//    public static LinkedList<String> getNetworkDevices() throws IOException {
+//        LinkedList<String> devices = new LinkedList<>();
+//        BufferedReader reader = new BufferedReader(new FileReader(DiscoWallConstants.Files.networkDevicesListFile));
+//
+//        String line;
+//        while((line = reader.readLine()) != null)
+//            devices.add(line.trim());
+//
+//        return devices;
+//    }
 
 }

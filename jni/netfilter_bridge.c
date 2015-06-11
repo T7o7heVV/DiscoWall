@@ -87,7 +87,7 @@ struct sockaddr_in source,dest; // printer-methods
 // debugging stuff:
 bool debug_printTcpPackages = false;
 bool debug_printUdpPackages = false;
-bool debug_printPackageHeader = true;
+bool debug_printPackageHeader = false;
 bool debug_printPackagePayload = false;
 
 
@@ -696,6 +696,14 @@ static u_int32_t handle_pkt(struct nfq_data *tb)
 	{
 		sendMessageToServer("#phys.dev.out=");
 		sendIntToServer(ifi);
+		sendMessageToServer("#");
+	}
+
+	mark = nfq_get_nfmark(tb);
+	if (mark)
+	{
+		sendMessageToServer("#netfilter.mark=");
+		sendIntToServer(mark);
 		sendMessageToServer("#");
 	}
 
