@@ -29,6 +29,7 @@ public final class DiscoWallConstants {
 
     public static final class DnsCache {
         public static final File dnsServerConfigFile = Files.dnsServerConfigFile;
+        public static final int dnsCachePort = 5353;
     }
 
 }

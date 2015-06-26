@@ -3,9 +3,9 @@ package de.uni_kl.informatik.disco.discowall.netfilter.bridge;
 import android.util.Log;
 
 import java.io.IOException;
-import java.util.LinkedList;
 
 import de.uni_kl.informatik.disco.discowall.AppManagement;
+import de.uni_kl.informatik.disco.discowall.firewallService.rules.FirewallIptableRulesHandler;
 import de.uni_kl.informatik.disco.discowall.netfilter.NetfilterExceptions;
 import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecuteExceptions;
 
@@ -92,28 +92,8 @@ public class NetfilterBridgeControl {
         bridgeBinaryHandler.killAllInstances();
     }
 
-    public boolean isIptableJumpsToFirewallEnabled() throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
-        return iptablesHandler.isMainChainJumpsEnabled();
-    }
-
-    public void setIptableJumpsToFirewallEnabled(boolean jumpsEnabled) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
-        iptablesHandler.setMainChainJumpsEnabled(jumpsEnabled);
-    }
-
-    public void setDefaultPackageHandlingMode(NetfilterBridgeIptablesHandler.PackageHandlingMode mode) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
-        iptablesHandler.setDefaultPackageHandlingMode(mode);
-    }
-
-    public NetfilterBridgeIptablesHandler.PackageHandlingMode getDefaultPackageHandlingMode() throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.NonZeroReturnValueException {
-        return iptablesHandler.getDefaultPackageHandlingMode();
-    }
-
-    public void setUserPackagesForwardToFirewall(int uid, boolean forward) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
-        iptablesHandler.setUserPackagesForwardToFirewall(uid, forward);
-    }
-
-    public boolean isUserPackagesForwardedToFirewall(int uid) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
-        return iptablesHandler.isUserPackagesForwardedToFirewall(uid);
+    public FirewallIptableRulesHandler getFirewallIptableRulesHandler() {
+        return iptablesHandler.getFirewallRulesHandler();
     }
 
 }

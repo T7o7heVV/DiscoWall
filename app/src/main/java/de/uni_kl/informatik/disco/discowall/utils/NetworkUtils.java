@@ -2,9 +2,13 @@ package de.uni_kl.informatik.disco.discowall.utils;
 
 import android.util.Log;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.LinkedList;
 import java.util.regex.Pattern;
 
+import de.uni_kl.informatik.disco.discowall.DiscoWallConstants;
 import de.uni_kl.informatik.disco.discowall.packages.Packages;
 import de.uni_kl.informatik.disco.discowall.utils.shell.RootShellExecute;
 import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecute;
@@ -80,6 +84,38 @@ public class NetworkUtils {
         }
 
         return devices;
+    }
+
+    public static LinkedList<String> readDnsServerConfigFile() throws IOException {
+        BufferedReader reader = new BufferedReader(new FileReader(DiscoWallConstants.Files.dnsServerConfigFile));
+
+        /**
+         * Example-Content (from Google Nexus) of /etc/resolv.conf file:
+         *      > nameserver 8.8.4.4
+         *      > nameserver 8.8.8.8
+         *
+         */
+
+        LinkedList<String> nameserverIPs = new LinkedList<>();
+
+        String line;
+        while((line = reader.readLine()) != null) {
+            line = line.trim();
+
+            // ignore comments within file
+            if (line.startsWith("#"))
+                continue;
+
+            // we search for the "nameserver" entries only
+            if (!line.startsWith("nameserver"))
+                continue;
+
+            String ip = line.substring(line.indexOf("nameserver") + "nameserver".length());
+            nameserverIPs.add(ip.trim());
+        }
+
+        reader.close();
+        return nameserverIPs;
     }
 
 //    public static int getProcessIdByIpAndPort(Packages.IpPortPair ipPortA, Packages.IpPortPair ipPortB) throws ShellExecuteExceptions.CallException {

@@ -4,11 +4,8 @@ import android.content.Context;
 import android.util.Log;
 
 import java.io.IOException;
-import java.util.LinkedList;
 
 import de.uni_kl.informatik.disco.discowall.AppManagement;
-import de.uni_kl.informatik.disco.discowall.DiscoWallConstants;
-import de.uni_kl.informatik.disco.discowall.firewallService.rules.FirewallRules;
 import de.uni_kl.informatik.disco.discowall.firewallService.rules.FirewallRulesManager;
 import de.uni_kl.informatik.disco.discowall.netfilter.bridge.NetfilterBridgeCommunicator;
 import de.uni_kl.informatik.disco.discowall.netfilter.bridge.NetfilterBridgeControl;
@@ -17,10 +14,7 @@ import de.uni_kl.informatik.disco.discowall.netfilter.bridge.NetfilterBridgeIpta
 import de.uni_kl.informatik.disco.discowall.packages.ConnectionManager;
 import de.uni_kl.informatik.disco.discowall.packages.Connections;
 import de.uni_kl.informatik.disco.discowall.packages.Packages;
-import de.uni_kl.informatik.disco.discowall.utils.AppUtils;
 import de.uni_kl.informatik.disco.discowall.utils.NetworkInterfaceHelper;
-import de.uni_kl.informatik.disco.discowall.utils.NetworkUtils;
-import de.uni_kl.informatik.disco.discowall.utils.ressources.DroidWallAssets;
 import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecuteExceptions;
 
 public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
@@ -32,13 +26,16 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
     private final AppManagement appManagement;
     private final FirewallRulesManager rulesManager = new FirewallRulesManager();
     private final NetworkInterfaceHelper networkInterfaceHelper = new NetworkInterfaceHelper();
+    private final Context context;
 
     private NetfilterBridgeControl control;
+//    private DnsCacheControl dnsCacheControl;
 
     public Firewall(Context context) {
         Log.i(LOG_TAG, "initializing firewall service...");
 
-        appManagement = new AppManagement(context);
+        this.context = context;
+        this.appManagement = new AppManagement(context);
 
         Log.i(LOG_TAG, "firewall service running.");
     }
@@ -57,7 +54,13 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
         {
             Log.i(LOG_TAG, "firewall already running. nothing to do.");
         } else {
+
+            // starting netfilter bridge - i.e. the "firewall core"
             control = new NetfilterBridgeControl(this, appManagement, appManagement.getSettings().getFirewallPort());
+
+            // starting the dns cache for sniffing the dns-resolutions
+//            dnsCacheControl = new DnsCacheControl(DiscoWallConstants.DnsCache.dnsCachePort);
+
             Log.i(LOG_TAG, "firewall started.");
         }
     }
@@ -91,7 +94,7 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
     }
 
     private boolean isFirewallPausedEx() throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
-        return !control.isIptableJumpsToFirewallEnabled(); // the firewall is paused, when the iptable jump-rules to the firewall chain are not set
+        return !control.getFirewallIptableRulesHandler().isMainChainJumpsEnabled(); // the firewall is paused, when the iptable jump-rules to the firewall chain are not set
     }
 
     /**
@@ -110,7 +113,7 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
         else
             Log.v(LOG_TAG, "Changing firewall state to running...");
 
-        control.setIptableJumpsToFirewallEnabled(!paused);
+        control.getFirewallIptableRulesHandler().setMainChainJumpsEnabled(!paused);
 
         if (paused)
             Log.d(LOG_TAG, "new firewall state: paused");
@@ -149,6 +152,8 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
             accepted = rulesManager.isPackageAccepted(tcpPackage, tcpConnection);
             if (accepted)
                 tcpConnection.update(tcpPackage);
+
+            Log.v(LOG_TAG, "Connection: " + tcpConnection);
         } else if (tlPackage instanceof Packages.UdpPackage) {
             Packages.UdpPackage udpPackage = (Packages.UdpPackage) tlPackage;
             Connections.UdpConnection udpConnection = connectionManager.getUdpConnection(udpPackage);
@@ -170,7 +175,7 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
 
     public void DEBUG_TEST() {
         try {
-            control.setUserPackagesForwardToFirewall(0, true);
+            control.getFirewallIptableRulesHandler().setUserPackagesForwardToFirewall(0, true);
         } catch (Exception e) {
             e.printStackTrace();
         }

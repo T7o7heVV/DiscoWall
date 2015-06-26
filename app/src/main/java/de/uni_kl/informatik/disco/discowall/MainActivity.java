@@ -4,6 +4,8 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
 import android.net.Network;
 import android.os.IBinder;
 import android.support.v7.app.ActionBarActivity;
@@ -67,9 +69,6 @@ public class MainActivity extends ActionBarActivity {
         try {
             Firewall firewall = firewallService.getFirewall();
             firewall.DEBUG_TEST();
-//            boolean paused = firewall.isFirewallPaused();
-//            Log.d("Main", "Firewall paused: " + paused);
-//            firewall.setFirewallPaused(!paused);
         } catch (Exception e) {
             e.printStackTrace();
         }

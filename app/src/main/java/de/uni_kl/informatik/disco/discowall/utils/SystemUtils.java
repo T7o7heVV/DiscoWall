@@ -1,5 +1,8 @@
 package de.uni_kl.informatik.disco.discowall.utils;
 
+import android.content.Context;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
 import android.util.Log;
 
 import java.io.BufferedReader;
@@ -17,6 +20,36 @@ import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecuteExceptions.*
 
 public class SystemUtils {
     private static final String LOG_TAG = SystemUtils.class.getCanonicalName();
+
+    public static final int getUserID(Context context) {
+        PackageManager packageManager = context.getPackageManager();
+
+        try {
+            Log.v(LOG_TAG, "fetching ApplicationInfo...");
+            ApplicationInfo appInfo = packageManager.getApplicationInfo(context.getPackageName(), PackageManager.GET_META_DATA);
+            Log.v(LOG_TAG, "appInfo: " + appInfo);
+            Log.v(LOG_TAG, "uid: " + appInfo.uid);
+
+            return appInfo.uid;
+        } catch (PackageManager.NameNotFoundException e) {
+            e.printStackTrace();
+            Log.e(LOG_TAG, "Unable to fetch ApplicationInfo.", e);
+            return -1;
+        }
+    }
+
+
+    public static final ApplicationInfo getApplicationInfo(Context context) {
+        PackageManager packageManager = context.getPackageManager();
+
+        try {
+            return packageManager.getApplicationInfo(context.getPackageName(), PackageManager.GET_META_DATA);
+        } catch (PackageManager.NameNotFoundException e) {
+            e.printStackTrace();
+            Log.e(LOG_TAG, "Unable to fetch ApplicationInfo.", e);
+            return null;
+        }
+    }
 
     public static boolean isDeviceRooted() {
         try {

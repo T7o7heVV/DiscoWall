@@ -19,10 +19,21 @@ public class FirewallService extends IntentService {
     /** This variable is currently only used to create log-messages which specify whether the service is already running.
      */
     private boolean serviceRunning = false;
-    private final Firewall firewall;
+    private Firewall firewall;
 
     public FirewallService() {
         super("FirewallService");
+    }
+
+    @Override
+    public void onCreate() {
+        super.onCreate();
+
+        // There are some Android API-calls which can only be run AFTER the calling "Context" instance
+        // has passed the "onCreate()" method. Therefore the firewall is only initialized here.
+        if (firewall != null)
+            return;
+
         firewall = new Firewall(this);
     }
 

@@ -2,18 +2,24 @@ package de.uni_kl.informatik.disco.discowall.netfilter.bridge;
 
 import android.util.Log;
 
-import java.util.LinkedList;
-
-import de.uni_kl.informatik.disco.discowall.DiscoWallConstants;
+import de.uni_kl.informatik.disco.discowall.firewallService.rules.FirewallIptableRulesHandler;
 import de.uni_kl.informatik.disco.discowall.netfilter.iptables.IptableConstants;
 import de.uni_kl.informatik.disco.discowall.netfilter.iptables.IptablesControl;
 import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecuteExceptions;
 
-public class NetfilterBridgeIptablesHandler {
-    public static enum PackageHandlingMode { ACCEPT_PACKAGE, REJECT_PACKAGE, INTERACTIVE }
+/**
+ * IPTABLES Documentation for flags:
+    --tcp-flags
+        Gefolgt von einem optionalen '!', dann zwei Zeichenketten von Flags, erlaubt Dir, nach speziellen TCP-Flags zu filtern. Die erste Zeichenkette von Flags ist die Maske: eine Liste von Flags, die Du untersuchen willst. Die zweite Zeichenkette besagt, welche Flags gesetzt sein sollen. Zum Beispiel:
 
+        # iptables -A INPUT --protocol tcp --tcp-flags ALL SYN,ACK -j DENY
+        Dies besagt, dass alle Flags untersucht werden sollen ('ALL' ist synonym mit 'SYN, ACK, FIN, RST, URG, PSH'), dass aber nur SYN und ACK gesetzt sein sollen. Es gibt auch ein Argument 'NONE', was 'Keine Flags' bedeutet.
+ */
+
+public class NetfilterBridgeIptablesHandler {
     private static final String LOG_TAG = NetfilterBridgeIptablesHandler.class.getSimpleName();
     private final int bridgeCommunicationPort;
+    private final FirewallRulesHandlerImpl firewallRulesHandler = new FirewallRulesHandlerImpl();
 
     // chains
     private static final String CHAIN_FIREWALL_MAIN = "discowall";
@@ -25,7 +31,11 @@ public class NetfilterBridgeIptablesHandler {
     public static final String CHAIN_FIREWALL_ACTION_INTERACTIVE = "discowall-interactive";
 
     // rules
-    private static final String RULE_TCP_JUMP_TO_FIREWALL_PREFILTER_CHAIN = "-p tcp -j " + CHAIN_FIREWALL_MAIN_PREFILTER;
+    private static final String[] RULE_TCP_JUMP_TO_FIREWALL_PREFILTER_CHAIN = new String[] {
+            // "--tcp-flags Flag1,Flag2,...,FlagN <FlagX_only>" --- "--tcp-flags ALL SYN" will filter all flags and only accept if ONLY SYN is set. ==> Only the connection-esablishment is being filtered.
+            "-p tcp --tcp-flags SYN,RST,FIN SYN -j " + CHAIN_FIREWALL_MAIN_PREFILTER, // within SYN,RST,FIN has only(!) SYN
+            "-p tcp --tcp-flags SYN,RST,FIN,ACK FIN,ACK -j " + CHAIN_FIREWALL_MAIN_PREFILTER  // within SYN,RST,FIN,ACK has only(!) FIN+ACK
+    };
     private static final String RULE_UDP_JUMP_TO_FIREWALL_PREFILTER_CHAIN = "-p udp -j " + CHAIN_FIREWALL_MAIN_PREFILTER;
     private static final String RULE_JUMP_TO_NFQUEUE = "-j NFQUEUE --queue-num 0 --queue-bypass"; // '--queue-bypass' will allow all packages, when no application is bound to the --queue-num 0
     private static final String RULE_JUMP_TO_FIREWALL_ACCEPTED = "-j " + CHAIN_FIREWALL_ACTION_ACCEPT;
@@ -217,33 +227,6 @@ public class NetfilterBridgeIptablesHandler {
             Log.d(LOG_TAG, "iptable chains AFTER removing rules:\n" + IptablesControl.getRuleInfoText(true, true));
     }
 
-    public boolean isMainChainJumpsEnabled() throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
-        return IptablesControl.ruleExists(IptableConstants.Chains.INPUT, RULE_TCP_JUMP_TO_FIREWALL_PREFILTER_CHAIN)
-                && IptablesControl.ruleExists(IptableConstants.Chains.OUTPUT, RULE_TCP_JUMP_TO_FIREWALL_PREFILTER_CHAIN);
-    }
-
-    /**
-     * Adds/Removes the rules forwarding packages to the firewall main-chain. Can be used "pause" the firewall.
-     * @param enableJumpsToMainChain
-     * @throws ShellExecuteExceptions.CallException
-     * @throws ShellExecuteExceptions.ReturnValueException
-     */
-    public void setMainChainJumpsEnabled(boolean enableJumpsToMainChain) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
-        if (enableJumpsToMainChain) {
-            IptablesControl.ruleAddIfMissing(IptableConstants.Chains.INPUT, RULE_TCP_JUMP_TO_FIREWALL_PREFILTER_CHAIN);
-            IptablesControl.ruleAddIfMissing(IptableConstants.Chains.INPUT, RULE_UDP_JUMP_TO_FIREWALL_PREFILTER_CHAIN);
-
-            IptablesControl.ruleAddIfMissing(IptableConstants.Chains.OUTPUT, RULE_TCP_JUMP_TO_FIREWALL_PREFILTER_CHAIN);
-            IptablesControl.ruleAddIfMissing(IptableConstants.Chains.OUTPUT, RULE_UDP_JUMP_TO_FIREWALL_PREFILTER_CHAIN);
-        } else {
-            IptablesControl.ruleDeleteIgnoreIfMissing(IptableConstants.Chains.INPUT, RULE_TCP_JUMP_TO_FIREWALL_PREFILTER_CHAIN);
-            IptablesControl.ruleDeleteIgnoreIfMissing(IptableConstants.Chains.INPUT, RULE_UDP_JUMP_TO_FIREWALL_PREFILTER_CHAIN);
-
-            IptablesControl.ruleDeleteIgnoreIfMissing(IptableConstants.Chains.OUTPUT, RULE_TCP_JUMP_TO_FIREWALL_PREFILTER_CHAIN);
-            IptablesControl.ruleDeleteIgnoreIfMissing(IptableConstants.Chains.OUTPUT, RULE_UDP_JUMP_TO_FIREWALL_PREFILTER_CHAIN);
-        }
-    }
-
     private void safelyRemoveChain(String chain) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
         if (IptablesControl.chainExists(chain)) {
             // 1. First all references to the chain
@@ -253,84 +236,115 @@ public class NetfilterBridgeIptablesHandler {
         }
     }
 
-    private boolean rulesAreEnabled() throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.NonZeroReturnValueException {
-        return IptablesControl.ruleExists(IptableConstants.Chains.INPUT, RULE_TCP_JUMP_TO_FIREWALL_PREFILTER_CHAIN)
-                || IptablesControl.ruleExists(IptableConstants.Chains.OUTPUT, RULE_TCP_JUMP_TO_FIREWALL_PREFILTER_CHAIN);
+    public FirewallIptableRulesHandler getFirewallRulesHandler() {
+        return firewallRulesHandler;
     }
 
-    private String[] getFirewallForwardingRulesForUser(int uid) {
-        return new String[] {
-                "-m owner --uid-owner "+uid+" -j MARK --set-mark " + (uid + PACKAGE_UID_MARK_OFFSET), // rule which encodes the user-id as package-mark
-                "-m owner --uid-owner "+uid+" -j " + CHAIN_FIREWALL_MAIN // rule which forwards package to firewall main-chain
-        };
-    }
-
-    public boolean isUserPackagesForwardedToFirewall(int uid) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
-        int forwardedCount = 0;
-        int notForwardedCount = 0;
-
-        for(String rule : getFirewallForwardingRulesForUser(uid)) {
-            if (IptablesControl.ruleExists(CHAIN_FIREWALL_MAIN_PREFILTER, rule))
-                forwardedCount++;
-            else
-                notForwardedCount++;
+    private class FirewallRulesHandlerImpl implements FirewallIptableRulesHandler {
+        public boolean isMainChainJumpsEnabled() throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.NonZeroReturnValueException {
+            return IptablesControl.ruleExistsAny(IptableConstants.Chains.INPUT, RULE_TCP_JUMP_TO_FIREWALL_PREFILTER_CHAIN)
+                    || IptablesControl.ruleExistsAny(IptableConstants.Chains.OUTPUT, RULE_TCP_JUMP_TO_FIREWALL_PREFILTER_CHAIN)
+                    || IptablesControl.ruleExists(IptableConstants.Chains.INPUT, RULE_UDP_JUMP_TO_FIREWALL_PREFILTER_CHAIN)
+                    || IptablesControl.ruleExists(IptableConstants.Chains.OUTPUT, RULE_UDP_JUMP_TO_FIREWALL_PREFILTER_CHAIN);
         }
 
-        // Inconsistency in case only part of the rules are set
-        if (forwardedCount > 0 && notForwardedCount > 0) {
-            Log.e(LOG_TAG, "Inconsistent forwarding rule for user-packages found! Missing rules will be added.");
-            setUserPackagesForwardToFirewall(uid, true);
-            return true;
+        /**
+         * Adds/Removes the rules forwarding packages to the firewall main-chain. Can be used "pause" the firewall.
+         * @param enableJumpsToMainChain
+         * @throws ShellExecuteExceptions.CallException
+         * @throws ShellExecuteExceptions.ReturnValueException
+         */
+        public void setMainChainJumpsEnabled(boolean enableJumpsToMainChain) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
+            if (enableJumpsToMainChain) {
+                IptablesControl.ruleAddIfMissing(IptableConstants.Chains.INPUT, RULE_TCP_JUMP_TO_FIREWALL_PREFILTER_CHAIN);
+                IptablesControl.ruleAddIfMissing(IptableConstants.Chains.INPUT, RULE_UDP_JUMP_TO_FIREWALL_PREFILTER_CHAIN);
+
+                IptablesControl.ruleAddIfMissing(IptableConstants.Chains.OUTPUT, RULE_TCP_JUMP_TO_FIREWALL_PREFILTER_CHAIN);
+                IptablesControl.ruleAddIfMissing(IptableConstants.Chains.OUTPUT, RULE_UDP_JUMP_TO_FIREWALL_PREFILTER_CHAIN);
+            } else {
+                IptablesControl.ruleDeleteIgnoreIfMissing(IptableConstants.Chains.INPUT, RULE_TCP_JUMP_TO_FIREWALL_PREFILTER_CHAIN);
+                IptablesControl.ruleDeleteIgnoreIfMissing(IptableConstants.Chains.INPUT, RULE_UDP_JUMP_TO_FIREWALL_PREFILTER_CHAIN);
+
+                IptablesControl.ruleDeleteIgnoreIfMissing(IptableConstants.Chains.OUTPUT, RULE_TCP_JUMP_TO_FIREWALL_PREFILTER_CHAIN);
+                IptablesControl.ruleDeleteIgnoreIfMissing(IptableConstants.Chains.OUTPUT, RULE_UDP_JUMP_TO_FIREWALL_PREFILTER_CHAIN);
+            }
         }
 
-        return (forwardedCount > 0);
-    }
+        private String[] getFirewallForwardingRulesForUser(int uid) {
+            return new String[] {
+                    "-m owner --uid-owner "+uid+" -j MARK --set-mark " + (uid + PACKAGE_UID_MARK_OFFSET), // rule which encodes the user-id as package-mark
+                    "-m owner --uid-owner "+uid+" -j " + CHAIN_FIREWALL_MAIN // rule which forwards package to firewall main-chain
+            };
+        }
 
-    public void setUserPackagesForwardToFirewall(int uid, boolean forward) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
-        if (forward) {
-            for(String rule : getFirewallForwardingRulesForUser(uid))
-                IptablesControl.ruleAddIfMissing(CHAIN_FIREWALL_MAIN_PREFILTER, rule);
+        public boolean isUserPackagesForwardedToFirewall(int uid) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
+            int forwardedCount = 0;
+            int notForwardedCount = 0;
+
+            for(String rule : getFirewallForwardingRulesForUser(uid)) {
+                if (IptablesControl.ruleExists(CHAIN_FIREWALL_MAIN_PREFILTER, rule))
+                    forwardedCount++;
+                else
+                    notForwardedCount++;
+            }
+
+            // Inconsistency in case only part of the rules are set
+            if (forwardedCount > 0 && notForwardedCount > 0) {
+                Log.e(LOG_TAG, "Inconsistent forwarding rule for user-packages found! Missing rules will be added.");
+                setUserPackagesForwardToFirewall(uid, true);
+                return true;
+            }
+
+            return (forwardedCount > 0);
+        }
+
+        public void setUserPackagesForwardToFirewall(int uid, boolean forward) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
+            if (forward) {
+                for(String rule : getFirewallForwardingRulesForUser(uid))
+                    IptablesControl.ruleAddIfMissing(CHAIN_FIREWALL_MAIN_PREFILTER, rule);
 
 //        IptablesControl.ruleAddIfMissing(CHAIN_FIREWALL_MAIN_PREFILTER, "-m owner --uid-owner "+uid+" -j MARK --set-mark" + uid);
 //        IptablesControl.ruleAddIfMissing(CHAIN_FIREWALL_MAIN_PREFILTER, "-m owner --uid-owner "+uid+" -j " + CHAIN_FIREWALL_MAIN);
-        } else {
-            for(String rule : getFirewallForwardingRulesForUser(uid))
-                IptablesControl.ruleDeleteIgnoreIfMissing(CHAIN_FIREWALL_MAIN_PREFILTER, rule);
+            } else {
+                for(String rule : getFirewallForwardingRulesForUser(uid))
+                    IptablesControl.ruleDeleteIgnoreIfMissing(CHAIN_FIREWALL_MAIN_PREFILTER, rule);
+            }
         }
-    }
 
-    public PackageHandlingMode getDefaultPackageHandlingMode() throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.NonZeroReturnValueException {
-        if (IptablesControl.ruleExists(CHAIN_FIREWALL_MAIN, RULE_JUMP_TO_FIREWALL_ACCEPTED))
-            return PackageHandlingMode.ACCEPT_PACKAGE;
+        public PackageHandlingMode getDefaultPackageHandlingMode() throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.NonZeroReturnValueException {
+            if (IptablesControl.ruleExists(CHAIN_FIREWALL_MAIN, RULE_JUMP_TO_FIREWALL_ACCEPTED))
+                return PackageHandlingMode.ACCEPT_PACKAGE;
 
-        if (IptablesControl.ruleExists(CHAIN_FIREWALL_MAIN, RULE_JUMP_TO_FIREWALL_REJECTED))
-            return PackageHandlingMode.REJECT_PACKAGE;
+            if (IptablesControl.ruleExists(CHAIN_FIREWALL_MAIN, RULE_JUMP_TO_FIREWALL_REJECTED))
+                return PackageHandlingMode.REJECT_PACKAGE;
 
-        if (IptablesControl.ruleExists(CHAIN_FIREWALL_MAIN, RULE_JUMP_TO_FIREWALL_INTERACTIVE))
-            return PackageHandlingMode.INTERACTIVE;
+            if (IptablesControl.ruleExists(CHAIN_FIREWALL_MAIN, RULE_JUMP_TO_FIREWALL_INTERACTIVE))
+                return PackageHandlingMode.INTERACTIVE;
 
-        // This case cannot happen, as long as the iptables have not been edited from the outside
-        return null;
-    }
-
-    public void setDefaultPackageHandlingMode(PackageHandlingMode mode) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
-        // Delete rule for current behavior
-        IptablesControl.ruleDeleteIgnoreIfMissing(CHAIN_FIREWALL_MAIN, RULE_JUMP_TO_FIREWALL_ACCEPTED);
-        IptablesControl.ruleDeleteIgnoreIfMissing(CHAIN_FIREWALL_MAIN, RULE_JUMP_TO_FIREWALL_REJECTED);
-        IptablesControl.ruleDeleteIgnoreIfMissing(CHAIN_FIREWALL_MAIN, RULE_JUMP_TO_FIREWALL_INTERACTIVE);
-
-        // set new behavior
-        switch (mode) {
-            case ACCEPT_PACKAGE:
-                IptablesControl.ruleAdd(CHAIN_FIREWALL_MAIN, RULE_JUMP_TO_FIREWALL_ACCEPTED);
-                return;
-            case REJECT_PACKAGE:
-                IptablesControl.ruleAdd(CHAIN_FIREWALL_MAIN, RULE_JUMP_TO_FIREWALL_REJECTED);
-                return;
-            case INTERACTIVE:
-                IptablesControl.ruleAdd(CHAIN_FIREWALL_MAIN, RULE_JUMP_TO_FIREWALL_INTERACTIVE);
-                return;
+            // This case cannot happen, as long as the iptables have not been edited from the outside
+            return null;
         }
+
+        public void setDefaultPackageHandlingMode(PackageHandlingMode mode) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
+            // Delete rule for current behavior
+            IptablesControl.ruleDeleteIgnoreIfMissing(CHAIN_FIREWALL_MAIN, RULE_JUMP_TO_FIREWALL_ACCEPTED);
+            IptablesControl.ruleDeleteIgnoreIfMissing(CHAIN_FIREWALL_MAIN, RULE_JUMP_TO_FIREWALL_REJECTED);
+            IptablesControl.ruleDeleteIgnoreIfMissing(CHAIN_FIREWALL_MAIN, RULE_JUMP_TO_FIREWALL_INTERACTIVE);
+
+            // set new behavior
+            switch (mode) {
+                case ACCEPT_PACKAGE:
+                    IptablesControl.ruleAdd(CHAIN_FIREWALL_MAIN, RULE_JUMP_TO_FIREWALL_ACCEPTED);
+                    return;
+                case REJECT_PACKAGE:
+                    IptablesControl.ruleAdd(CHAIN_FIREWALL_MAIN, RULE_JUMP_TO_FIREWALL_REJECTED);
+                    return;
+                case INTERACTIVE:
+                    IptablesControl.ruleAdd(CHAIN_FIREWALL_MAIN, RULE_JUMP_TO_FIREWALL_INTERACTIVE);
+                    return;
+            }
+        }
+
     }
 
 }

@@ -232,7 +232,10 @@ public class Packages {
 
         public String toString() {
             return "{ [TCP] " + transportLayerToString() + " #SEQ="+ seqNumber +", #ACK= " + ackNumber
-                    + ", isACK= " +hasFlagACK + ", isSYN=" + hasFlagSYN +", isFIN=" +hasFlagFIN + ", isRST=" + hasFlagReset + ", isPSH=" + hasFlagPush + ", isURG=" + hasFlagUrgent
+                    + (hasFlagACK ? ", ACK" : "" )    + (hasFlagSYN ? ", SYN" : "")   + (hasFlagFIN ? ", FIN" : "")
+                    + (hasFlagReset ? ", RST" : "")   + (hasFlagPush ? ", PSH" : "")  + (hasFlagUrgent ? ", URG" : "")
+//                    + (hasFlagACK ? ", isACK= " +hasFlagACK : "" )    + (hasFlagSYN ? ", isSYN=" + hasFlagSYN : "")   + (hasFlagFIN ? ", isFIN=" +hasFlagFIN : "")
+//                    + (hasFlagReset ? ", isRST=" + hasFlagReset : "") + (hasFlagPush ? ", isPSH=" + hasFlagPush : "") + (hasFlagUrgent ? ", isURG=" + hasFlagUrgent : "")
                     + " } " + super.toString();
         }
     }
