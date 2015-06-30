@@ -14,8 +14,13 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ListView;
+
+import java.util.LinkedList;
 
 import de.uni_kl.informatik.disco.discowall.firewallService.Firewall;
 import de.uni_kl.informatik.disco.discowall.firewallService.FirewallService;
@@ -23,6 +28,7 @@ import de.uni_kl.informatik.disco.discowall.firewallService.rules.FirewallRules;
 import de.uni_kl.informatik.disco.discowall.firewallService.rules.FirewallRulesManager;
 import de.uni_kl.informatik.disco.discowall.firewallService.rules.StaticFirewallRules;
 import de.uni_kl.informatik.disco.discowall.packages.Packages;
+import de.uni_kl.informatik.disco.discowall.utils.AppUtils;
 import de.uni_kl.informatik.disco.discowall.utils.NetworkInterfaceHelper;
 import de.uni_kl.informatik.disco.discowall.utils.NetworkUtils;
 
@@ -35,6 +41,30 @@ public class MainActivity extends ActionBarActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        // Fill Apps List
+
+        ListView appsList = (ListView)findViewById(R.id.listViewFirewallMonitoredApps);
+
+        LinkedList<String> installedAppNames = new LinkedList<>();
+        for(Intent app : AppUtils.getInstalledAppsLaunchActivities(this))
+            installedAppNames.add(app + "");
+
+        appsList.setAdapter(new ArrayAdapter<String>(
+                this,
+                android.R.layout.simple_list_item_1,
+                //new String[]{ "App One", "App Two", "App Three" }
+                installedAppNames
+        ));
+
+        appsList.setOnItemClickListener(
+                new AdapterView.OnItemClickListener() {
+                    @Override
+                    public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+
+                    }
+                }
+        );
     }
 
     @Override
@@ -59,20 +89,20 @@ public class MainActivity extends ActionBarActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    public void sendButtonClicked(View sendButtonView) {
-        Button sendButton = (Button)sendButtonView;
-        Log.v("Main", "button clicked");
-
-        EditText editText = (EditText) findViewById(R.id.editText);
-        Log.v("Main", "edit text: " + editText.getText());
-
-        try {
-            Firewall firewall = firewallService.getFirewall();
-            firewall.DEBUG_TEST();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
+//    public void sendButtonClicked(View sendButtonView) {
+//        Button sendButton = (Button)sendButtonView;
+//        Log.v("Main", "button clicked");
+//
+//        EditText editText = (EditText) findViewById(R.id.editText);
+//        Log.v("Main", "edit text: " + editText.getText());
+//
+//        try {
+//            Firewall firewall = firewallService.getFirewall();
+//            firewall.DEBUG_TEST();
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
+//    }
 
     private void test() {
         try {
@@ -86,6 +116,8 @@ public class MainActivity extends ActionBarActivity {
     @Override
     protected void onStart() {
         super.onStart();
+
+        if (true) return; // DEBUGGING GUI
 
         // assure that the firewall-service runs indefinitely - even if all bound activities unbind:
         startService(new Intent(this, FirewallService.class));

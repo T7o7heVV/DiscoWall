@@ -120,8 +120,9 @@ public class Connections {
     }
 
     public static class TcpConnection extends Connection {
-        public enum TcpConnectionState { UNKNOWN, OPEN, CLOSED, RESET }
+        public enum TcpConnectionState { UNKNOWN, OPEN, SYN_WAIT, CLOSE_WAIT, CLOSED, RESET }
         private int lastSeqNumber = -1;
+        private Packages.TcpPackage lastPackage;
         private TcpConnectionState state = TcpConnectionState.UNKNOWN;
 
         TcpConnection(IConnection connectionData) {
@@ -144,18 +145,24 @@ public class Connections {
             return state;
         }
 
+        public Packages.TcpPackage getLastPackage() {
+            return lastPackage;
+        }
+
         public boolean update(Packages.TcpPackage tcpPackage) {
             if (!super.update(tcpPackage))
                 return false;
 
-            if (tcpPackage.getSeqNumber() <= lastSeqNumber)
-                return false;
-
             lastSeqNumber = tcpPackage.getSeqNumber();
+            lastPackage = tcpPackage;
 
-            if (tcpPackage.hasFlagFIN())
+            if (tcpPackage.hasFlagFIN() && !tcpPackage.hasFlagACK())
+                state = TcpConnectionState.CLOSE_WAIT;
+            else if (tcpPackage.hasFlagFIN() && tcpPackage.hasFlagACK())
                 state = TcpConnectionState.CLOSED;
-            else if (tcpPackage.hasFlagSYN())
+            else if (tcpPackage.hasFlagSYN() && !tcpPackage.hasFlagACK())
+                state = TcpConnectionState.SYN_WAIT;
+            else if (tcpPackage.hasFlagSYN() && tcpPackage.hasFlagACK())
                 state = TcpConnectionState.OPEN;
             else if (tcpPackage.hasFlagReset())
                 state = TcpConnectionState.RESET;
