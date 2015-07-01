@@ -3,8 +3,12 @@ package de.uni_kl.informatik.disco.discowall.netfilter.bridge;
 import android.util.Log;
 
 import de.uni_kl.informatik.disco.discowall.firewallService.rules.FirewallIptableRulesHandler;
+import de.uni_kl.informatik.disco.discowall.firewallService.rules.FirewallRules;
+import de.uni_kl.informatik.disco.discowall.firewallService.rules.FirewallRulesManager;
 import de.uni_kl.informatik.disco.discowall.netfilter.iptables.IptableConstants;
 import de.uni_kl.informatik.disco.discowall.netfilter.iptables.IptablesControl;
+import de.uni_kl.informatik.disco.discowall.packages.Connections;
+import de.uni_kl.informatik.disco.discowall.packages.Packages;
 import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecuteExceptions;
 
 /**
@@ -241,6 +245,80 @@ public class NetfilterBridgeIptablesHandler {
     }
 
     private class FirewallRulesHandlerImpl implements FirewallIptableRulesHandler {
+        public void addUserConnectionRule(int userID, Connections.IConnection connection, FirewallRules.RulePolicy policy, FirewallRules.DeviceFilter deviceFilter) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
+            addDeleteUserConnectionRule(userID, connection, policy, deviceFilter, false);
+        }
+
+        public void deleteUserConnectionRule(int userID, Connections.IConnection connection, FirewallRules.RulePolicy policy, FirewallRules.DeviceFilter deviceFilter) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
+            addDeleteUserConnectionRule(userID, connection, policy, deviceFilter, true);
+        }
+
+        private void addDeleteUserConnectionRule(int userID, Connections.IConnection connection, FirewallRules.RulePolicy policy, FirewallRules.DeviceFilter deviceFilter, boolean delete) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
+            // Packages: Direction source => destination
+            addDeleteUserConnectionRuleTcp(userID, connection.getSource(), connection.getDestination(), policy, deviceFilter, delete);
+
+            // Packages: Direction destination => source
+            addDeleteUserConnectionRuleTcp(userID, connection.getDestination(), connection.getSource(), policy, deviceFilter, delete);
+        }
+
+        private void addDeleteUserConnectionRuleTcp(int userID, Packages.IpPortPair source, Packages.IpPortPair destination, FirewallRules.RulePolicy policy, FirewallRules.DeviceFilter deviceFilter, boolean delete) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
+            String target;
+
+            switch(policy) {
+                case ACCEPT:
+                    target = CHAIN_FIREWALL_ACTION_ACCEPT;
+                    break;
+                case BLOCK:
+                    target = CHAIN_FIREWALL_ACTION_REJECT;
+                    break;
+                case INTERACTIVE:
+                    target = CHAIN_FIREWALL_ACTION_INTERACTIVE;
+                    break;
+                default:
+                    throw new RuntimeException("Unknown policy: " + policy);
+            }
+
+            String rule = "-p tcp";
+
+            // Source filtering:
+            if (source.getPort() > 0)
+                    rule += " --source-port " + source.getPort();
+            if (!source.getIp().isEmpty() && !source.getIp().equals("*"))
+                rule += " --source " + source.getIp();
+
+            // Destination filtering:
+            if (destination.getPort() > 0)
+                rule += " --destination-port " + destination.getPort();
+            if (!destination.getIp().isEmpty() && !destination.getIp().equals("*"))
+                rule += " --destination " + destination.getIp();
+
+            addDeleteUserRule(userID, rule, deviceFilter, delete);
+        }
+
+        private void addDeleteUserRule(int userID, String rule, FirewallRules.DeviceFilter deviceFilter, boolean delete) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
+            String chain;
+
+            switch(deviceFilter) {
+                case WIFI:
+                    chain = CHAIN_FIREWALL_INTERFACE_WIFI;
+                    break;
+                case UMTS_3G:
+                    chain = CHAIN_FIREWALL_INTERFACE_3G;
+                    break;
+                case ANY:
+                    addDeleteUserRule(userID, rule, FirewallRules.DeviceFilter.WIFI, delete);
+                    addDeleteUserRule(userID, rule, FirewallRules.DeviceFilter.UMTS_3G, delete);
+                    return;
+                default:
+                    throw new RuntimeException("Unknown device: " + deviceFilter);
+            }
+
+            if (delete)
+                IptablesControl.ruleDeleteIgnoreIfMissing(chain, rule);
+            else
+                IptablesControl.ruleAddIfMissing(chain, rule);
+        }
+
         public boolean isMainChainJumpsEnabled() throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.NonZeroReturnValueException {
             return IptablesControl.ruleExistsAny(IptableConstants.Chains.INPUT, RULE_TCP_JUMP_TO_FIREWALL_PREFILTER_CHAIN)
                     || IptablesControl.ruleExistsAny(IptableConstants.Chains.OUTPUT, RULE_TCP_JUMP_TO_FIREWALL_PREFILTER_CHAIN)

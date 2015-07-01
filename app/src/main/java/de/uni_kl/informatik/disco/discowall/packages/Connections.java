@@ -125,6 +125,12 @@ public class Connections {
         private Packages.TcpPackage lastPackage;
         private TcpConnectionState state = TcpConnectionState.UNKNOWN;
 
+        private long closedTimestamp = -1;
+
+        public long getClosedTimestamp() {
+            return closedTimestamp;
+        }
+
         TcpConnection(IConnection connectionData) {
             super(connectionData);
         }
@@ -158,9 +164,10 @@ public class Connections {
 
             if (tcpPackage.hasFlagFIN() && !tcpPackage.hasFlagACK())
                 state = TcpConnectionState.CLOSE_WAIT;
-            else if (tcpPackage.hasFlagFIN() && tcpPackage.hasFlagACK())
+            else if (tcpPackage.hasFlagFIN() && tcpPackage.hasFlagACK()) {
                 state = TcpConnectionState.CLOSED;
-            else if (tcpPackage.hasFlagSYN() && !tcpPackage.hasFlagACK())
+                closedTimestamp = System.nanoTime();
+            } else if (tcpPackage.hasFlagSYN() && !tcpPackage.hasFlagACK())
                 state = TcpConnectionState.SYN_WAIT;
             else if (tcpPackage.hasFlagSYN() && tcpPackage.hasFlagACK())
                 state = TcpConnectionState.OPEN;

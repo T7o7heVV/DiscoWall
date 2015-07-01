@@ -3,6 +3,7 @@ package de.uni_kl.informatik.disco.discowall.firewallService.rules;
 import android.util.Log;
 
 import java.util.HashMap;
+import java.util.LinkedList;
 
 import de.uni_kl.informatik.disco.discowall.packages.Connections;
 import de.uni_kl.informatik.disco.discowall.packages.Packages;
@@ -14,10 +15,13 @@ public class FirewallRulesManager {
     private static final String LOG_TAG = FirewallRulesManager.class.getSimpleName();
     public enum FirewallMode { FILTER_TCP, FILTER_UDP, FILTER_ALL, ALLOW_ALL, BLOCK_ALL }
 
-    private final HashMap<String, Connections.Connection> connectionIdToConnectionMap = new HashMap<>();
+//    private final HashMap<String, Connections.Connection> connectionIdToConnectionMap = new HashMap<>();
+    private final RulesHash rulesHash = new RulesHash();
+    private final FirewallIptableRulesHandler iptablesRulesHandler;
     private FirewallMode firewallMode;
 
-    public FirewallRulesManager() {
+    public FirewallRulesManager(FirewallIptableRulesHandler iptablesRulesHandler) {
+        this.iptablesRulesHandler = iptablesRulesHandler;
         firewallMode = FirewallMode.FILTER_TCP;
     }
 
@@ -28,14 +32,6 @@ public class FirewallRulesManager {
     public void setFirewallMode(FirewallMode firewallMode) {
         this.firewallMode = firewallMode;
     }
-
-    //    public StaticFirewallRules.StaticTcpRule createRule_Accept(FirewallRules.DeviceFilter device, Packages.TcpPackage tcpPackage) {
-//        return new StaticFirewallRules.StaticTcpRule(FirewallRules.FirewallRuleAction.ACCEPT, tcpPackage.getSource(), tcpPackage.getDestination(), device);
-//    }
-//
-//    public StaticFirewallRules.StaticTcpRule createRule_AcceptTCP(FirewallRules.DeviceFilter device, Packages.IpPortPair source, Packages.IpPortPair destination) {
-//        return new StaticFirewallRules.StaticTcpRule(FirewallRules.FirewallRuleAction.ACCEPT, source, destination, device);
-//    }
 
     public boolean isPackageAccepted(Packages.TransportLayerPackage tlPackage, Connections.Connection connection) {
         switch(firewallMode) {
@@ -81,6 +77,22 @@ public class FirewallRulesManager {
         return true;
     }
 
+    public FirewallRules.FirewallTransportRule createTcpRule(int userId, FirewallRules.RulePolicy rulePolicy, Packages.IpPortPair sourceFilter, Packages.IpPortPair destinationFilter, FirewallRules.DeviceFilter deviceFilter) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
+        FirewallRules.FirewallTransportRule rule = new FirewallRules.FirewallTransportRule(userId, rulePolicy, sourceFilter, destinationFilter, deviceFilter);
+
+        try {
+            iptablesRulesHandler.addUserConnectionRule(userId, new Packages.SourceDestinationPair(sourceFilter, destinationFilter), rulePolicy, deviceFilter);
+        } catch (Exception e) {
+            // Remove created rule (if any), when an exception occurrs:
+            iptablesRulesHandler.deleteUserConnectionRule(userId, new Packages.SourceDestinationPair(sourceFilter, destinationFilter), rulePolicy, deviceFilter);
+            throw e;
+        }
+
+        rulesHash.getRulesForUser(userId).add(rule);
+
+        return rule;
+    }
+
 //    private boolean isFilteredUdpPackageAccepted(Packages.UdpPackage udpPackage, Connections.UdpConnection connection) {
 //        return true;
 //    }
@@ -91,4 +103,22 @@ public class FirewallRulesManager {
 //        return true;
 //    }
 
+    private class RulesHash {
+        private final HashMap<Integer, LinkedList<FirewallRules.IFirewallRule>> userIdToRulesListHash = new HashMap<>();
+
+        public RulesHash() {
+        }
+
+        public LinkedList<FirewallRules.IFirewallRule> getRulesForUser(int userId) {
+            LinkedList<FirewallRules.IFirewallRule> rules = userIdToRulesListHash.get(userId);
+
+            if (rules == null) {
+                rules = new LinkedList<>();
+                userIdToRulesListHash.put(userId, rules);
+            }
+
+            return rules;
+        }
+
+    }
 }

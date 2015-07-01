@@ -24,9 +24,6 @@ import java.util.LinkedList;
 
 import de.uni_kl.informatik.disco.discowall.firewallService.Firewall;
 import de.uni_kl.informatik.disco.discowall.firewallService.FirewallService;
-import de.uni_kl.informatik.disco.discowall.firewallService.rules.FirewallRules;
-import de.uni_kl.informatik.disco.discowall.firewallService.rules.FirewallRulesManager;
-import de.uni_kl.informatik.disco.discowall.firewallService.rules.StaticFirewallRules;
 import de.uni_kl.informatik.disco.discowall.packages.Packages;
 import de.uni_kl.informatik.disco.discowall.utils.AppUtils;
 import de.uni_kl.informatik.disco.discowall.utils.NetworkInterfaceHelper;
@@ -108,6 +105,7 @@ public class MainActivity extends ActionBarActivity {
         try {
 //            firewallService.stopFirewallService();
             firewallService.getFirewall().enableFirewall(1337);
+            firewallService.getFirewall().DEBUG_TEST();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -117,7 +115,7 @@ public class MainActivity extends ActionBarActivity {
     protected void onStart() {
         super.onStart();
 
-        if (true) return; // DEBUGGING GUI
+//        if (true) return; // DEBUGGING GUI
 
         // assure that the firewall-service runs indefinitely - even if all bound activities unbind:
         startService(new Intent(this, FirewallService.class));
@@ -145,7 +143,6 @@ public class MainActivity extends ActionBarActivity {
 
             FirewallService.FirewallBinder binder = (FirewallService.FirewallBinder) service;
             firewallService = binder.getService();
-
 
             test();
         }

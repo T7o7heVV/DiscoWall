@@ -6,6 +6,7 @@ import android.util.Log;
 import java.io.IOException;
 
 import de.uni_kl.informatik.disco.discowall.AppManagement;
+import de.uni_kl.informatik.disco.discowall.firewallService.rules.FirewallRules;
 import de.uni_kl.informatik.disco.discowall.firewallService.rules.FirewallRulesManager;
 import de.uni_kl.informatik.disco.discowall.netfilter.bridge.NetfilterBridgeCommunicator;
 import de.uni_kl.informatik.disco.discowall.netfilter.bridge.NetfilterBridgeControl;
@@ -24,7 +25,7 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
 
     private final ConnectionManager connectionManager = new ConnectionManager();
     private final AppManagement appManagement;
-    private final FirewallRulesManager rulesManager = new FirewallRulesManager();
+    private FirewallRulesManager rulesManager;
     private final NetworkInterfaceHelper networkInterfaceHelper = new NetworkInterfaceHelper();
     private final Context context;
 
@@ -57,6 +58,7 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
 
             // starting netfilter bridge - i.e. the "firewall core"
             control = new NetfilterBridgeControl(this, appManagement, appManagement.getSettings().getFirewallPort());
+            rulesManager = new FirewallRulesManager(control.getFirewallIptableRulesHandler()); // creating rulesManager with IptableRulesHandler from NetfitlerBridge, which requires the bridge-port
 
             // starting the dns cache for sniffing the dns-resolutions
 //            dnsCacheControl = new DnsCacheControl(DiscoWallConstants.DnsCache.dnsCachePort);
@@ -176,6 +178,8 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
     public void DEBUG_TEST() {
         try {
             control.getFirewallIptableRulesHandler().setUserPackagesForwardToFirewall(0, true);
+            FirewallRules.FirewallTransportRule rule = rulesManager.createTcpRule(0, FirewallRules.RulePolicy.ACCEPT, new Packages.IpPortPair("localhost", 0), new Packages.IpPortPair("chip.de", 80), FirewallRules.DeviceFilter.ANY);
+            Log.i(LOG_TAG, "RULE CREATED: " + rule);
         } catch (Exception e) {
             e.printStackTrace();
         }

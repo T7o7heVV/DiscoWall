@@ -25,6 +25,22 @@ public class Packages {
             this.port = port;
         }
 
+        public boolean hasIp() {
+            return !isIpAny();
+        }
+
+        public boolean isIpAny() {
+            return ip.trim().isEmpty() || ip.trim().equals("*");
+        }
+
+        public boolean hasPort() {
+            return !isPortAny();
+        }
+
+        public boolean isPortAny() {
+            return port <= 0;
+        }
+
         @Override
         public String toString() {
             return (ip.isEmpty()?"*":ip) + ":" + (port<1?"*":port); // examples: *:*, 127.0.0.1:*, 127.0.0.1:1337, *:1337
@@ -52,6 +68,36 @@ public class Packages {
             }
         }
 
+    }
+
+    public static class SourceDestinationPair implements Connections.IConnection {
+        private final Packages.IpPortPair source, destination;
+
+        @Override public Packages.IpPortPair getSource() { return source; }
+        @Override public int getSourcePort() { return source.getPort(); }
+        @Override public String getSourceIP() { return source.getIp(); }
+
+        @Override public Packages.IpPortPair getDestination() { return destination; }
+        @Override public int getDestinationPort() { return destination.getPort(); }
+        @Override public String getDestinationIP() { return destination.getIp(); }
+
+        public SourceDestinationPair(Connections.IConnection connectionData) {
+            this(connectionData.getSource(), connectionData.getDestination());
+        }
+
+        public SourceDestinationPair(Packages.IpPortPair source, Packages.IpPortPair destination) {
+            this(source.getIp(), source.getPort(), destination.getIp(), destination.getPort());
+        }
+
+        public SourceDestinationPair(String sourceIP, int sourcePort, String destinationIP, int destinationPort) {
+            source = new Packages.IpPortPair(sourceIP, sourcePort);
+            destination = new Packages.IpPortPair(destinationIP, destinationPort);
+        }
+
+        @Override
+        public String toString() {
+            return source + " -> " + destination;
+        }
     }
 
 //    public static class PackageException extends Exception {
