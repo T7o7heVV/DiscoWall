@@ -11,35 +11,39 @@ public class FirewallRules {
 
     /*************************** ARCHITECTURE ******************************************************/
     public interface IFirewallRule {
-        RulePolicy getRulePolicy();
         int getUserId();
 
         DeviceFilter getDeviceFilter();
         ProtocolFilter getProtocolFilter();
         Packages.IpPortPair getSourceFilter();
         Packages.IpPortPair getDestinationFilter();
+    }
 
+    public interface IFirewallPolicyRule extends IFirewallRule {
+        RulePolicy getRulePolicy();
         boolean appliesTo(Packages.TransportLayerPackage tlPackage);
         boolean isPackageAccepted(Packages.TransportLayerPackage tlPackage);
     }
 
+    public interface IFirewallRedirectRule extends IFirewallRule {
+        Packages.IpPortPair getRedirectionRemoteHost();
+    }
+
     /***********************************************************************************************/
 
-    static abstract class AbstractFirewallRule implements IFirewallRule {
+    private static abstract class AbstractFirewallRule implements IFirewallRule {
         private final int userId;
-        private final RulePolicy rulePolicy;
         private final DeviceFilter deviceFilter;
         private final ProtocolFilter protocolFilter;
         private final Packages.IpPortPair sourceFilter, destinationFilter;
 
-        protected AbstractFirewallRule(int userId, RulePolicy rulePolicy, ProtocolFilter protocolFilter, Packages.IpPortPair sourceFilter, Packages.IpPortPair destinationFilter, DeviceFilter deviceFilter) {
+        protected AbstractFirewallRule(int userId, ProtocolFilter protocolFilter, Packages.IpPortPair sourceFilter, Packages.IpPortPair destinationFilter, DeviceFilter deviceFilter) {
             if (sourceFilter == null)
                 throw new IllegalArgumentException("Source-Filter cannot be null!");
             if (destinationFilter == null)
                 throw new IllegalArgumentException("Source-Filter cannot be null!");
 
             this.userId = userId;
-            this.rulePolicy = rulePolicy;
             this.deviceFilter = deviceFilter;
             this.protocolFilter = protocolFilter;
             this.sourceFilter = sourceFilter;
@@ -49,11 +53,6 @@ public class FirewallRules {
         @Override
         public int getUserId() {
             return userId;
-        }
-
-        @Override
-        public RulePolicy getRulePolicy() {
-            return rulePolicy;
         }
 
         @Override
@@ -76,6 +75,38 @@ public class FirewallRules {
             return destinationFilter;
         }
 
+        @Override
+        public String toString() {
+            String sourceFilterStr;
+            String destinationFilterStr;
+
+            if (sourceFilter != null)
+                sourceFilterStr = sourceFilter.toString();
+            else
+                sourceFilterStr = "*:*";
+
+            if (destinationFilter != null)
+                destinationFilterStr = destinationFilter.toString();
+            else
+                destinationFilterStr = "*:*";
+
+            return sourceFilterStr + " -> " + destinationFilterStr + " {" + " [" + protocolFilter + "]" + " userID=" + userId + " deviceFilter=" + deviceFilter + " }";
+        }
+    }
+
+    private static abstract class AbstractFirewallPolicyRule extends AbstractFirewallRule implements IFirewallPolicyRule {
+        private final RulePolicy rulePolicy;
+
+        protected AbstractFirewallPolicyRule(int userId, ProtocolFilter protocolFilter, Packages.IpPortPair sourceFilter, Packages.IpPortPair destinationFilter, DeviceFilter deviceFilter, RulePolicy rulePolicy) {
+            super(userId, protocolFilter, sourceFilter, destinationFilter, deviceFilter);
+            this.rulePolicy = rulePolicy;
+        }
+
+        @Override
+        public RulePolicy getRulePolicy() {
+            return rulePolicy;
+        }
+
         private boolean filterMatches(Packages.IpPortPair filter, Packages.IpPortPair packageInfo) {
             // check ip
             if (filter.hasIp()) {
@@ -95,8 +126,8 @@ public class FirewallRules {
         @Override
         public boolean appliesTo(Packages.TransportLayerPackage tlPackage) {
             // Since the connection allows the passing of a connectin-package in BOTH directions, the role of the source- and destination-filter has to be tested in both directions for one package.
-            return ( filterMatches(sourceFilter, tlPackage.getSource()) && filterMatches(destinationFilter, tlPackage.getDestination()) ) // package in direction intended for rule
-                    || ( filterMatches(destinationFilter, tlPackage.getSource()) && filterMatches(sourceFilter, tlPackage.getDestination()) ); // returning package in opposite direction
+            return ( filterMatches(getSourceFilter(), tlPackage.getSource()) && filterMatches(getDestinationFilter(), tlPackage.getDestination()) ) // package in direction intended for rule
+                    || ( filterMatches(getDestinationFilter(), tlPackage.getSource()) && filterMatches(getSourceFilter(), tlPackage.getDestination()) ); // returning package in opposite direction
         }
 
         @Override
@@ -108,27 +139,50 @@ public class FirewallRules {
 
         @Override
         public String toString() {
-            String sourceFilterStr;
-            String destinationFilterStr;
-
-            if (sourceFilter != null)
-                sourceFilterStr = sourceFilter.toString();
-            else
-                sourceFilterStr = "*:*";
-
-            if (destinationFilter != null)
-                destinationFilterStr = destinationFilter.toString();
-            else
-                destinationFilterStr = "*:*";
-
-            return sourceFilterStr + " -> " + destinationFilterStr + " {" + " [" + protocolFilter + "]" + " userID=" + userId + " rulePolicy=" + rulePolicy + " deviceFilter=" + deviceFilter + " }";
+            return super.toString() + " { rulePolicy=" + rulePolicy + " }";
         }
     }
 
-    public static class FirewallTransportRule extends AbstractFirewallRule  {
-        FirewallTransportRule(int userId, RulePolicy rulePolicy, Packages.IpPortPair sourceFilter, Packages.IpPortPair destinationFilter, DeviceFilter deviceFilter) {
-            super(userId, rulePolicy, ProtocolFilter.TCP, sourceFilter, destinationFilter, deviceFilter);
+    public static class FirewallTransportRule extends AbstractFirewallPolicyRule  {
+        FirewallTransportRule(int userId, Packages.IpPortPair sourceFilter, Packages.IpPortPair destinationFilter, DeviceFilter deviceFilter, RulePolicy rulePolicy) {
+            super(userId, ProtocolFilter.TCP, sourceFilter, destinationFilter, deviceFilter, rulePolicy);
         }
     }
 
+    private static abstract class AbstractFirewallRedirectRule extends AbstractFirewallRule implements IFirewallRedirectRule {
+        private final Packages.IpPortPair redirectTo;
+
+        protected AbstractFirewallRedirectRule(int userId, ProtocolFilter protocolFilter, Packages.IpPortPair sourceFilter, Packages.IpPortPair destinationFilter, DeviceFilter deviceFilter, Packages.IpPortPair redirectTo) throws FirewallRuleExceptions.InvalidRuleDefinitionException {
+            super(userId, protocolFilter, sourceFilter, destinationFilter, deviceFilter);
+            this.redirectTo = redirectTo;
+
+            if (redirectTo == null)
+                throw new FirewallRuleExceptions.InvalidRuleDefinitionException(this, "No redirection target specified for redirection rule.");
+            if (!redirectTo.hasIp() || !redirectTo.hasPort())
+                throw new FirewallRuleExceptions.InvalidRuleDefinitionException(this, "IP or Port missing for redirection target: " + redirectTo);
+
+            // It will be allowed to redirect multiple connections to the same host
+//            if (!sourceFilter.hasIp() || !sourceFilter.hasPort())
+//                throw new FirewallRuleExceptions.InvalidRuleDefinitionException(this, "IP or Port missing for connection-source: " + sourceFilter);
+//            if (!destinationFilter.hasIp() || !destinationFilter.hasPort())
+//                throw new FirewallRuleExceptions.InvalidRuleDefinitionException(this, "IP or Port missing for connection-destination: " + destinationFilter);
+        }
+
+        @Override
+        public Packages.IpPortPair getRedirectionRemoteHost() {
+            return redirectTo;
+        }
+
+        @Override
+        public String toString() {
+            return super.toString() + " { redirectTo=" + redirectTo + " }";
+        }
+
+    }
+
+    public static class FirewallTransportRedirectRule extends AbstractFirewallRedirectRule  {
+        FirewallTransportRedirectRule(int userId, Packages.IpPortPair sourceFilter, Packages.IpPortPair destinationFilter, DeviceFilter deviceFilter, Packages.IpPortPair redirectTo) throws FirewallRuleExceptions.InvalidRuleDefinitionException {
+            super(userId, ProtocolFilter.TCP, sourceFilter, destinationFilter, deviceFilter, redirectTo);
+        }
+    }
  }

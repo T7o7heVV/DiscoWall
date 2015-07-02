@@ -8,7 +8,9 @@
     <uses-sdk android:minSdkVersion="3" />
 
     <!-- Permissions: -->
-    <uses-permission android:name="android.permission.INTERNET" /> <!-- required for listening on tcp port, in order to communicate with netfilter-bridge -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- required for listening on tcp port, in order to communicate with netfilter-bridge -->
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
@@ -27,9 +29,14 @@
         <!-- important: the android:name of the service is its relative qualified name! -->
         <service
             android:name=".firewallService.FirewallService"
-            android:label="Firewall Service"
-            android:exported="false" >
+            android:exported="false"
+            android:label="Firewall Service" >
         </service>
+
+        <activity
+            android:name=".SettingsActivity"
+            android:label="@string/title_activity_settings" >
+        </activity>
     </application>
 
 </manifest>

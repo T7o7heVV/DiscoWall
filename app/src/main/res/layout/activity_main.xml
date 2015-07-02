@@ -32,7 +32,8 @@
             android:switchMinWidth="100dp"
 
             android:textStyle="bold"
-            android:layout_weight="0.1" />
+            android:layout_weight="0.1"
+            android:checked="false" />
     </LinearLayout>
 
     <LinearLayout

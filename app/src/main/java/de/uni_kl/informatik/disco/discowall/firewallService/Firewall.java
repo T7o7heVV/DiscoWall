@@ -2,6 +2,7 @@ package de.uni_kl.informatik.disco.discowall.firewallService;
 
 import android.content.Context;
 import android.util.Log;
+import android.widget.Toast;
 
 import java.io.IOException;
 
@@ -51,7 +52,10 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
     public void enableFirewall(int port) throws ShellExecuteExceptions.CallException, NetfilterExceptions.NetfilterBridgeDeploymentException, ShellExecuteExceptions.ReturnValueException, IOException {
         Log.i(LOG_TAG, "starting firewall...");
 
-        if (isFirewallRunning())
+        boolean alreadyRunnig = isFirewallRunning();
+        Log.d(LOG_TAG, "check if firewall already running: " + alreadyRunnig);
+
+        if (alreadyRunnig)
         {
             Log.i(LOG_TAG, "firewall already running. nothing to do.");
         } else {
@@ -80,6 +84,7 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
 
         // Disable iptables hooking-rules, so that no package will be sent to netfilter-bridge binary
         Log.v(LOG_TAG, "disconnecting bridge");
+
         control.disconnectBridge();
         control = null;
 
@@ -178,7 +183,7 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
     public void DEBUG_TEST() {
         try {
             control.getFirewallIptableRulesHandler().setUserPackagesForwardToFirewall(0, true);
-            FirewallRules.FirewallTransportRule rule = rulesManager.createTcpRule(0, FirewallRules.RulePolicy.ACCEPT, new Packages.IpPortPair("localhost", 0), new Packages.IpPortPair("chip.de", 80), FirewallRules.DeviceFilter.ANY);
+            FirewallRules.FirewallTransportRule rule = rulesManager.createTcpRule(0, new Packages.IpPortPair("localhost", 0), new Packages.IpPortPair("chip.de", 80), FirewallRules.DeviceFilter.ANY,  FirewallRules.RulePolicy.ACCEPT);
             Log.i(LOG_TAG, "RULE CREATED: " + rule);
         } catch (Exception e) {
             e.printStackTrace();

@@ -7,8 +7,6 @@ import java.util.LinkedList;
 
 import de.uni_kl.informatik.disco.discowall.packages.Connections;
 import de.uni_kl.informatik.disco.discowall.packages.Packages;
-import de.uni_kl.informatik.disco.discowall.utils.AppUtils;
-import de.uni_kl.informatik.disco.discowall.utils.NetworkUtils;
 import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecuteExceptions;
 
 public class FirewallRulesManager {
@@ -77,19 +75,27 @@ public class FirewallRulesManager {
         return true;
     }
 
-    public FirewallRules.FirewallTransportRule createTcpRule(int userId, FirewallRules.RulePolicy rulePolicy, Packages.IpPortPair sourceFilter, Packages.IpPortPair destinationFilter, FirewallRules.DeviceFilter deviceFilter) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
-        FirewallRules.FirewallTransportRule rule = new FirewallRules.FirewallTransportRule(userId, rulePolicy, sourceFilter, destinationFilter, deviceFilter);
+    public FirewallRules.FirewallTransportRule createTcpRule(int userId, Packages.IpPortPair sourceFilter, Packages.IpPortPair destinationFilter, FirewallRules.DeviceFilter deviceFilter, FirewallRules.RulePolicy rulePolicy) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
+        FirewallRules.FirewallTransportRule rule = new FirewallRules.FirewallTransportRule(userId, sourceFilter, destinationFilter, deviceFilter, rulePolicy);
 
         try {
-            iptablesRulesHandler.addUserConnectionRule(userId, new Packages.SourceDestinationPair(sourceFilter, destinationFilter), rulePolicy, deviceFilter);
-        } catch (Exception e) {
+            iptablesRulesHandler.addTcpConnectionRule(userId, new Packages.SourceDestinationPair(sourceFilter, destinationFilter), rulePolicy, deviceFilter);
+        } catch (ShellExecuteExceptions.ShellExecuteException e) {
             // Remove created rule (if any), when an exception occurrs:
-            iptablesRulesHandler.deleteUserConnectionRule(userId, new Packages.SourceDestinationPair(sourceFilter, destinationFilter), rulePolicy, deviceFilter);
+            iptablesRulesHandler.deleteTcpConnectionRule(userId, new Packages.SourceDestinationPair(sourceFilter, destinationFilter), rulePolicy, deviceFilter);
             throw e;
         }
 
         rulesHash.getRulesForUser(userId).add(rule);
+        return rule;
+    }
 
+    public FirewallRules.FirewallTransportRedirectRule createTcpRedirectionRule(int userId, Packages.IpPortPair sourceFilter, Packages.IpPortPair destinationFilter, FirewallRules.DeviceFilter deviceFilter, Packages.IpPortPair redirectTo) throws FirewallRuleExceptions.InvalidRuleDefinitionException {
+        FirewallRules.FirewallTransportRedirectRule rule = new FirewallRules.FirewallTransportRedirectRule(userId, sourceFilter, destinationFilter, deviceFilter, redirectTo);
+
+        // TODO
+
+        rulesHash.getRulesForUser(userId).add(rule);
         return rule;
     }
 

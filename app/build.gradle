@@ -12,8 +12,10 @@ android {
 
     defaultConfig {
         applicationId "de.uni_kl.informatik.disco.discowall"
-        minSdkVersion 16 // using 16 (not 15) because of android development improvements, such as Notification.Builder(Context) etc.
-        targetSdkVersion 21 // i.e. android 4.0.4 - see http://developer.android.com/guide/topics/manifest/uses-sdk-element.html#ApiLevels
+        minSdkVersion 16
+        // using 16 (not 15) because of android development improvements, such as Notification.Builder(Context) etc.
+        targetSdkVersion 21
+        // i.e. android 4.0.4 - see http://developer.android.com/guide/topics/manifest/uses-sdk-element.html#ApiLevels
         versionCode 1
         versionName "1.0"
 
@@ -32,4 +34,5 @@ android {
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     compile 'com.android.support:appcompat-v7:22.1.1'
+    compile 'com.android.support:support-v4:22.1.1'
 }

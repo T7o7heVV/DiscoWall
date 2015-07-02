@@ -4,7 +4,6 @@ import android.util.Log;
 
 import de.uni_kl.informatik.disco.discowall.firewallService.rules.FirewallIptableRulesHandler;
 import de.uni_kl.informatik.disco.discowall.firewallService.rules.FirewallRules;
-import de.uni_kl.informatik.disco.discowall.firewallService.rules.FirewallRulesManager;
 import de.uni_kl.informatik.disco.discowall.netfilter.iptables.IptableConstants;
 import de.uni_kl.informatik.disco.discowall.netfilter.iptables.IptablesControl;
 import de.uni_kl.informatik.disco.discowall.packages.Connections;
@@ -245,15 +244,40 @@ public class NetfilterBridgeIptablesHandler {
     }
 
     private class FirewallRulesHandlerImpl implements FirewallIptableRulesHandler {
-        public void addUserConnectionRule(int userID, Connections.IConnection connection, FirewallRules.RulePolicy policy, FirewallRules.DeviceFilter deviceFilter) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
-            addDeleteUserConnectionRule(userID, connection, policy, deviceFilter, false);
+
+        public void addTcpRedirectionRule(int userID, Packages.IpPortPair destinationHostToRedirect, Packages.IpPortPair redirectTo, FirewallRules.DeviceFilter deviceFilter) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
+            // http://www.debuntu.org/how-to-redirecting-network-traffic-to-a-new-ip-using-iptables/
+            // http://www.cyberciti.biz/faq/linux-port-redirection-with-iptables/
+
+            String redirectionFilter = "";
+            if (destinationHostToRedirect.hasIp())
+                redirectionFilter += " --destination " + destinationHostToRedirect.getIp();
+            if (destinationHostToRedirect.hasPort())
+                redirectionFilter += " --destination-port " + destinationHostToRedirect.getPort();
+
+            String rule = "-t nat PREROUTING -p tcp " + redirectionFilter + " -j DNAT --to-destination " + redirectTo.getIp() + ":" + redirectTo.getPort();
+
+            // TODO:
+            // 1) assert 'echo "1" > /proc/sys/net/ipv4/ip_forward'
+            // 2) rule must exist "iptables -t nat -A POSTROUTING -j MASQUERADE"
+
+            // TODO: Redirection does not work - neither on pc nor on android
+            /* 1) When rule added to "-t nat -A OUTPUT" with "-j REDIRECT --to-port", the rule matches the outgoing package, but does not seem to edit the ports (according to wireshark)
+               2) ANY rule added to "-t nat -A PREROUTING" does not even match.
+             */
+
+            addDeleteUserRule(userID, rule, deviceFilter, false);
         }
 
-        public void deleteUserConnectionRule(int userID, Connections.IConnection connection, FirewallRules.RulePolicy policy, FirewallRules.DeviceFilter deviceFilter) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
-            addDeleteUserConnectionRule(userID, connection, policy, deviceFilter, true);
+        public void addTcpConnectionRule(int userID, Connections.IConnection connection, FirewallRules.RulePolicy policy, FirewallRules.DeviceFilter deviceFilter) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
+            addDeleteTcpConnectionRule(userID, connection, policy, deviceFilter, false);
         }
 
-        private void addDeleteUserConnectionRule(int userID, Connections.IConnection connection, FirewallRules.RulePolicy policy, FirewallRules.DeviceFilter deviceFilter, boolean delete) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
+        public void deleteTcpConnectionRule(int userID, Connections.IConnection connection, FirewallRules.RulePolicy policy, FirewallRules.DeviceFilter deviceFilter) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
+            addDeleteTcpConnectionRule(userID, connection, policy, deviceFilter, true);
+        }
+
+        private void addDeleteTcpConnectionRule(int userID, Connections.IConnection connection, FirewallRules.RulePolicy policy, FirewallRules.DeviceFilter deviceFilter, boolean delete) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
             // Packages: Direction source => destination
             addDeleteUserConnectionRuleTcp(userID, connection.getSource(), connection.getDestination(), policy, deviceFilter, delete);
 
@@ -280,17 +304,32 @@ public class NetfilterBridgeIptablesHandler {
 
             String rule = "-p tcp";
 
+            /*
+               !!! IMPORTANT !!!
+               ----------------
+               NEVER use "localhost/127.0.0.1"
+               * do NOT filter for localhost as "--source" or "--destination", as the packages sent by the device (or any other linux-box)
+               * will NEVER contain localhost/127.0.0.1. Instead the packages will contain the address of the device within WiFi/UMTS.
+               * Example: A package to 8.8.8.8 will contain a sender like "192.168.178.10" and the receiver 8.8.8.8.
+               *          ==> Source is NOT localhost/127.0.0.1 as far as iptables is concerned.
+               *
+               * ==> localhost/127.0.0.1 will be ignored as filter, as they will never match and destroy the rules function.
+             */
+
             // Source filtering:
             if (source.getPort() > 0)
                     rule += " --source-port " + source.getPort();
-            if (!source.getIp().isEmpty() && !source.getIp().equals("*"))
+            if (!source.getIp().isEmpty() && !source.getIp().equals("*") && !source.getIp().equals("localhost") && !source.getIp().equals("127.0.0.1"))
                 rule += " --source " + source.getIp();
 
             // Destination filtering:
             if (destination.getPort() > 0)
                 rule += " --destination-port " + destination.getPort();
-            if (!destination.getIp().isEmpty() && !destination.getIp().equals("*"))
+            if (!destination.getIp().isEmpty() && !destination.getIp().equals("*") && !destination.getIp().equals("localhost") && !destination.getIp().equals("127.0.0.1"))
                 rule += " --destination " + destination.getIp();
+
+            // Append jump to target chain:
+            rule += " -j " + target;
 
             addDeleteUserRule(userID, rule, deviceFilter, delete);
         }
@@ -312,6 +351,8 @@ public class NetfilterBridgeIptablesHandler {
                 default:
                     throw new RuntimeException("Unknown device: " + deviceFilter);
             }
+
+            rule = "-m owner --uid-owner " + userID + " " + rule;
 
             if (delete)
                 IptablesControl.ruleDeleteIgnoreIfMissing(chain, rule);
