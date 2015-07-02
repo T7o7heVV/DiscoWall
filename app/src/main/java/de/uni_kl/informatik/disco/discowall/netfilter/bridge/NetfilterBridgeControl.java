@@ -1,10 +1,10 @@
 package de.uni_kl.informatik.disco.discowall.netfilter.bridge;
 
+import android.content.Context;
 import android.util.Log;
 
 import java.io.IOException;
 
-import de.uni_kl.informatik.disco.discowall.AppManagement;
 import de.uni_kl.informatik.disco.discowall.firewallService.rules.FirewallIptableRulesHandler;
 import de.uni_kl.informatik.disco.discowall.netfilter.NetfilterExceptions;
 import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecuteExceptions;
@@ -13,7 +13,7 @@ public class NetfilterBridgeControl {
     private static final String LOG_TAG = NetfilterBridgeControl.class.getSimpleName();
     public static final boolean DEBUG_USE_EXTERNAL_BINARY = false;
 
-    private final AppManagement appManagement;
+    private final Context firewallServiceContext;
     private final NetfilterBridgeCommunicator.EventsHandler bridgeEventsHandler;
 
     private final NetfilterBridgeIptablesHandler iptablesHandler;
@@ -21,14 +21,15 @@ public class NetfilterBridgeControl {
     private NetfilterBridgeCommunicator bridgeCommunicator;
     private final int bridgeCommunicationPort;
 
-    public NetfilterBridgeControl(NetfilterBridgeCommunicator.EventsHandler bridgeEventsHandler, AppManagement appManagement, int bridgeCommunicationPort) throws NetfilterExceptions.NetfilterBridgeDeploymentException, ShellExecuteExceptions.ReturnValueException, ShellExecuteExceptions.CallException, IOException {
+    public NetfilterBridgeControl(NetfilterBridgeCommunicator.EventsHandler bridgeEventsHandler, Context firewallServiceContext, int bridgeCommunicationPort) throws NetfilterExceptions.NetfilterBridgeDeploymentException, ShellExecuteExceptions.ReturnValueException, ShellExecuteExceptions.CallException, IOException {
         Log.d(LOG_TAG, "initializing NetfilterBridgeControl...");
+        Log.d(LOG_TAG, "NetfilterBridge communication port: " + bridgeCommunicationPort);
 
         this.bridgeEventsHandler = bridgeEventsHandler;
         this.bridgeCommunicationPort = bridgeCommunicationPort;
 
-        this.appManagement = appManagement;
-        this.bridgeBinaryHandler = new NetfilterBridgeBinaryHandler(appManagement);
+        this.firewallServiceContext = firewallServiceContext;
+        this.bridgeBinaryHandler = new NetfilterBridgeBinaryHandler(firewallServiceContext);
         this.iptablesHandler = new NetfilterBridgeIptablesHandler(bridgeCommunicationPort);
 
         // -----------------------------------------------------------------------------------------------------------

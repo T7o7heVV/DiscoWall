@@ -1,5 +1,6 @@
 package de.uni_kl.informatik.disco.discowall.netfilter.bridge;
 
+import android.content.Context;
 import android.util.Log;
 
 import java.io.File;
@@ -7,7 +8,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
-import de.uni_kl.informatik.disco.discowall.AppManagement;
 import de.uni_kl.informatik.disco.discowall.netfilter.NetfilterExceptions;
 import de.uni_kl.informatik.disco.discowall.utils.FileUtils;
 import de.uni_kl.informatik.disco.discowall.utils.shell.RootShellExecute;
@@ -18,26 +18,26 @@ import de.uni_kl.informatik.disco.discowall.utils.ressources.DroidWallFiles;
 
 class NetfilterBridgeBinaryHandler {
     private static final String LOG_TAG = "NfBinaryHandler";
-    private final AppManagement appManagement;
+    private final Context persistentContext;
     private ShellExecute.ShellExecuteResult bridgeBinaryExecuteResult;
 
-    public NetfilterBridgeBinaryHandler(AppManagement appManagement) {
-        this.appManagement = appManagement;
+    public NetfilterBridgeBinaryHandler(Context persistentContext) {
+        this.persistentContext = persistentContext;
     }
 
     public boolean isDeployed() { return getFile().exists(); }
 
-    public File getFile() { return DroidWallFiles.NETFILTER_BRIDGE_BINARY__FILE.getFile(appManagement.getContext()); }
+    public File getFile() { return DroidWallFiles.NETFILTER_BRIDGE_BINARY__FILE.getFile(persistentContext); }
 
     public boolean isProcessRunning() { return (bridgeBinaryExecuteResult==null) ? false : bridgeBinaryExecuteResult.isRunning(); }
 
     public void deploy() throws NetfilterExceptions.NetfilterBridgeDeploymentException {
         Log.d(LOG_TAG, "netfilter bridge: deploying...");
 
-        File netfilterBridgeBinary = DroidWallFiles.NETFILTER_BRIDGE_BINARY__FILE.getFile(appManagement.getContext());
+        File netfilterBridgeBinary = DroidWallFiles.NETFILTER_BRIDGE_BINARY__FILE.getFile(persistentContext);
 
         try {
-            InputStream netfilterInputStream = DroidWallAssets.NETFILTER_BRIDGE_BINARY.getInputStream(appManagement.getContext());
+            InputStream netfilterInputStream = DroidWallAssets.NETFILTER_BRIDGE_BINARY.getInputStream(persistentContext);
             FileOutputStream netfilterOutputStream = new FileOutputStream(netfilterBridgeBinary);
 
             FileUtils.fileStreamCopy(netfilterInputStream, netfilterOutputStream);

@@ -2,11 +2,9 @@ package de.uni_kl.informatik.disco.discowall.firewallService;
 
 import android.content.Context;
 import android.util.Log;
-import android.widget.Toast;
 
 import java.io.IOException;
 
-import de.uni_kl.informatik.disco.discowall.AppManagement;
 import de.uni_kl.informatik.disco.discowall.firewallService.rules.FirewallRules;
 import de.uni_kl.informatik.disco.discowall.firewallService.rules.FirewallRulesManager;
 import de.uni_kl.informatik.disco.discowall.netfilter.bridge.NetfilterBridgeCommunicator;
@@ -25,19 +23,17 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
     private static final String LOG_TAG = Firewall.class.getSimpleName();
 
     private final ConnectionManager connectionManager = new ConnectionManager();
-    private final AppManagement appManagement;
     private FirewallRulesManager rulesManager;
     private final NetworkInterfaceHelper networkInterfaceHelper = new NetworkInterfaceHelper();
-    private final Context context;
+    private final Context firewallServiceContext;
 
     private NetfilterBridgeControl control;
 //    private DnsCacheControl dnsCacheControl;
 
-    public Firewall(Context context) {
+    public Firewall(Context firewallServiceContext) {
         Log.i(LOG_TAG, "initializing firewall service...");
 
-        this.context = context;
-        this.appManagement = new AppManagement(context);
+        this.firewallServiceContext = firewallServiceContext;
 
         Log.i(LOG_TAG, "firewall service running.");
     }
@@ -61,7 +57,7 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
         } else {
 
             // starting netfilter bridge - i.e. the "firewall core"
-            control = new NetfilterBridgeControl(this, appManagement, appManagement.getSettings().getFirewallPort());
+            control = new NetfilterBridgeControl(this, firewallServiceContext, port);
             rulesManager = new FirewallRulesManager(control.getFirewallIptableRulesHandler()); // creating rulesManager with IptableRulesHandler from NetfitlerBridge, which requires the bridge-port
 
             // starting the dns cache for sniffing the dns-resolutions
