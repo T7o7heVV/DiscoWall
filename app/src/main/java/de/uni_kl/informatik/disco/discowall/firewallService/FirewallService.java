@@ -76,7 +76,7 @@ public class FirewallService extends IntentService {
         Notification notification = new Notification.Builder(this)
                 .setContentTitle(getString(R.string.firewall_service_notification_title))
                 .setContentText(getString(R.string.firewall_service_notification_message))
-                .setSmallIcon(R.mipmap.firewall)
+                .setSmallIcon(R.mipmap.firewall_launcher)
                 .build();
 
         startForeground(DiscoWallConstants.NotificationIDs.firewallService, notification);
