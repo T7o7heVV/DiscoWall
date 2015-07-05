@@ -6,8 +6,13 @@
 
 
     <string name="action_settings">Settings</string>
+    <string name="action_iptables_show">Show Iptables</string>
+
     <string name="title_activity_main">MainActivity</string>
 
     <string name="firewall_service_notification_title">DiscoWall Service</string>
     <string name="firewall_service_notification_message">firewall service for package filtering</string>
+    <string name="title_activity_text_view">TextViewActivity</string>
+
+    <string name="hello_world">Hello world!</string>
 </resources>

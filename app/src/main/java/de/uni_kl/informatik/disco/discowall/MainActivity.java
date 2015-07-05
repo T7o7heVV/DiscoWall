@@ -92,11 +92,29 @@ public class MainActivity extends ActionBarActivity {
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
 
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            Intent i = new Intent(this, SettingsActivity.class);
-            startActivity(i);
-            return true;
+        switch(id) {
+            case R.id.action_settings:
+            {
+                Intent i = new Intent(this, SettingsActivity.class);
+                startActivity(i);
+                return true;
+            }
+            case R.id.action_iptables_show:
+            {
+                Intent i = new Intent(this, TextViewActivity.class);
+                String content = "";
+
+                try {
+                    content = firewall.getIptablesContent();
+                } catch (ShellExecuteExceptions.ShellExecuteException e) {
+                    content = e.getMessage(); // showing error directly in text-view.
+                    e.printStackTrace();
+                }
+
+                i.putExtra(TextViewActivity.INTENT_EXTRA_TEXTVIEW_CONTENT, content);
+                startActivity(i);
+                return true;
+            }
         }
 
         return super.onOptionsItemSelected(item);

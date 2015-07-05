@@ -21,7 +21,9 @@
             android:label="@string/app_name" >
             <intent-filter>
                 <rulePolicy android:name="android.intent.rulePolicy.MAIN" />
+
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
@@ -36,6 +38,10 @@
         <activity
             android:name=".SettingsActivity"
             android:label="@string/title_activity_settings" >
+        </activity>
+        <activity
+            android:name=".TextViewActivity"
+            android:label="@string/title_activity_text_view" >
         </activity>
     </application>
 

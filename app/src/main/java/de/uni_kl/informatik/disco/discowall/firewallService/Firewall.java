@@ -11,10 +11,12 @@ import de.uni_kl.informatik.disco.discowall.netfilter.bridge.NetfilterBridgeComm
 import de.uni_kl.informatik.disco.discowall.netfilter.bridge.NetfilterBridgeControl;
 import de.uni_kl.informatik.disco.discowall.netfilter.NetfilterExceptions;
 import de.uni_kl.informatik.disco.discowall.netfilter.bridge.NetfilterBridgeIptablesHandler;
+import de.uni_kl.informatik.disco.discowall.netfilter.iptables.IptablesControl;
 import de.uni_kl.informatik.disco.discowall.packages.ConnectionManager;
 import de.uni_kl.informatik.disco.discowall.packages.Connections;
 import de.uni_kl.informatik.disco.discowall.packages.Packages;
 import de.uni_kl.informatik.disco.discowall.utils.NetworkInterfaceHelper;
+import de.uni_kl.informatik.disco.discowall.utils.shell.RootShellExecute;
 import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecuteExceptions;
 
 public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
@@ -170,6 +172,10 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
         }
 
         return accepted;
+    }
+
+    public String getIptablesContent() throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.NonZeroReturnValueException {
+        return IptablesControl.getRuleInfoText(true, true);
     }
 
     @Override
