@@ -1,9 +1,10 @@
-package de.uni_kl.informatik.disco.discowall;
+package de.uni_kl.informatik.disco.discowall.utils.ressources;
 
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
-import android.util.Log;
+
+import de.uni_kl.informatik.disco.discowall.R;
 
 public class DiscoWallSettings {
     private DiscoWallSettings() {}

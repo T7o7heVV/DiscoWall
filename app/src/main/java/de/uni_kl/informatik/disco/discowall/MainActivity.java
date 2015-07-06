@@ -5,13 +5,8 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
-import android.content.SharedPreferences;
-import android.content.pm.ApplicationInfo;
-import android.content.pm.PackageManager;
-import android.net.Network;
 import android.os.AsyncTask;
 import android.os.IBinder;
-import android.preference.PreferenceManager;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -20,23 +15,18 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
 import android.widget.CompoundButton;
-import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.Switch;
 import android.widget.Toast;
 
-import java.io.IOException;
 import java.util.LinkedList;
 
 import de.uni_kl.informatik.disco.discowall.firewallService.Firewall;
 import de.uni_kl.informatik.disco.discowall.firewallService.FirewallService;
-import de.uni_kl.informatik.disco.discowall.netfilter.NetfilterExceptions;
-import de.uni_kl.informatik.disco.discowall.packages.Packages;
 import de.uni_kl.informatik.disco.discowall.utils.AppUtils;
-import de.uni_kl.informatik.disco.discowall.utils.NetworkInterfaceHelper;
-import de.uni_kl.informatik.disco.discowall.utils.NetworkUtils;
+import de.uni_kl.informatik.disco.discowall.utils.gui.AboutDialog;
+import de.uni_kl.informatik.disco.discowall.utils.ressources.DiscoWallSettings;
 import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecuteExceptions;
 
 
@@ -93,15 +83,24 @@ public class MainActivity extends ActionBarActivity {
         int id = item.getItemId();
 
         switch(id) {
-            case R.id.action_settings:
+            case R.id.action_main_menu_settings:
             {
                 Intent i = new Intent(this, SettingsActivity.class);
                 startActivity(i);
                 return true;
             }
+            case R.id.action_main_menu_about:
+            {
+                AboutDialog.show(this);
+                return true;
+            }
+            case R.id.action_main_menu_exit:
+            {
+                finish();
+                return true;
+            }
             case R.id.action_iptables_show:
             {
-                Intent i = new Intent(this, TextViewActivity.class);
                 String content = "";
 
                 try {
@@ -111,8 +110,7 @@ public class MainActivity extends ActionBarActivity {
                     e.printStackTrace();
                 }
 
-                i.putExtra(TextViewActivity.INTENT_EXTRA_TEXTVIEW_CONTENT, content);
-                startActivity(i);
+                TextViewActivity.showText(this, "Iptable Rules", content);
                 return true;
             }
         }

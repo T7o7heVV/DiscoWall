@@ -43,6 +43,10 @@
             android:name=".TextViewActivity"
             android:label="@string/title_activity_text_view" >
         </activity>
+        <activity
+            android:name=".EditConnectionRuleDialog"
+            android:label="@string/title_activity_edit_connection_rule_dialog" >
+        </activity>
     </application>
 
 </manifest>

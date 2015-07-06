@@ -1,4 +1,4 @@
-package de.uni_kl.informatik.disco.discowall;
+package de.uni_kl.informatik.disco.discowall.utils.ressources;
 
 import java.io.File;
 

@@ -7,7 +7,7 @@ import android.os.Binder;
 import android.os.IBinder;
 import android.util.Log;
 
-import de.uni_kl.informatik.disco.discowall.DiscoWallConstants;
+import de.uni_kl.informatik.disco.discowall.utils.ressources.DiscoWallConstants;
 import de.uni_kl.informatik.disco.discowall.R;
 
 /**
