@@ -1,6 +1,7 @@
 package de.uni_kl.informatik.disco.discowall;
 
 import android.app.AlertDialog;
+import android.app.ProgressDialog;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -26,6 +27,7 @@ import de.uni_kl.informatik.disco.discowall.firewallService.Firewall;
 import de.uni_kl.informatik.disco.discowall.firewallService.FirewallService;
 import de.uni_kl.informatik.disco.discowall.utils.AppUtils;
 import de.uni_kl.informatik.disco.discowall.utils.gui.AboutDialog;
+import de.uni_kl.informatik.disco.discowall.utils.gui.ErrorDialog;
 import de.uni_kl.informatik.disco.discowall.utils.ressources.DiscoWallSettings;
 import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecuteExceptions;
 
@@ -96,6 +98,14 @@ public class MainActivity extends ActionBarActivity {
             }
             case R.id.action_main_menu_exit:
             {
+                try {
+                    if (firewall.isFirewallRunning())
+                        Toast.makeText(this, "Firewall runs in background...", Toast.LENGTH_SHORT).show();
+                } catch (ShellExecuteExceptions.ShellExecuteException e) {
+                    ErrorDialog.showError(this, "Firewall State", "Error fetching firewall state: " + e.getMessage());
+                    e.printStackTrace();
+                }
+
                 finish();
                 return true;
             }
@@ -235,11 +245,20 @@ public class MainActivity extends ActionBarActivity {
                 return;
             }
 
-            if (enabled)
-                Toast.makeText(MainActivity.this, "Enabling Firewall...", Toast.LENGTH_SHORT).show();
-            else
-                Toast.makeText(MainActivity.this, "Disabling Firewall...", Toast.LENGTH_SHORT).show();
+            String actionName, message;
+            if (enabled) {
+                actionName = "Enabling Firewall";
+                message = "adding iptable rules...";
+            } else {
+                actionName = "Disabling Firewall";
+                message = "removing iptable rules...";
+            }
 
+            // Creating "busy dialog" (will be shown before async-task is being started)
+            final ProgressDialog progressDialog = new ProgressDialog(MainActivity.this);
+            progressDialog.setTitle(actionName);
+            progressDialog.setIcon(R.drawable.firewall_launcher);
+            progressDialog.setMessage(message);
 
             class FirewallSetupTask extends AsyncTask<Boolean, Boolean, Boolean> {
                 private AlertDialog.Builder errorAlert;
@@ -281,12 +300,15 @@ public class MainActivity extends ActionBarActivity {
                         Toast.makeText(MainActivity.this, "Firewall Enabled.", Toast.LENGTH_LONG).show();
                     else
                         Toast.makeText(MainActivity.this, "Firewall Disabled.", Toast.LENGTH_LONG).show();
+
+                    progressDialog.dismiss();
                 }
             }
 
             // Store enabled/disabled state in settings, so that it can be restored on app-start
             discowallSettings.setFirewallEnabled(MainActivity.this, enabled);
 
+            progressDialog.show();
             new FirewallSetupTask().execute();
         }
 
