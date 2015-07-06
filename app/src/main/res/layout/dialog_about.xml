@@ -8,7 +8,6 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:padding="20dip"
-    android:background="@drawable/main_brackground_fire"
     >
 
     <TextView
@@ -16,6 +15,15 @@
         android:layout_height="wrap_content"
         android:textSize="16sp"
         android:text="@string/app_about_description"
+        />
+
+    <TextView
+        android:id="@+id/dialog_about_build"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingTop="20dip"
+        android:textSize="16sp"
+        android:text="@string/app_about_build"
         />
 
     <TextView
