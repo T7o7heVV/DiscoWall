@@ -1,4 +1,4 @@
-package de.uni_kl.informatik.disco.discowall.utils.gui;
+package de.uni_kl.informatik.disco.discowall.gui.dialogs;
 
 import android.app.Activity;
 import android.app.AlertDialog;

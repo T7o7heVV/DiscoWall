@@ -1,12 +1,9 @@
 package de.uni_kl.informatik.disco.discowall;
 
-import android.app.AlertDialog;
-import android.app.ProgressDialog;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
-import android.os.AsyncTask;
 import android.os.IBinder;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
@@ -24,21 +21,23 @@ import android.widget.Toast;
 import java.util.LinkedList;
 
 import de.uni_kl.informatik.disco.discowall.firewallService.Firewall;
+import de.uni_kl.informatik.disco.discowall.firewallService.FirewallExceptions;
 import de.uni_kl.informatik.disco.discowall.firewallService.FirewallService;
+import de.uni_kl.informatik.disco.discowall.gui.GuiHandlers;
 import de.uni_kl.informatik.disco.discowall.utils.AppUtils;
-import de.uni_kl.informatik.disco.discowall.utils.gui.AboutDialog;
-import de.uni_kl.informatik.disco.discowall.utils.gui.ErrorDialog;
+import de.uni_kl.informatik.disco.discowall.gui.dialogs.AboutDialog;
+import de.uni_kl.informatik.disco.discowall.gui.dialogs.ErrorDialog;
 import de.uni_kl.informatik.disco.discowall.utils.ressources.DiscoWallSettings;
 import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecuteExceptions;
 
 
 public class MainActivity extends ActionBarActivity {
     private static final String LOG_TAG = MainActivity.class.getSimpleName();
-    private final GuiHandlers guiHandlers = new GuiHandlers(this);
-    private final DiscoWallSettings discowallSettings = DiscoWallSettings.getInstance();
+    private final GuiHandlers guiHandlers = new GuiHandlers(this, this);
+    public final DiscoWallSettings discowallSettings = DiscoWallSettings.getInstance();
 
-    private FirewallService firewallService;
-    private Firewall firewall;
+    public FirewallService firewallService;
+    public Firewall firewall;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -98,13 +97,8 @@ public class MainActivity extends ActionBarActivity {
             }
             case R.id.action_main_menu_exit:
             {
-                try {
-                    if (firewall.isFirewallRunning())
-                        Toast.makeText(this, "Firewall runs in background...", Toast.LENGTH_SHORT).show();
-                } catch (ShellExecuteExceptions.ShellExecuteException e) {
-                    ErrorDialog.showError(this, "Firewall State", "Error fetching firewall state: " + e.getMessage());
-                    e.printStackTrace();
-                }
+                if (firewall.isFirewallRunning())
+                    Toast.makeText(this, "Firewall runs in background...", Toast.LENGTH_SHORT).show();
 
                 finish();
                 return true;
@@ -114,8 +108,8 @@ public class MainActivity extends ActionBarActivity {
                 String content = "";
 
                 try {
-                    content = firewall.getIptablesContent();
-                } catch (ShellExecuteExceptions.ShellExecuteException e) {
+                    content = firewall.getIptableRules();
+                } catch (FirewallExceptions.FirewallException e) {
                     content = e.getMessage(); // showing error directly in text-view.
                     e.printStackTrace();
                 }
@@ -128,31 +122,12 @@ public class MainActivity extends ActionBarActivity {
         return super.onOptionsItemSelected(item);
     }
 
-//    public void sendButtonClicked(View sendButtonView) {
-//        Button sendButton = (Button)sendButtonView;
-//        Log.v("Main", "button clicked");
+//    @Override
+//    protected void onResume() {
+//        super.onResume();
 //
-//        EditText editText = (EditText) findViewById(R.id.editText);
-//        Log.v("Main", "edit text: " + editText.getText());
-//
-//        try {
-//            Firewall firewall = firewallService.getFirewall();
-//            firewall.DEBUG_TEST();
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
+//        Log.i("TEST", "RESUMED!");
 //    }
-
-    private void test() {
-        try {
-//            firewallService.stopFirewallService();
-//            firewallService.getFirewall().enableFirewall(1337);
-
-            firewallService.getFirewall().DEBUG_TEST();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
 
     @Override
     protected void onStart() {
@@ -177,6 +152,8 @@ public class MainActivity extends ActionBarActivity {
     }
 
     private void onFirewallServiceBound() {
+        Log.d(LOG_TAG, "FirewallService bound");
+
         if (discowallSettings.isFirewallEnabled(this))
             guiHandlers.actionSetFirewallEnabled(true, false);
 
@@ -189,6 +166,11 @@ public class MainActivity extends ActionBarActivity {
                 guiHandlers.onFirewallSwitchCheckedChanged(buttonView, isChecked);
             }
         });
+
+        guiHandlers.setupFirewallPolicyRadioButtons();
+
+        // enable/disable buttons and select according to current policy
+        guiHandlers.updateFirewallPolicyRadioButtonsWithCurrentPolicy();
     }
 
     /** Defines callbacks for service binding, passed to bindService() */
@@ -209,125 +191,5 @@ public class MainActivity extends ActionBarActivity {
             firewallService = null;
         }
     };
-
-    private class GuiHandlers {
-        private final Context context;
-
-        public GuiHandlers(Context context) {
-            this.context = context;
-        }
-
-        public void onFirewallSwitchCheckedChanged(CompoundButton buttonView, final boolean isChecked) {
-            actionSetFirewallEnabled(isChecked, true);
-        }
-
-        public void actionSetFirewallEnabled(final boolean enabled, boolean showToastIfAlreadyEnabled) {
-            try {
-                if (enabled && firewall.isFirewallRunning()) {
-                    if (showToastIfAlreadyEnabled)
-                        Toast.makeText(MainActivity.this, "Firewall already enabled.", Toast.LENGTH_SHORT).show();
-
-                    return;
-                } else if (!enabled && !firewall.isFirewallRunning()) {
-                    if (showToastIfAlreadyEnabled)
-                        Toast.makeText(MainActivity.this, "Firewall already disabled.", Toast.LENGTH_SHORT).show();
-
-                    return;
-                }
-            } catch(Exception e) {
-                new AlertDialog.Builder(MainActivity.this)
-                        .setTitle("Firewall ERROR")
-                        .setMessage("Firewall could not fetch state due to error: " + e.getMessage())
-                        .setIcon(android.R.drawable.ic_dialog_alert)
-                        .show();
-                e.printStackTrace();
-
-                return;
-            }
-
-            String actionName, message;
-            if (enabled) {
-                actionName = "Enabling Firewall";
-                message = "adding iptable rules...";
-            } else {
-                actionName = "Disabling Firewall";
-                message = "removing iptable rules...";
-            }
-
-            // Creating "busy dialog" (will be shown before async-task is being started)
-            final ProgressDialog progressDialog = new ProgressDialog(MainActivity.this);
-            progressDialog.setTitle(actionName);
-            progressDialog.setIcon(R.drawable.firewall_launcher);
-            progressDialog.setMessage(message);
-
-            class FirewallSetupTask extends AsyncTask<Boolean, Boolean, Boolean> {
-                private AlertDialog.Builder errorAlert;
-
-                @Override
-                protected Boolean doInBackground(Boolean... params) {
-                    if (enabled) {
-                        try {
-                            firewall.enableFirewall(discowallSettings.getFirewallPort(MainActivity.this));
-                        } catch (Exception e) {
-                            errorAlert = new AlertDialog.Builder(MainActivity.this)
-                                    .setTitle("Firewall ERROR")
-                                    .setMessage("Firewall could not start due to error: " + e.getMessage())
-                                    .setIcon(android.R.drawable.ic_dialog_alert);
-                            e.printStackTrace();
-                        }
-                    } else {
-                        try {
-                            firewall.disableFirewall();
-                        } catch (Exception e) {
-                            errorAlert = new AlertDialog.Builder(MainActivity.this)
-                                    .setTitle("Firewall ERROR")
-                                    .setMessage("Firewall could not stop correctly due to error: " + e.getMessage())
-                                    .setIcon(android.R.drawable.ic_dialog_alert);
-                            e.printStackTrace();
-                        }
-                    }
-
-                    return null;
-                }
-
-                protected void onPostExecute(Boolean result) {
-                    if (errorAlert != null) {
-                        errorAlert.show();
-                        return;
-                    }
-
-                    if (enabled)
-                        Toast.makeText(MainActivity.this, "Firewall Enabled.", Toast.LENGTH_LONG).show();
-                    else
-                        Toast.makeText(MainActivity.this, "Firewall Disabled.", Toast.LENGTH_LONG).show();
-
-                    progressDialog.dismiss();
-                }
-            }
-
-            // Store enabled/disabled state in settings, so that it can be restored on app-start
-            discowallSettings.setFirewallEnabled(MainActivity.this, enabled);
-
-            progressDialog.show();
-            new FirewallSetupTask().execute();
-        }
-
-        private void showFirewallEnabledState() {
-            Switch firewallEnabledSwitch = (Switch) findViewById(R.id.switchFirewallEnabled);
-            try {
-                firewallEnabledSwitch.setChecked(firewall.isFirewallRunning());
-            } catch (Exception e) {
-                new AlertDialog.Builder(MainActivity.this)
-                        .setTitle("Firewall ERROR")
-                        .setMessage("Firewall determine firewall state: " + e.getMessage())
-                        .setIcon(android.R.drawable.ic_dialog_alert)
-                        .show();
-                e.printStackTrace();
-
-                firewallEnabledSwitch.setChecked(false); // assuming firewall is NOT running
-            }
-        }
-
-    }
 
 }

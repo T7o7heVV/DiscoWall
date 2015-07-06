@@ -18,7 +18,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textAppearance="?android:attr/textAppearanceLarge"
-            android:text="Firewall Enabled"
+            android:text="@string/main_activity_label_firewallEnabled"
             android:id="@+id/textViewFirewallEnabled"
             android:singleLine="true" />
 
@@ -29,11 +29,13 @@
             android:layout_alignParentRight="true"
             android:layout_alignParentEnd="true"
 
-            android:switchMinWidth="100dp"
+            android:switchMinWidth="80dp"
+            android:paddingRight="60dp"
 
             android:textStyle="bold"
             android:layout_weight="0.1"
-            android:checked="false" />
+            android:checked="false"
+            />
     </LinearLayout>
 
     <LinearLayout
@@ -48,7 +50,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textAppearance="?android:attr/textAppearanceLarge"
-            android:text="Mode"
+            android:text="@string/main_activity_label_firewallPolicy"
             android:id="@+id/textViewFirewallMode"
             android:layout_marginRight="10dp"
             android:paddingRight="30dp"

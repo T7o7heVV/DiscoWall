@@ -28,6 +28,9 @@
 
     <!-- GUI texts -->
 
+    <string name="main_activity_label_firewallPolicy">Policy</string>
+    <string name="main_activity_label_firewallEnabled">Firewall Enabled</string>
+
     <string name="firewall_service_notification_title">DiscoWall Service</string>
     <string name="firewall_service_notification_message">firewall service for package filtering</string>
 

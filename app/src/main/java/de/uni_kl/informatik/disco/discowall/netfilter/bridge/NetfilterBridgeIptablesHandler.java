@@ -76,7 +76,7 @@ public class NetfilterBridgeIptablesHandler {
      * @throws ShellExecuteExceptions.NonZeroReturnValueException
      */
     public void rulesEnableAll() throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
-        Log.d(LOG_TAG, "iptable chains BEFORE adding rules:\n" + IptablesControl.getRuleInfoText(true, true));
+        Log.v(LOG_TAG, "iptable chains BEFORE adding rules:\n" + IptablesControl.getRuleInfoText(true, true));
 
         // To make sure the rule-order is correct: Remove all rules first
         Log.i(LOG_TAG, "removing old iptable entries (if any)");
@@ -157,7 +157,7 @@ public class NetfilterBridgeIptablesHandler {
 //        // rule: Mark umts-packages with 3G-mark
 //        IptablesControl.ruleAdd(CHAIN_FIREWALL_INTERFACE_3G, "-j MARK --set-mark " + DiscoWallConstants.Iptables.markPackageInterfaceUmts);
 
-        Log.d(LOG_TAG, "iptable chains AFTER adding rules:\n" + IptablesControl.getRuleInfoText(true, true));
+        Log.v(LOG_TAG, "iptable chains AFTER adding rules:\n" + IptablesControl.getRuleInfoText(true, true));
 
         Log.i(LOG_TAG, "iptable setup completed.");
     }
@@ -166,7 +166,7 @@ public class NetfilterBridgeIptablesHandler {
         // If a iptable-chain does not exist, it implies that no references (i.e. --jump rules) exist either.
 
         if (logChainStatesBeforeAndAfter)
-            Log.d(LOG_TAG, "iptable chains BEFORE removing rules:\n" + IptablesControl.getRuleInfoText(true, true));
+            Log.v(LOG_TAG, "iptable chains BEFORE removing rules:\n" + IptablesControl.getRuleInfoText(true, true));
 
         /*
         *  Note:
@@ -227,7 +227,7 @@ public class NetfilterBridgeIptablesHandler {
 
 
         if (logChainStatesBeforeAndAfter)
-            Log.d(LOG_TAG, "iptable chains AFTER removing rules:\n" + IptablesControl.getRuleInfoText(true, true));
+            Log.v(LOG_TAG, "iptable chains AFTER removing rules:\n" + IptablesControl.getRuleInfoText(true, true));
     }
 
     private void safelyRemoveChain(String chain) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {

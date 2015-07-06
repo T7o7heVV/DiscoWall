@@ -7,6 +7,20 @@ public final class FirewallExceptions {
         public FirewallException(String message) {
             super(message);
         }
+
+        public FirewallException(String message, Exception cause) {
+            super(message, cause);
+        }
+    }
+
+    public static class FirewallRuntimeException extends RuntimeException {
+        public FirewallRuntimeException(String message) {
+            super(message);
+        }
+
+        public FirewallRuntimeException(String message, Exception cause) {
+            super(message, cause);
+        }
     }
 
     /**
@@ -14,7 +28,7 @@ public final class FirewallExceptions {
      * <p>
      * <b>States: </b> RUNNING / PAUSED / STOPPED
      */
-    public static class FirewallInvalidStateException extends Exception {
+    public static class FirewallInvalidStateException extends FirewallRuntimeException {
         private final Firewall.FirewallState state, requiredState;
 
         public Firewall.FirewallState getState() { return state; }

@@ -5,6 +5,7 @@ import android.util.Log;
 import java.util.HashMap;
 import java.util.LinkedList;
 
+import de.uni_kl.informatik.disco.discowall.firewallService.FirewallExceptions;
 import de.uni_kl.informatik.disco.discowall.packages.Connections;
 import de.uni_kl.informatik.disco.discowall.packages.Packages;
 import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecuteExceptions;
@@ -12,15 +13,45 @@ import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecuteExceptions;
 public class FirewallRulesManager {
     private static final String LOG_TAG = FirewallRulesManager.class.getSimpleName();
     public enum FirewallMode { FILTER_TCP, FILTER_UDP, FILTER_ALL, ALLOW_ALL, BLOCK_ALL }
+    public enum FirewallPolicy { ALLOW, BLOCK, INTERACTIVE }
 
-//    private final HashMap<String, Connections.Connection> connectionIdToConnectionMap = new HashMap<>();
+    //    private final HashMap<String, Connections.Connection> connectionIdToConnectionMap = new HashMap<>();
     private final RulesHash rulesHash = new RulesHash();
     private final FirewallIptableRulesHandler iptablesRulesHandler;
     private FirewallMode firewallMode;
+    private FirewallPolicy firewallUnknownConnectionPolicy;
 
     public FirewallRulesManager(FirewallIptableRulesHandler iptablesRulesHandler) {
         this.iptablesRulesHandler = iptablesRulesHandler;
         firewallMode = FirewallMode.FILTER_TCP;
+        firewallUnknownConnectionPolicy = FirewallPolicy.INTERACTIVE;
+    }
+
+    public FirewallPolicy getFirewallPolicy() {
+        return firewallUnknownConnectionPolicy;
+    }
+
+    public void setFirewallPolicy(FirewallPolicy policy) throws FirewallExceptions.FirewallException {
+        Log.i(LOG_TAG, "changing firewall policy: " + firewallUnknownConnectionPolicy + " --> " + policy);
+        // it is allowed to re-apply the same policy, so that it is possible to re-write the iptable rule
+
+        try {
+            switch(policy) {
+                case ALLOW:
+                    iptablesRulesHandler.setDefaultPackageHandlingMode(FirewallIptableRulesHandler.PackageHandlingMode.ACCEPT_PACKAGE);
+                    break;
+                case BLOCK:
+                    iptablesRulesHandler.setDefaultPackageHandlingMode(FirewallIptableRulesHandler.PackageHandlingMode.REJECT_PACKAGE);
+                    break;
+                case INTERACTIVE:
+                    iptablesRulesHandler.setDefaultPackageHandlingMode(FirewallIptableRulesHandler.PackageHandlingMode.INTERACTIVE);
+                    break;
+            }
+        } catch (ShellExecuteExceptions.ShellExecuteException e) {
+            throw new FirewallExceptions.FirewallException("Unable to change firewall policy du to error: " + e.getMessage(), e);
+        }
+
+        firewallUnknownConnectionPolicy = policy;
     }
 
     public FirewallMode getFirewallMode() {

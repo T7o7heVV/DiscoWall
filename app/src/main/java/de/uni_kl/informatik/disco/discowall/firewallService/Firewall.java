@@ -17,6 +17,7 @@ import de.uni_kl.informatik.disco.discowall.packages.Connections;
 import de.uni_kl.informatik.disco.discowall.packages.Packages;
 import de.uni_kl.informatik.disco.discowall.utils.NetworkInterfaceHelper;
 import de.uni_kl.informatik.disco.discowall.utils.shell.RootShellExecute;
+import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecute;
 import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecuteExceptions;
 
 public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
@@ -40,14 +41,14 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
         Log.i(LOG_TAG, "firewall service running.");
     }
 
-    public boolean isFirewallRunning() throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.NonZeroReturnValueException {
+    public boolean isFirewallRunning() {
         if (control == null)
             return false;
         else
             return control.isBridgeConnected();
     }
 
-    public void enableFirewall(int port) throws ShellExecuteExceptions.CallException, NetfilterExceptions.NetfilterBridgeDeploymentException, ShellExecuteExceptions.ReturnValueException, IOException {
+    public void enableFirewall(int port) throws FirewallExceptions.FirewallException {
         Log.i(LOG_TAG, "starting firewall...");
 
         boolean alreadyRunnig = isFirewallRunning();
@@ -59,7 +60,11 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
         } else {
 
             // starting netfilter bridge - i.e. the "firewall core"
-            control = new NetfilterBridgeControl(this, firewallServiceContext, port);
+            try {
+                control = new NetfilterBridgeControl(this, firewallServiceContext, port);
+            } catch(Exception e) {
+                throw new FirewallExceptions.FirewallException("Error initializing firewall: " + e.getMessage(), e);
+            }
             rulesManager = new FirewallRulesManager(control.getFirewallIptableRulesHandler()); // creating rulesManager with IptableRulesHandler from NetfitlerBridge, which requires the bridge-port
 
             // starting the dns cache for sniffing the dns-resolutions
@@ -69,7 +74,7 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
         }
     }
 
-    public void disableFirewall() throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException, IOException {
+    public void disableFirewall() throws FirewallExceptions.FirewallException {
         Log.i(LOG_TAG, "disabling firewall...");
 
         if (control == null) {
@@ -83,23 +88,25 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
         // Disable iptables hooking-rules, so that no package will be sent to netfilter-bridge binary
         Log.v(LOG_TAG, "disconnecting bridge");
 
-        control.disconnectBridge();
+        try {
+            control.disconnectBridge();
+        } catch (Exception e) {
+            throw new FirewallExceptions.FirewallException("Error disconnecting netfilter-bridge: " + e.getMessage(), e);
+        }
         control = null;
 
         Log.i(LOG_TAG, "firewall disabled.");
     }
 
-    public boolean isFirewallPaused() throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException, FirewallExceptions.FirewallInvalidStateException {
-        if (!isFirewallRunning()) {
-            Log.e(LOG_TAG, "Firewall is not enabled - it is neither paused nor unpaused.");
-            throw new FirewallExceptions.FirewallInvalidStateException("Firewall needs to be running in order to pause/unpause it.", FirewallState.STOPPED);
+    public boolean isFirewallPaused() throws FirewallExceptions.FirewallException {
+        if (!isFirewallRunning())
+            return false;
+
+        try {
+            return !control.getFirewallIptableRulesHandler().isMainChainJumpsEnabled(); // the firewall is paused, when the iptable jump-rules to the firewall chain are not set
+        } catch(ShellExecuteExceptions.ShellExecuteException e) {
+            throw new FirewallExceptions.FirewallException("Error fetching firewall state: " + e.getMessage(), e);
         }
-
-        return isFirewallPausedEx();
-    }
-
-    private boolean isFirewallPausedEx() throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
-        return !control.getFirewallIptableRulesHandler().isMainChainJumpsEnabled(); // the firewall is paused, when the iptable jump-rules to the firewall chain are not set
     }
 
     /**
@@ -126,14 +133,29 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
             Log.d(LOG_TAG, "new firewall state: running");
     }
 
-    public FirewallState getFirewallState() throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
+    public FirewallState getFirewallState() throws FirewallExceptions.FirewallException {
         if (!isFirewallRunning())
             return FirewallState.STOPPED;
 
-        if (isFirewallPausedEx())
+        if (isFirewallPaused())
             return FirewallState.PAUSED;
         else
             return FirewallState.RUNNING;
+    }
+
+    private void assertFirewallRunning() {
+        if (!isFirewallRunning())
+            throw new FirewallExceptions.FirewallInvalidStateException("Firewall needs to be running to perform specified action.", FirewallState.STOPPED);
+    }
+
+    public FirewallRulesManager.FirewallPolicy getFirewallPolicy() {
+        assertFirewallRunning();
+        return rulesManager.getFirewallPolicy();
+    }
+
+    public void setFirewallPolicy(FirewallRulesManager.FirewallPolicy newRulesPolicy) throws FirewallExceptions.FirewallException {
+        assertFirewallRunning();
+        rulesManager.setFirewallPolicy(newRulesPolicy);
     }
 
     @Override
@@ -174,8 +196,12 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
         return accepted;
     }
 
-    public String getIptablesContent() throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.NonZeroReturnValueException {
-        return IptablesControl.getRuleInfoText(true, true);
+    public String getIptableRules() throws FirewallExceptions.FirewallException {
+        try {
+            return IptablesControl.getRuleInfoText(true, true);
+        } catch(ShellExecuteExceptions.ShellExecuteException e) {
+            throw new FirewallExceptions.FirewallException("Error fetching iptable rules: " + e.getMessage(), e);
+        }
     }
 
     @Override
