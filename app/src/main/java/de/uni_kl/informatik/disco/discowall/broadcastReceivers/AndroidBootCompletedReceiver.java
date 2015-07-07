@@ -21,6 +21,7 @@ public class AndroidBootCompletedReceiver extends BroadcastReceiver {
 
         if (!DiscoWallSettings.getInstance().isAutostartFirewallService(context)) {
             Log.i(LOG_TAG, "Discowall Autostart: service autostart disabled, nothing to do.");
+            return;
         }
 
         if (DiscoWallSettings.getInstance().isFirewallEnabled(context)) {

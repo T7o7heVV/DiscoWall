@@ -3,20 +3,25 @@ package de.uni_kl.informatik.disco.discowall.firewallService;
 import android.app.IntentService;
 import android.app.Notification;
 import android.app.PendingIntent;
+import android.content.Context;
 import android.content.Intent;
 import android.os.Binder;
 import android.os.IBinder;
 import android.util.Log;
+import android.widget.Toast;
 
 import de.uni_kl.informatik.disco.discowall.MainActivity;
 import de.uni_kl.informatik.disco.discowall.utils.ressources.DiscoWallConstants;
 import de.uni_kl.informatik.disco.discowall.R;
+import de.uni_kl.informatik.disco.discowall.utils.ressources.DiscoWallSettings;
 
 /**
  * Persistent service hosting the entire DiscoWall firewall functionality.
  */
 public class FirewallService extends IntentService {
     private static final String LOG_TAG = FirewallService.class.getSimpleName();
+
+    private static final String BUNDLE_KEY__AUTOSTART_FIREWALL = "autostart";
 
     /** This variable is currently only used to create log-messages which specify whether the service is already running.
      */
@@ -37,6 +42,13 @@ public class FirewallService extends IntentService {
             return;
 
         firewall = new Firewall(this);
+
+        firewall.setFirewallStateListener(new Firewall.FirewallStateListener() {
+            @Override
+            public void onFirewallStateChanged(Firewall.FirewallState state) {
+                updateServiceNotification();
+            }
+        });
     }
 
     public Firewall getFirewall() {
@@ -73,23 +85,20 @@ public class FirewallService extends IntentService {
         }
 
         serviceRunning = true;
-
-        Intent clickIntent = new Intent(this, MainActivity.class);
-//        clickIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        PendingIntent pendingClickIntent = PendingIntent.getActivity(this, 1, clickIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-//        PendingIntent pendingClickIntent = PendingIntent.getActivity(this, 1, clickIntent, 0);
-
-        // WARNING: Has to be called during the lifetime of this Service. This implies NOT being called from within the constructor.
-        Notification notification = new Notification.Builder(this)
-                .setContentTitle(getString(R.string.firewall_service_notification_title))
-                .setContentText(getString(R.string.firewall_service_notification_message))
-                .setSmallIcon(R.mipmap.firewall_launcher)
-                .setContentIntent(pendingClickIntent)
-                .build();
-
-        startForeground(DiscoWallConstants.NotificationIDs.firewallService, notification);
-
+        updateServiceNotification();
         Log.i(LOG_TAG, "service started.");
+
+
+        // If the firewall should be automatically started:
+        if ((intent != null) && (intent.getExtras() != null) && intent.getExtras().containsKey(BUNDLE_KEY__AUTOSTART_FIREWALL)) { // if autostart-flag is present
+            if (intent.getExtras().getBoolean(BUNDLE_KEY__AUTOSTART_FIREWALL)) { // if flag is set to TRUE
+                try {
+                    firewall.enableFirewall(DiscoWallSettings.getInstance().getFirewallPort(this));
+                } catch (FirewallExceptions.FirewallException e) {
+                    Log.e(LOG_TAG, "ERROR autostarting firewall on service-start: " + e.getMessage(), e);
+                }
+            }
+        }
 
         // I want this service to continue running until it is explicitly stopped using Activity.stopService()
         return START_STICKY;
@@ -141,13 +150,56 @@ public class FirewallService extends IntentService {
 
     @Override
     protected void onHandleIntent(Intent intent) {
-        // all interaction handled synchroneously via Binder interface
+        // all interaction handled synchronously via Binder interface
     }
 
     public class FirewallBinder extends Binder {
         public FirewallService getService() {
             return FirewallService.this;
         }
+    }
+
+    public static void startFirewallService(Context context, boolean enableFirewall) {
+        Intent serviceStartIntent = new Intent(context, FirewallService.class);
+
+        if (enableFirewall)
+            serviceStartIntent.putExtra(BUNDLE_KEY__AUTOSTART_FIREWALL, true);
+
+        context.startService(serviceStartIntent);
+    }
+
+    public void updateServiceNotification() {
+        Intent clickIntent = new Intent(this, MainActivity.class);
+//        clickIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        PendingIntent pendingClickIntent = PendingIntent.getActivity(this, 1, clickIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+//        PendingIntent pendingClickIntent = PendingIntent.getActivity(this, 1, clickIntent, 0);
+
+        String text;
+        Firewall.FirewallState state = firewall.getFirewallState();
+
+        switch (state) {
+            case RUNNING:
+                text = getString(R.string.firewall_service_notification_message__firewall_enabled);
+                break;
+            case STOPPED:
+                text = getString(R.string.firewall_service_notification_message__firewall_disabled);
+                break;
+            case PAUSED:
+                text = getString(R.string.firewall_service_notification_message__firewall_paused);
+                break;
+            default:
+                throw new RuntimeException("Implementation of case for state missing: " + state);
+        }
+
+        Notification notification = new Notification.Builder(this)
+                .setContentTitle(getString(R.string.firewall_service_notification_title))
+                .setContentText(text)
+                .setSmallIcon(R.mipmap.firewall_launcher)
+                .setContentIntent(pendingClickIntent)
+                .build();
+
+        stopForeground(true);
+        startForeground(DiscoWallConstants.NotificationIDs.firewallService, notification);
     }
 
 }

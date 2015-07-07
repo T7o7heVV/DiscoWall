@@ -3,25 +3,25 @@ package de.uni_kl.informatik.disco.discowall.firewallService;
 import android.content.Context;
 import android.util.Log;
 
-import java.io.IOException;
-
 import de.uni_kl.informatik.disco.discowall.firewallService.rules.FirewallRules;
 import de.uni_kl.informatik.disco.discowall.firewallService.rules.FirewallRulesManager;
 import de.uni_kl.informatik.disco.discowall.netfilter.bridge.NetfilterBridgeCommunicator;
 import de.uni_kl.informatik.disco.discowall.netfilter.bridge.NetfilterBridgeControl;
-import de.uni_kl.informatik.disco.discowall.netfilter.NetfilterExceptions;
 import de.uni_kl.informatik.disco.discowall.netfilter.bridge.NetfilterBridgeIptablesHandler;
 import de.uni_kl.informatik.disco.discowall.netfilter.iptables.IptablesControl;
 import de.uni_kl.informatik.disco.discowall.packages.ConnectionManager;
 import de.uni_kl.informatik.disco.discowall.packages.Connections;
 import de.uni_kl.informatik.disco.discowall.packages.Packages;
 import de.uni_kl.informatik.disco.discowall.utils.NetworkInterfaceHelper;
-import de.uni_kl.informatik.disco.discowall.utils.shell.RootShellExecute;
-import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecute;
 import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecuteExceptions;
 
 public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
-    public static enum FirewallState { RUNNING, PAUSED, STOPPED }
+    public static enum FirewallState { RUNNING, PAUSED, STOPPED;}
+    private FirewallState firewallState;
+
+    public static interface FirewallStateListener {
+        void onFirewallStateChanged(FirewallState state);
+    }
 
     private static final String LOG_TAG = Firewall.class.getSimpleName();
 
@@ -29,6 +29,7 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
     private FirewallRulesManager rulesManager;
     private final NetworkInterfaceHelper networkInterfaceHelper = new NetworkInterfaceHelper();
     private final Context firewallServiceContext;
+    private FirewallStateListener firewallStateListener;
 
     private NetfilterBridgeControl control;
 //    private DnsCacheControl dnsCacheControl;
@@ -37,15 +38,29 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
         Log.i(LOG_TAG, "initializing firewall service...");
 
         this.firewallServiceContext = firewallServiceContext;
+        this.firewallState = FirewallState.STOPPED;
 
         Log.i(LOG_TAG, "firewall service running.");
     }
 
-    public boolean isFirewallRunning() {
-        if (control == null)
-            return false;
-        else
-            return control.isBridgeConnected();
+    /**
+     * Used by FirewallService to show state in notification-bar etc.
+     * @param stateListener
+     */
+    void setFirewallStateListener(FirewallStateListener stateListener) {
+        this.firewallStateListener = stateListener;
+    }
+
+    FirewallStateListener getStateListener() {
+        return firewallStateListener;
+    }
+
+    private void onFirewallStateChanged(FirewallState state) {
+        this.firewallState = state;
+        Log.d(LOG_TAG, "Firewall state changed: " + state);
+
+        if (firewallStateListener != null)
+            firewallStateListener.onFirewallStateChanged(state);
     }
 
     public void enableFirewall(int port) throws FirewallExceptions.FirewallException {
@@ -72,6 +87,8 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
 
             Log.i(LOG_TAG, "firewall started.");
         }
+
+        onFirewallStateChanged(FirewallState.RUNNING);
     }
 
     public void disableFirewall() throws FirewallExceptions.FirewallException {
@@ -79,6 +96,7 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
 
         if (control == null) {
             Log.i(LOG_TAG, "firewall already disabled. nothing to do.");
+            onFirewallStateChanged(FirewallState.STOPPED); // state will be broadcasted even if the firewall is already stopped.
             return;
         }
 
@@ -96,17 +114,57 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
         control = null;
 
         Log.i(LOG_TAG, "firewall disabled.");
+        onFirewallStateChanged(FirewallState.STOPPED);
     }
 
-    public boolean isFirewallPaused() throws FirewallExceptions.FirewallException {
-        if (!isFirewallRunning())
-            return false;
+    public FirewallState getFirewallState() {
+        return firewallState;
 
-        try {
-            return !control.getFirewallIptableRulesHandler().isMainChainJumpsEnabled(); // the firewall is paused, when the iptable jump-rules to the firewall chain are not set
-        } catch(ShellExecuteExceptions.ShellExecuteException e) {
-            throw new FirewallExceptions.FirewallException("Error fetching firewall state: " + e.getMessage(), e);
-        }
+        /* It is important to buffer the state in a variable,
+         * because fast state-queries immediately after changing the state (happened when switching from DISABLED to RUNNING)
+         * may return the old state.
+         *
+         * This is due to the time it takes for:
+         *  - iptable-changes to be reflected by iptables
+         *  - ports to connect/disconnect
+         * etc.
+         *
+         * ==> Buffering the state removes the problem and removes the possibility of causing exceptions on query.
+         */
+
+//        if (!isFirewallRunning())
+//            return FirewallState.STOPPED;
+//
+//        if (isFirewallPaused())
+//            return FirewallState.PAUSED;
+//        else
+//            return FirewallState.RUNNING;
+    }
+
+    public boolean isFirewallRunning() {
+        return firewallState == FirewallState.RUNNING;
+
+//        if (control == null)
+//            return false;
+//        else
+//            return control.isBridgeConnected();
+    }
+
+    public boolean isFirewallPaused() {
+        return firewallState == FirewallState.PAUSED;
+
+//        if (!isFirewallRunning())
+//            return false;
+//
+//        try {
+//            return !control.getFirewallIptableRulesHandler().isMainChainJumpsEnabled(); // the firewall is paused, when the iptable jump-rules to the firewall chain are not set
+//        } catch(ShellExecuteExceptions.ShellExecuteException e) {
+//            throw new FirewallExceptions.FirewallException("Error fetching firewall state: " + e.getMessage(), e);
+//        }
+    }
+
+    public boolean isFirewallStopped() {
+        return firewallState == FirewallState.STOPPED;
     }
 
     /**
@@ -127,20 +185,13 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
 
         control.getFirewallIptableRulesHandler().setMainChainJumpsEnabled(!paused);
 
-        if (paused)
+        if (paused) {
             Log.d(LOG_TAG, "new firewall state: paused");
-        else
+            onFirewallStateChanged(FirewallState.PAUSED);
+        } else {
             Log.d(LOG_TAG, "new firewall state: running");
-    }
-
-    public FirewallState getFirewallState() throws FirewallExceptions.FirewallException {
-        if (!isFirewallRunning())
-            return FirewallState.STOPPED;
-
-        if (isFirewallPaused())
-            return FirewallState.PAUSED;
-        else
-            return FirewallState.RUNNING;
+            onFirewallStateChanged(FirewallState.RUNNING);
+        }
     }
 
     private void assertFirewallRunning() {
