@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:orientation="vertical" android:layout_width="match_parent"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
     android:layout_height="match_parent">
 
     <LinearLayout
@@ -40,28 +41,177 @@
 
     </LinearLayout>
 
-    <GridLayout
-        android:layout_width="fill_parent"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="center_horizontal"
-        android:columnCount="2">
+        android:layout_margin="10dp"
+        android:background="#ffffff"
+        android:orientation="vertical"
+        android:paddingLeft="5dp"
+        android:paddingRight="5dp"
+        >
+
+        <!-- ============================================================================== -->
+        <!--    Connection -->
+        <!-- ============================================================================== -->
 
         <TextView
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textAppearance="?android:attr/textAppearanceMedium"
-            android:text="Medium Text"
-            android:id="@+id/textView"
-            android:layout_row="0"
-            android:layout_column="0" />
+            android:text="Connection"
+            android:textAppearance="?android:attr/textAppearanceMedium" />
 
-        <EditText
+        <!--    Client IP & Port -->
+        <LinearLayout
             android:layout_width="fill_parent"
-            android:layout_height="fill_parent"
-            android:id="@+id/editText"
-            android:layout_row="0"
-            android:layout_column="1" />
-    </GridLayout>
+            android:layout_height="wrap_content"
+            android:layout_weight="2"
+            android:orientation="horizontal" >
+
+            <TextView
+                android:id="@+id/dialog_edit_connection_textView_client_ip"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight=".75"
+                android:text="Client" />
+
+            <EditText
+                android:id="@+id/dialog_edit_connection_editText_client_ip"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1.25"
+                android:hint="ip / hostname"
+                android:gravity="right"
+                />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text=":" />
+
+            <EditText
+                android:id="@+id/dialog_edit_connection_editText_client_port"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight=".50"
+                android:inputType="number"
+                android:hint="port"
+                />
+        </LinearLayout>
+
+        <!--    Server IP & Port -->
+        <LinearLayout
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="2"
+            android:orientation="horizontal" >
+
+            <TextView
+                android:id="@+id/dialog_edit_connection_textView_server_ip"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight=".75"
+                android:text="Server"
+                />
+
+            <EditText
+                android:id="@+id/dialog_edit_connection_editText_server_ip"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1.25"
+                android:hint="ip / hostname"
+                android:gravity="right"
+                />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text=":" />
+
+            <EditText
+                android:id="@+id/dialog_edit_connection_editText_server_port"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight=".50"
+                android:inputType="number"
+                android:hint="port"
+                />
+        </LinearLayout>
+
+        <!-- ============================================================================== -->
+        <!--    Seperator -->
+        <!-- ============================================================================== -->
+
+        <!--
+        <LinearLayout
+            android:layout_width="fill_parent"
+            android:layout_height="3dp"
+            android:background="#000000" >
+        </LinearLayout>
+        -->
+
+        <LinearLayout
+            android:layout_width="fill_parent"
+            android:layout_height="15dp">
+        </LinearLayout>
+
+        <!-- ============================================================================== -->
+        <!--    Firewall Rule -->
+        <!-- ============================================================================== -->
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Firewall Rule"
+            android:textAppearance="?android:attr/textAppearanceMedium" />
+
+        <!--    Rule Policy -->
+        <LinearLayout
+            android:layout_width="fill_parent"
+            android:layout_height="45dp"
+            android:layout_weight="2"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            >
+
+            <TextView
+                android:id="@+id/dialog_edit_connection_textView_rule_policy"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight=".75"
+                android:text="Policy"
+                />
+
+            <RadioGroup
+                android:layout_width="0dp"
+                android:layout_weight="1.75"
+                android:layout_height="fill_parent"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                >
+
+                <RadioButton
+                    android:layout_width="fill_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Accept"
+                    android:id="@+id/dialog_edit_connection_radio_button_rule_policy_accept"
+                    android:layout_weight="1"
+                    />
+
+                <RadioButton
+                    android:layout_width="fill_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Block"
+                    android:id="@+id/dialog_edit_connection_radio_button_rule_policy_block"
+                    android:layout_weight="1"
+                    />
+
+            </RadioGroup>
+
+        </LinearLayout>
+
+    </LinearLayout>
+
 
     <LinearLayout
         android:orientation="horizontal"

@@ -19,11 +19,11 @@ import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecuteExceptions;
 /**
  * Created by tw on 7/6/15.
  */
-public class GuiHandlers {
+public class MainActivityGuiHandlers {
     private MainActivity mainActivity;
     private final Context context;
 
-    public GuiHandlers(MainActivity mainActivity, Context context) {
+    public MainActivityGuiHandlers(MainActivity mainActivity, Context context) {
         this.mainActivity = mainActivity;
         this.context = context;
     }

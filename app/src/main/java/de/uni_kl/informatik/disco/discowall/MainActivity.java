@@ -23,17 +23,19 @@ import java.util.LinkedList;
 import de.uni_kl.informatik.disco.discowall.firewallService.Firewall;
 import de.uni_kl.informatik.disco.discowall.firewallService.FirewallExceptions;
 import de.uni_kl.informatik.disco.discowall.firewallService.FirewallService;
-import de.uni_kl.informatik.disco.discowall.gui.GuiHandlers;
+import de.uni_kl.informatik.disco.discowall.firewallService.rules.FirewallRules;
+import de.uni_kl.informatik.disco.discowall.gui.MainActivityGuiHandlers;
+import de.uni_kl.informatik.disco.discowall.gui.dialogs.EditConnectionRuleDialogActivity;
+import de.uni_kl.informatik.disco.discowall.netfilter.bridge.NetfilterBridgeProtocol;
+import de.uni_kl.informatik.disco.discowall.packages.Packages;
 import de.uni_kl.informatik.disco.discowall.utils.AppUtils;
 import de.uni_kl.informatik.disco.discowall.gui.dialogs.AboutDialog;
-import de.uni_kl.informatik.disco.discowall.gui.dialogs.ErrorDialog;
 import de.uni_kl.informatik.disco.discowall.utils.ressources.DiscoWallSettings;
-import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecuteExceptions;
 
 
 public class MainActivity extends ActionBarActivity {
     private static final String LOG_TAG = MainActivity.class.getSimpleName();
-    private final GuiHandlers guiHandlers = new GuiHandlers(this, this);
+    private final MainActivityGuiHandlers guiHandlers = new MainActivityGuiHandlers(this, this);
     public final DiscoWallSettings discowallSettings = DiscoWallSettings.getInstance();
 
     public FirewallService firewallService;
@@ -63,7 +65,8 @@ public class MainActivity extends ActionBarActivity {
                 new AdapterView.OnItemClickListener() {
                     @Override
                     public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                        Log.i(LOG_TAG, "firewall port: " + discowallSettings.getFirewallPort(MainActivity.this)); // DEBUG!! Testint preferences
+                        Log.i(LOG_TAG, "DEBUG CLICK!"); // DEBUG!!
+                        EditConnectionRuleDialog.show(MainActivity.this, "TCP", new Packages.IpPortPair("client", 1337), new Packages.IpPortPair("server", 42), FirewallRules.RulePolicy.ACCEPT);
                     }
                 }
         );
