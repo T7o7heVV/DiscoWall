@@ -28,6 +28,9 @@
 
     <!-- GUI texts -->
 
+    <string name="generic_button_text_OK">Ok</string>
+    <string name="generic_button_text_Cancel">Cancel</string>
+
     <string name="main_activity_label_firewallPolicy">Policy</string>
     <string name="main_activity_label_firewallEnabled">Firewall Enabled</string>
 

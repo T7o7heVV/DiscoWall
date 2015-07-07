@@ -1,11 +1,19 @@
 package de.uni_kl.informatik.disco.discowall;
 
+import android.app.Activity;
+import android.app.AlertDialog;
+import android.app.Dialog;
+import android.app.DialogFragment;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.TextView;
 
@@ -13,57 +21,82 @@ import de.uni_kl.informatik.disco.discowall.firewallService.rules.FirewallRules;
 import de.uni_kl.informatik.disco.discowall.packages.Packages;
 
 
-public class EditConnectionRuleDialog extends ActionBarActivity {
+public class EditConnectionRuleDialog extends DialogFragment {
+
+//    @Override
+//    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+//        // Inflate the layout to use as dialog or embedded fragment
+//        return inflater.inflate(R.layout.dialog_edit_connection_rule, container, false);
+//    }
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.dialog_edit_connection_rule);
+    public Dialog onCreateDialog(Bundle savedInstanceState) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+        // Get the layout inflater
+        LayoutInflater inflater = getActivity().getLayoutInflater();
 
-        TextView clientLabel = (TextView) findViewById(R.id.dialog_edit_connection_textView_client_ip);
-        EditText clientIpEdit = (EditText) findViewById(R.id.dialog_edit_connection_editText_client_ip);
-        EditText clientPortEdit = (EditText) findViewById(R.id.dialog_edit_connection_editText_client_port);
+        Bundle bundle = savedInstanceState;
+        if (bundle == null)
+            bundle = getArguments();
+
+        // Inflate and set the layout for the dialog
+        // Pass null as the parent view because its going in the dialog layout
+        builder.setView(inflater.inflate(R.layout.dialog_edit_connection_rule, null))
+                .setTitle(bundle.getString("dialog.title"));
+
+//                // Add action buttons
+//                .setPositiveButton(R.string.generic_button_text_OK, new DialogInterface.OnClickListener() {
+//                    @Override
+//                    public void onClick(DialogInterface dialog, int id) {
+//                    }
+//                })
+//                .setNegativeButton(R.string.generic_button_text_Cancel, new DialogInterface.OnClickListener() {
+//                    public void onClick(DialogInterface dialog, int id) {
+//                    }
+//                });
+
+        return builder.create();
     }
 
 //    @Override
-//    public boolean onCreateOptionsMenu(Menu menu) {
-//        // Inflate the menu; this adds items to the action bar if it is present.
-//        getMenuInflater().inflate(R.menu.menu_edit_connection_rule_dialog, menu);
-//        return true;
-//    }
+//    protected void onCreate(Bundle savedInstanceState) {
+//        super.onCreate(savedInstanceState);
+//        setContentView(R.layout.dialog_edit_connection_rule);
 //
-//    @Override
-//    public boolean onOptionsItemSelected(MenuItem item) {
-//        // Handle action bar item clicks here. The action bar will
-//        // automatically handle clicks on the Home/Up button, so long
-//        // as you specify a parent activity in AndroidManifest.xml.
-//        int id = item.getItemId();
-//
-//        //noinspection SimplifiableIfStatement
-//        if (id == R.id.action_main_menu_settings) {
-//            return true;
-//        }
-//
-//        return super.onOptionsItemSelected(item);
+//        TextView clientLabel = (TextView) findViewById(R.id.dialog_edit_connection_textView_client_ip);
+//        EditText clientIpEdit = (EditText) findViewById(R.id.dialog_edit_connection_editText_client_ip);
+//        EditText clientPortEdit = (EditText) findViewById(R.id.dialog_edit_connection_editText_client_port);
 //    }
 
-    public static void show(Context context, String protocol, Packages.IpPortPair client, Packages.IpPortPair server, FirewallRules.RulePolicy policy) {
-        Intent i = new Intent(context, EditConnectionRuleDialog.class);
+    public static EditConnectionRuleDialog show(Activity context, String dialogTag, String protocol, Packages.IpPortPair client, Packages.IpPortPair server, FirewallRules.RulePolicy policy) {
+//        Intent i = new Intent(context, EditConnectionRuleDialog.class);
 
-        i.putExtra("rule.protocol", protocol);
+        Bundle args = new Bundle();
+        args.putString("rule.protocol", protocol);
 
-        i.putExtra("rule.client.ip", client.getIp());
-        i.putExtra("rule.client.port", client.getPort());
+        args.putString("rule.client.ip", client.getIp());
+        args.putInt("rule.client.port", client.getPort());
 
-        i.putExtra("rule.server.ip", server.getIp());
-        i.putExtra("rule.server.port", server.getPort());
+        args.putString("rule.server.ip", server.getIp());
+        args.putInt("rule.server.port", server.getPort());
 
-        i.putExtra("rule.policy", policy);
+        args.putSerializable("rule.policy", policy);
 
-        context.startActivity(i);
-    }
+        // Create Dialog Title:
+        args.putString("dialog.title", "Edit Connection Rule");
+//        String clientStr = "?";
+//        String serverStr = "?";
+//        if (client != null)
+//            clientStr = client.toString();
+//        if (server  != null)
+//            serverStr = server.toString();
+//        args.putString("dialog.title", "Rule: " + clientStr + " -> " + serverStr);
 
-    public static void test() {
+//        context.startActivity(i);
+        EditConnectionRuleDialog dialog = new EditConnectionRuleDialog();
+        dialog.setArguments(args);
+        dialog.show(context.getFragmentManager(), dialogTag);
 
+        return dialog;
     }
 }
