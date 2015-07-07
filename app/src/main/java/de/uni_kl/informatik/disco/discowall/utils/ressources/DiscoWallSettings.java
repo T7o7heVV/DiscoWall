@@ -21,6 +21,10 @@ public class DiscoWallSettings {
         return getSettingIntFromStr(context, R.string.preference_id__nfqueue_bridge_port, DiscoWallConstants.Firewall.defaultPort);
     }
 
+    public boolean isAutostartFirewallService(Context context) {
+        return getSettingBool(context, R.string.preference_id__service_autostart, true);
+    }
+
     public boolean isFirewallEnabled(Context context) {
         return getSettingBool(context, R.string.preference_id__firewall_enabled, false);
     }

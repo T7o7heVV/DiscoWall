@@ -16,7 +16,10 @@
 
     <string name="preference_id__nfqueue_bridge_port">nfqueue bridge port</string>
     <string name="preference_id__firewall_enabled">firewall enabled</string>
+    <string name="preference_id__service_autostart">firewall service autostart</string>
 
+    <string name="preference_summary__nfqueue_bridge_port">Port used by the native binary to communicate with the firewall.</string>
+    <string name="preference_summary__service_autostart">Port used by the native binary to communicate with the firewall.</string>
 
     <!-- Actions -->
 
@@ -35,7 +38,9 @@
     <string name="main_activity_label_firewallEnabled">Firewall Enabled</string>
 
     <string name="firewall_service_notification_title">DiscoWall Service</string>
-    <string name="firewall_service_notification_message">firewall service for package filtering</string>
+    <string name="firewall_service_notification_message__firewall_paused">firewall paused</string>
+    <string name="firewall_service_notification_message__firewall_enabled">firewall enabled, traffic is being filtered</string>
+    <string name="firewall_service_notification_message__firewall_disabled">firewall disabled</string>
 
     <string name="title_activity_text_view">TextViewActivity</string>
     <string name="title_activity_edit_connection_rule_dialog">Edit Connection Rule</string>

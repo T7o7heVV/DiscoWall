@@ -1,9 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
-    <EditTextPreference android:title="NFQUEUE-bridge communication port"
+    <EditTextPreference
+        android:title="NFQUEUE-Bridge Communication Port"
         android:key="@string/preference_id__nfqueue_bridge_port"
-        android:summary="Port used by the native binary to communicate with the firewall."
+        android:summary="@string/preference_summary__nfqueue_bridge_port"
         android:defaultValue="1337"
         android:inputType="number">
     </EditTextPreference>
+    <SwitchPreference
+        android:title="Firewall-Service Autostart"
+        android:key="@string/preference_id__service_autostart"
+        android:summary="@string/preference_summary__service_autostart"
+        android:defaultValue="true">
+    </SwitchPreference>
+
 </PreferenceScreen>
