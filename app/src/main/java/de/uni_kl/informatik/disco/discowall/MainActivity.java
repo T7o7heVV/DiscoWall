@@ -66,7 +66,7 @@ public class MainActivity extends ActionBarActivity {
                         Log.i(LOG_TAG, "DEBUG CLICK!"); // DEBUG!!
 //                        EditConnectionRuleDialog.show(MainActivity.this, "TCP", new Packages.IpPortPair("client", 1337), new Packages.IpPortPair("server", 42), FirewallRules.RulePolicy.ACCEPT);
 //                        new EditConnectionRuleDialog().show(getFragmentManager(), "Some Tag");
-                        EditConnectionRuleDialog.show(MainActivity.this, "example tag", "TCP", new Packages.IpPortPair("192.168.178.100", 1337), new Packages.IpPortPair("192.168.178.200", 4200), FirewallRules.RulePolicy.ACCEPT);
+                        EditConnectionRuleDialog.show(MainActivity.this, "example tag", new Packages.IpPortPair("192.168.178.100", 1337), new Packages.IpPortPair("192.168.178.200", 4200), FirewallRules.RulePolicy.ACCEPT);
                     }
                 }
         );

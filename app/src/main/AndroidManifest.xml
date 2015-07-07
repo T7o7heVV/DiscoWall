@@ -9,6 +9,7 @@
 
     <!-- Permissions: -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <!-- required for listening on tcp port, in order to communicate with netfilter-bridge -->
     <application
@@ -43,10 +44,20 @@
             android:name=".TextViewActivity"
             android:label="@string/title_activity_text_view" >
         </activity>
-        <activity
-            android:name=".EditConnectionRuleDialog"
-            android:label="@string/title_activity_edit_connection_rule_dialog" >
-        </activity>
+
+        <receiver
+            android:name=".broadcastReceivers.AndroidBootCompletedReceiver"
+            android:enabled="true"
+            android:exported="true"
+            android:label="DiscoWallFirewallAutostartAtBootReceiver"
+            >
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.ACTION_EXTERNAL_APPLICATIONS_AVAILABLE" />
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>

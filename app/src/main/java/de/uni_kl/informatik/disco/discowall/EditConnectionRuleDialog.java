@@ -68,11 +68,10 @@ public class EditConnectionRuleDialog extends DialogFragment {
 //        EditText clientPortEdit = (EditText) findViewById(R.id.dialog_edit_connection_editText_client_port);
 //    }
 
-    public static EditConnectionRuleDialog show(Activity context, String dialogTag, String protocol, Packages.IpPortPair client, Packages.IpPortPair server, FirewallRules.RulePolicy policy) {
+    public static EditConnectionRuleDialog show(Activity context, String dialogTag, Packages.IpPortPair client, Packages.IpPortPair server, FirewallRules.RulePolicy policy) {
 //        Intent i = new Intent(context, EditConnectionRuleDialog.class);
 
         Bundle args = new Bundle();
-        args.putString("rule.protocol", protocol);
 
         args.putString("rule.client.ip", client.getIp());
         args.putInt("rule.client.port", client.getPort());
