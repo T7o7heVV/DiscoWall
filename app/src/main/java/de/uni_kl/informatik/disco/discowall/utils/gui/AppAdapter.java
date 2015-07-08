@@ -160,9 +160,9 @@ public class AppAdapter extends ArrayAdapter<ApplicationInfo>{
             return view;
 
         final TextView appNameTextView = (TextView) view.findViewById(app_name_viewID);
-        final TextView appPackageNameTextView = (TextView) view.findViewById(app_package_viewID);
-        final ImageView appIconImageView = (ImageView) view.findViewById(app_icon_viewID);
-        final CheckBox appWatchedCheckBox = (CheckBox) view.findViewById(app_checkbox_viewID);
+        TextView appPackageNameTextView = (TextView) view.findViewById(app_package_viewID);
+        ImageView appIconImageView = (ImageView) view.findViewById(app_icon_viewID);
+        CheckBox appWatchedCheckBox = (CheckBox) view.findViewById(app_checkbox_viewID);
 
         // Write App-Info to gui:
         appNameTextView.setText(applicationInfo.loadLabel(packageManager));
@@ -174,7 +174,7 @@ public class AppAdapter extends ArrayAdapter<ApplicationInfo>{
             public void onClick(View v) {
                 Log.v(LOG_TAG, "app '" + appNameTextView.getText() + "'; appName click");
 
-                onListItemClick(position, view, parent, appNameTextView);
+                onListItemClick(position, view, parent, (TextView) view.findViewById(app_name_viewID));
 
                 if (adapterHandler != null)
                     adapterHandler.onAppNameClicked(AppAdapter.this, applicationInfo, (TextView) view.findViewById(app_name_viewID));
@@ -185,7 +185,7 @@ public class AppAdapter extends ArrayAdapter<ApplicationInfo>{
             public void onClick(View v) {
                 Log.v(LOG_TAG, "app '" + appNameTextView.getText() + "'; packageName click");
 
-                onListItemClick(position, view, parent, appPackageNameTextView);
+                onListItemClick(position, view, parent, (TextView) view.findViewById(app_package_viewID));
 
                 if (adapterHandler != null)
                     adapterHandler.onAppPackageClicked(AppAdapter.this, applicationInfo, (TextView) view.findViewById(app_package_viewID));
@@ -196,7 +196,7 @@ public class AppAdapter extends ArrayAdapter<ApplicationInfo>{
             public void onClick(View v) {
                 Log.v(LOG_TAG, "app '" + appNameTextView.getText() + "'; iconView click");
 
-                onListItemClick(position, view, parent, appIconImageView);
+                onListItemClick(position, view, parent, (ImageView) view.findViewById(app_icon_viewID));
 
                 if (adapterHandler != null)
                     adapterHandler.onAppIconClicked(AppAdapter.this, applicationInfo, (ImageView) view.findViewById(app_icon_viewID));
@@ -207,7 +207,7 @@ public class AppAdapter extends ArrayAdapter<ApplicationInfo>{
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 Log.v(LOG_TAG, "app '" + appNameTextView.getText() + "'; checkboxView check state changed to: " + isChecked);
 
-                onListItemClick(position, view, parent, appWatchedCheckBox);
+                onListItemClick(position, view, parent, buttonView);
 
                 if (adapterHandler != null)
                     adapterHandler.onAppWatchedStateCheckboxCheckedChanged(AppAdapter.this, applicationInfo, (CheckBox) buttonView, isChecked);
