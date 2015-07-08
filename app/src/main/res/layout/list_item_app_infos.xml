@@ -4,6 +4,11 @@
     android:layout_height="wrap_content"
     android:orientation="horizontal" >
 
+    <CheckBox
+        android:layout_width="40dp"
+        android:layout_height="fill_parent"
+        />
+
     <ImageView
         android:id="@+id/list_item_app_infos__app_icon"
         android:layout_width="50dp"

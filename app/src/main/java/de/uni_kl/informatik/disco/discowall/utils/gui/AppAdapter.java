@@ -86,6 +86,10 @@ public class AppAdapter extends ArrayAdapter<ApplicationInfo>{
         return appList;
     }
 
+    public LinkedList<ApplicationInfo> getAppList() {
+        return new LinkedList<>(appList);
+    }
+
     @Override
     public int getCount() {
         return ((null != appList) ? appList.size() : 0);
@@ -117,10 +121,6 @@ public class AppAdapter extends ArrayAdapter<ApplicationInfo>{
             TextView appName = (TextView) view.findViewById(app_name_viewID);
             TextView packageName = (TextView) view.findViewById(app_package_viewID);
             ImageView iconView = (ImageView) view.findViewById(app_icon_viewID);
-
-//            TextView appName = (TextView) view.findViewById(R.id.app_name);
-//            TextView packageName = (TextView) view.findViewById(R.id.app_package);
-//            ImageView iconView = (ImageView) view.findViewById(R.id.app_icon);
 
             appName.setText(data.loadLabel(packageManager));
             packageName.setText(data.packageName);

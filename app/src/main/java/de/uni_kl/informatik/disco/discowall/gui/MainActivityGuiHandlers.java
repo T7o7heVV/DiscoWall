@@ -3,6 +3,7 @@ package de.uni_kl.informatik.disco.discowall.gui;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.Context;
+import android.content.pm.ApplicationInfo;
 import android.os.AsyncTask;
 import android.util.Log;
 import android.view.View;
@@ -35,13 +36,18 @@ public class MainActivityGuiHandlers {
     public void setupFirewallWatchedAppsList() {
         ListView appsList = (ListView) mainActivity.findViewById(R.id.listViewFirewallMonitoredApps);
 
-        appsList.setAdapter(new DiscoWallAppAdapter(mainActivity));
+        final DiscoWallAppAdapter appsAdapter = new DiscoWallAppAdapter(mainActivity);
+        appsList.setAdapter(appsAdapter);
+
+        Log.i("TEST", "setOnItemClickListener");
+
         appsList.setOnItemClickListener(
                 new AdapterView.OnItemClickListener() {
                     @Override
                     public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                        Log.i(LOG_TAG, "DEBUG CLICK!"); // DEBUG!!
-                        EditConnectionRuleDialog.show(mainActivity, "example tag", new Packages.IpPortPair("192.168.178.100", 1337), new Packages.IpPortPair("192.168.178.200", 4200), FirewallRules.RulePolicy.ACCEPT);
+                        ApplicationInfo appInfo = appsAdapter.getItem(position);
+                        Log.i("TEST", "ITEM CLICK!");
+                        EditConnectionRuleDialog.show(mainActivity, "example tag", appInfo, new Packages.IpPortPair("192.168.178.100", 1337), new Packages.IpPortPair("192.168.178.200", 4200), FirewallRules.RulePolicy.ACCEPT);
                     }
                 }
         );

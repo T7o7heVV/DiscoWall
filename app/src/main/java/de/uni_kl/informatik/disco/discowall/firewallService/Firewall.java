@@ -247,9 +247,15 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
         return accepted;
     }
 
-    public String getIptableRules() throws FirewallExceptions.FirewallException {
+    public String getIptableRules(boolean all) throws FirewallExceptions.FirewallException {
         try {
-            return IptablesControl.getRuleInfoText(true, true);
+            if (all) {
+                return IptablesControl.getRuleInfoText(true, true);
+            } else {
+                if (!isFirewallRunning())
+                    return "< firewall has to be enabled in order to retrieve firewall rules >";
+                return control.getFirewallIptableRulesHandler().getFirewallRulesText();
+            }
         } catch(ShellExecuteExceptions.ShellExecuteException e) {
             throw new FirewallExceptions.FirewallException("Error fetching iptable rules: " + e.getMessage(), e);
         }

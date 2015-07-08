@@ -7,6 +7,7 @@ import android.app.DialogFragment;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.ApplicationInfo;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -55,7 +56,10 @@ public class EditConnectionRuleDialog extends DialogFragment {
 //                    }
 //                });
 
-        return builder.create();
+        AlertDialog view = builder.create();
+        ((TextView) view.findViewById(R.id.dialog_edit_connection_app_package)).setText(bundle.getString("app.packageName"));
+
+        return view;
     }
 
 //    @Override
@@ -68,7 +72,7 @@ public class EditConnectionRuleDialog extends DialogFragment {
 //        EditText clientPortEdit = (EditText) findViewById(R.id.dialog_edit_connection_editText_client_port);
 //    }
 
-    public static EditConnectionRuleDialog show(Activity context, String dialogTag, Packages.IpPortPair client, Packages.IpPortPair server, FirewallRules.RulePolicy policy) {
+    public static EditConnectionRuleDialog show(Activity context, String dialogTag, ApplicationInfo appInfo, Packages.IpPortPair client, Packages.IpPortPair server, FirewallRules.RulePolicy policy) {
 //        Intent i = new Intent(context, EditConnectionRuleDialog.class);
 
         Bundle args = new Bundle();
@@ -80,6 +84,7 @@ public class EditConnectionRuleDialog extends DialogFragment {
         args.putInt("rule.server.port", server.getPort());
 
         args.putSerializable("rule.policy", policy);
+        args.putString("app.packageName", appInfo.packageName);
 
         // Create Dialog Title:
         args.putString("dialog.title", "Edit Connection Rule");

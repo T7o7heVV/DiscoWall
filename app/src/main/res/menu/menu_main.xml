@@ -2,8 +2,32 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools" tools:context=".MainActivity">
 
-    <item android:id="@+id/action_iptables_show" android:title="@string/action_main_menu_iptables_show"
-        android:orderInCategory="50" app:showAsAction="never" />
+    <item
+        android:title="Monitored Apps">
+
+        <menu>
+            <item android:id="@+id/action_monitored_apps__monitor_all" android:title="@string/action_main_menu_monitor_all_apps"
+                android:orderInCategory="50" app:showAsAction="never" />
+
+            <item android:id="@+id/action_monitored_apps__monitor_none" android:title="@string/action_main_menu_monitor_no_apps"
+                android:orderInCategory="51" app:showAsAction="never" />
+
+            <item android:id="@+id/action_monitored_apps__invert_selected" android:title="@string/action_main_menu_monitor_invert_monitored"
+                android:orderInCategory="52" app:showAsAction="never" />
+        </menu>
+    </item>
+
+    <item
+        android:title="Tools">
+
+        <menu>
+            <item android:id="@+id/action_iptables_show_all" android:title="@string/action_main_menu_iptables_show_all"
+                android:orderInCategory="80" app:showAsAction="never" />
+
+            <item android:id="@+id/action_iptables_show_discowall_only" android:title="@string/action_main_menu_iptables_show_firewall_rules"
+                android:orderInCategory="81" app:showAsAction="never" />
+        </menu>
+    </item>
 
     <item android:id="@+id/action_main_menu_settings" android:title="@string/action_main_menu_settings"
         android:orderInCategory="90" app:showAsAction="never" />

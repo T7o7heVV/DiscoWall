@@ -4,6 +4,9 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import de.uni_kl.informatik.disco.discowall.R;
 
 public class DiscoWallSettings {
@@ -33,6 +36,9 @@ public class DiscoWallSettings {
         setSettingBool(context, R.string.preference_id__firewall_enabled, enabled);
     }
 
+    public Set<String> getWatchedAppsPackages(Context context) {
+        return getSettingSet(context, R.string.preference_id__watched_apps_packages, new HashSet<String>());
+    }
 
     private String getSetting(Context context, int preferenceKeyStringId, String defaultValue) {
 //        SharedPreferences sharedPref = context.getSharedPreferences(context.getString(R.string.preferences_file_main), Context.MODE_PRIVATE);
@@ -43,6 +49,11 @@ public class DiscoWallSettings {
     /****************************************************************************************************/
     // Methods to return preferences as native types, if they have been created by code using "setBool()" etc.
     /****************************************************************************************************/
+
+    private Set<String> getSettingSet(Context context, int preferenceKeyStringId, Set<String> defaultValue) {
+        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(context);
+        return sharedPref.getStringSet(context.getString(preferenceKeyStringId), defaultValue);
+    }
 
     private int getSettingInt(Context context, int preferenceKeyStringId, int defaultValue) {
         SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(context);

@@ -2,6 +2,8 @@ package de.uni_kl.informatik.disco.discowall.netfilter.bridge;
 
 import android.util.Log;
 
+import java.util.Vector;
+
 import de.uni_kl.informatik.disco.discowall.firewallService.rules.FirewallIptableRulesHandler;
 import de.uni_kl.informatik.disco.discowall.firewallService.rules.FirewallRules;
 import de.uni_kl.informatik.disco.discowall.netfilter.iptables.IptableConstants;
@@ -464,6 +466,20 @@ public class NetfilterBridgeIptablesHandler {
             }
         }
 
+        public String getFirewallRulesText() throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.NonZeroReturnValueException {
+            final String delim = "\n";
+            String text = "";
+
+            text += IptablesControl.getRuleInfoText(CHAIN_FIREWALL_MAIN_PREFILTER, true, true) + delim;
+            text += IptablesControl.getRuleInfoText(CHAIN_FIREWALL_ACTION_INTERACTIVE, true, true) + delim;
+            text += IptablesControl.getRuleInfoText(CHAIN_FIREWALL_ACTION_ACCEPT, true, true) + delim;
+            text += IptablesControl.getRuleInfoText(CHAIN_FIREWALL_ACTION_REJECT, true, true) + delim;
+            text += IptablesControl.getRuleInfoText(CHAIN_FIREWALL_MAIN, true, true) + delim;
+            text += IptablesControl.getRuleInfoText(CHAIN_FIREWALL_INTERFACE_3G, true, true) + delim;
+            text += IptablesControl.getRuleInfoText(CHAIN_FIREWALL_INTERFACE_WIFI, true, true) + delim;
+
+            return text;
+        }
     }
 
 }
