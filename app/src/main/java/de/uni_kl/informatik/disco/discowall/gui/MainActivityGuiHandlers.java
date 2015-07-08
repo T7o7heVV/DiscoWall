@@ -10,9 +10,11 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
+import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.RadioButton;
 import android.widget.Switch;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import java.util.Set;
@@ -53,33 +55,37 @@ public class MainActivityGuiHandlers {
         // Adapter-Handler for manipulating list-view while it is being created etc.
         appsAdapter.setAdapterHandler(new AppAdapter.AdapterHandler() {
             @Override
-            public void onRowCreate(AppAdapter.AppInfoWidgets appInfoWidgets) {
+            public void onRowCreate(AppAdapter adapter, ApplicationInfo appInfo, TextView appNameWidget, TextView appPackageNameWidget, ImageView appIconImageWidget, CheckBox appWatchedCheckboxWidget) {
                 // This method is being called as the individual rows are being written. This usually happens way later, after the AdapterHandler has been initialized.
 
-                boolean appIsWatched = watchedAppsPackages.contains(appInfoWidgets.appInfo.packageName);
-                appInfoWidgets.checkboxWidget.setChecked(appIsWatched);
+                boolean appIsWatched = watchedAppsPackages.contains(appInfo.packageName);
+                appWatchedCheckboxWidget.setChecked(appIsWatched);
+            }
+
+            @Override
+            public void onAppNameClicked(AppAdapter appAdapter, ApplicationInfo appInfo, TextView appNameWidgetview) {
+                actionWatchedAppShowFirewallRules(appInfo);
+            }
+
+            @Override
+            public void onAppPackageClicked(AppAdapter appAdapter, ApplicationInfo appInfo, TextView appPackageNameWidget) {
+                actionWatchedAppShowFirewallRules(appInfo);
+            }
+
+            @Override
+            public void onAppIconClicked(AppAdapter appAdapter, ApplicationInfo appInfo, ImageView appIconImageWidget) {
+                actionWatchedAppShowFirewallRules(appInfo);
+            }
+
+            @Override
+            public void onAppWatchedStateCheckboxCheckedChanged(AppAdapter adapter, ApplicationInfo appInfo, CheckBox appWatchedCheckboxWidget, boolean isChecked) {
+                actionSetAppWatched(appInfo, appWatchedCheckboxWidget.isChecked());
             }
         });
+    }
 
-        appsAdapter.setOnItemClickListener(
-                new AdapterView.OnItemClickListener() {
-                    @Override
-                    public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                        ApplicationInfo appInfo = appsAdapter.getItem(position);
-                        AppAdapter.AppInfoWidgets widgets = appsAdapter.getAppWidgets(appInfo);
-                        String appName = widgets.appNameWidget.getText() + "";
-
-                        // If checkbox has been clicked, enable/disable app-watching for app
-                        if (view.getId() == R.id.list_item_app_infos__app_checkbox) {
-                            CheckBox checkbox = (CheckBox) view;
-                            actionSetAppWatched(appInfo, checkbox.isChecked());
-                        } else {
-                            // If anything but the checkbox has been clicked, show app-rules
-                            EditConnectionRuleDialog.show(mainActivity, "example tag", appInfo, new Packages.IpPortPair("192.168.178.100", 1337), new Packages.IpPortPair("192.168.178.200", 4200), FirewallRules.RulePolicy.ACCEPT);
-                        }
-                    }
-                }
-        );
+    private void actionWatchedAppShowFirewallRules(ApplicationInfo appInfo) {
+        EditConnectionRuleDialog.show(mainActivity, "example tag", appInfo, new Packages.IpPortPair("192.168.178.100", 1337), new Packages.IpPortPair("192.168.178.200", 4200), FirewallRules.RulePolicy.ACCEPT);
     }
 
     private void actionSetAppWatched(ApplicationInfo appInfo, boolean watched) {
