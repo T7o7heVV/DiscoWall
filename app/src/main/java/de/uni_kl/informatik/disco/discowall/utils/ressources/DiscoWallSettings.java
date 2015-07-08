@@ -37,7 +37,11 @@ public class DiscoWallSettings {
     }
 
     public Set<String> getWatchedAppsPackages(Context context) {
-        return getSettingSet(context, R.string.preference_id__watched_apps_packages, new HashSet<String>());
+        return getSettingStringSet(context, R.string.preference_id__watched_apps_packages, new HashSet<String>());
+    }
+
+    public void setWatchedAppsPackages(Context context, Set<String> watchedAppPackages) {
+        setSettingStringSet(context, R.string.preference_id__watched_apps_packages, watchedAppPackages);
     }
 
     private String getSetting(Context context, int preferenceKeyStringId, String defaultValue) {
@@ -50,7 +54,7 @@ public class DiscoWallSettings {
     // Methods to return preferences as native types, if they have been created by code using "setBool()" etc.
     /****************************************************************************************************/
 
-    private Set<String> getSettingSet(Context context, int preferenceKeyStringId, Set<String> defaultValue) {
+    private Set<String> getSettingStringSet(Context context, int preferenceKeyStringId, Set<String> defaultValue) {
         SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(context);
         return sharedPref.getStringSet(context.getString(preferenceKeyStringId), defaultValue);
     }
@@ -104,6 +108,14 @@ public class DiscoWallSettings {
 
         SharedPreferences.Editor editor = sharedPref.edit();
         editor.putInt(context.getString(preferenceKeyStringId), value);
+        editor.commit();
+    }
+
+    private void setSettingStringSet(Context context, int preferenceKeyStringId, Set<String> value) {
+        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(context);
+
+        SharedPreferences.Editor editor = sharedPref.edit();
+        editor.putStringSet(context.getString(preferenceKeyStringId), value);
         editor.commit();
     }
 }

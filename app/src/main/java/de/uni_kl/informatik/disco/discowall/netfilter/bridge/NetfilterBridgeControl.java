@@ -5,7 +5,6 @@ import android.util.Log;
 
 import java.io.IOException;
 
-import de.uni_kl.informatik.disco.discowall.firewallService.rules.FirewallIptableRulesHandler;
 import de.uni_kl.informatik.disco.discowall.netfilter.NetfilterExceptions;
 import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecuteExceptions;
 
@@ -91,10 +90,6 @@ public class NetfilterBridgeControl {
 
         Log.d(LOG_TAG, "killing all possibly running netfilter bridge instances...");
         bridgeBinaryHandler.killAllInstances();
-    }
-
-    public FirewallIptableRulesHandler getFirewallIptableRulesHandler() {
-        return iptablesHandler.getFirewallRulesHandler();
     }
 
 }

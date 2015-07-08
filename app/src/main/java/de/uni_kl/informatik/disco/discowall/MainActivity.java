@@ -10,21 +10,14 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
-import android.widget.AdapterView;
 import android.widget.CompoundButton;
-import android.widget.ListView;
 import android.widget.Switch;
 import android.widget.Toast;
 
 import de.uni_kl.informatik.disco.discowall.firewallService.Firewall;
 import de.uni_kl.informatik.disco.discowall.firewallService.FirewallExceptions;
 import de.uni_kl.informatik.disco.discowall.firewallService.FirewallService;
-import de.uni_kl.informatik.disco.discowall.firewallService.rules.FirewallRules;
-import de.uni_kl.informatik.disco.discowall.gui.DiscoWallAppAdapter;
-import de.uni_kl.informatik.disco.discowall.utils.gui.AppAdapter;
 import de.uni_kl.informatik.disco.discowall.gui.MainActivityGuiHandlers;
-import de.uni_kl.informatik.disco.discowall.packages.Packages;
 import de.uni_kl.informatik.disco.discowall.gui.dialogs.AboutDialog;
 import de.uni_kl.informatik.disco.discowall.utils.ressources.DiscoWallSettings;
 
@@ -41,8 +34,9 @@ public class MainActivity extends ActionBarActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        setTitle(getString(R.string.main_activity_title));
 
-        guiHandlers.setupFirewallWatchedAppsList();
+        guiHandlers.setupWatchedAppsList();
     }
 
     @Override

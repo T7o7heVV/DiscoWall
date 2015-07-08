@@ -1,18 +1,21 @@
 package de.uni_kl.informatik.disco.discowall.gui;
 
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
-import android.content.Context;
 import android.content.pm.ApplicationInfo;
 import android.os.AsyncTask;
 import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
+import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.ListView;
 import android.widget.RadioButton;
 import android.widget.Switch;
 import android.widget.Toast;
+
+import java.util.Set;
 
 import de.uni_kl.informatik.disco.discowall.EditConnectionRuleDialog;
 import de.uni_kl.informatik.disco.discowall.MainActivity;
@@ -22,35 +25,102 @@ import de.uni_kl.informatik.disco.discowall.firewallService.rules.FirewallRules;
 import de.uni_kl.informatik.disco.discowall.firewallService.rules.FirewallRulesManager;
 import de.uni_kl.informatik.disco.discowall.gui.dialogs.ErrorDialog;
 import de.uni_kl.informatik.disco.discowall.packages.Packages;
-import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecuteExceptions;
+import de.uni_kl.informatik.disco.discowall.utils.gui.AppAdapter;
+import de.uni_kl.informatik.disco.discowall.utils.ressources.DiscoWallSettings;
 
 public class MainActivityGuiHandlers {
     private static final String LOG_TAG = MainActivity.class.getSimpleName();
 
-    private MainActivity mainActivity;
+    private final MainActivity mainActivity;
+    private DiscoWallAppAdapter watchedAppsListAdapter;
 
     public MainActivityGuiHandlers(MainActivity mainActivity) {
         this.mainActivity = mainActivity;
     }
 
-    public void setupFirewallWatchedAppsList() {
-        ListView appsList = (ListView) mainActivity.findViewById(R.id.listViewFirewallMonitoredApps);
-
+    public void setupWatchedAppsList() {
+        // Fetch ListView for watchedApps and create adapter
+        ListView appsListView = (ListView) mainActivity.findViewById(R.id.listViewFirewallMonitoredApps);
         final DiscoWallAppAdapter appsAdapter = new DiscoWallAppAdapter(mainActivity);
-        appsList.setAdapter(appsAdapter);
+        appsListView.setAdapter(appsAdapter);
 
-        Log.i("TEST", "setOnItemClickListener");
+        // Storing reference, so that the list can be updated when enabling/disabling the firewall
+        watchedAppsListAdapter = appsAdapter;
 
-        appsList.setOnItemClickListener(
+        // WatchedAppsPackages persistent preference setting
+        final Set<String> watchedAppsPackages = DiscoWallSettings.getInstance().getWatchedAppsPackages(mainActivity);
+
+        // Adapter-Handler for manipulating list-view while it is being created etc.
+        appsAdapter.setAdapterHandler(new AppAdapter.AdapterHandler() {
+            @Override
+            public void onRowCreate(AppAdapter.AppInfoWidgets appInfoWidgets) {
+                // This method is being called as the individual rows are being written. This usually happens way later, after the AdapterHandler has been initialized.
+
+                boolean appIsWatched = watchedAppsPackages.contains(appInfoWidgets.appInfo.packageName);
+                appInfoWidgets.checkboxWidget.setChecked(appIsWatched);
+            }
+        });
+
+        appsAdapter.setOnItemClickListener(
                 new AdapterView.OnItemClickListener() {
                     @Override
                     public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                         ApplicationInfo appInfo = appsAdapter.getItem(position);
-                        Log.i("TEST", "ITEM CLICK!");
-                        EditConnectionRuleDialog.show(mainActivity, "example tag", appInfo, new Packages.IpPortPair("192.168.178.100", 1337), new Packages.IpPortPair("192.168.178.200", 4200), FirewallRules.RulePolicy.ACCEPT);
+                        AppAdapter.AppInfoWidgets widgets = appsAdapter.getAppWidgets(appInfo);
+                        String appName = widgets.appNameWidget.getText() + "";
+
+                        // If checkbox has been clicked, enable/disable app-watching for app
+                        if (view.getId() == R.id.list_item_app_infos__app_checkbox) {
+                            CheckBox checkbox = (CheckBox) view;
+                            actionSetAppWatched(appInfo, checkbox.isChecked());
+                        } else {
+                            // If anything but the checkbox has been clicked, show app-rules
+                            EditConnectionRuleDialog.show(mainActivity, "example tag", appInfo, new Packages.IpPortPair("192.168.178.100", 1337), new Packages.IpPortPair("192.168.178.200", 4200), FirewallRules.RulePolicy.ACCEPT);
+                        }
                     }
                 }
         );
+    }
+
+    private void actionSetAppWatched(ApplicationInfo appInfo, boolean watched) {
+        String appName = appInfo.loadLabel(mainActivity.getPackageManager()) + "";
+        Log.d(LOG_TAG, "Watch app-traffic for app: " + appName + " (uid=" + appInfo.uid + ") --> " + watched);
+
+        // Get Watched-State from discowall settings:
+        Set<String> watchedAppsPackages = DiscoWallSettings.getInstance().getWatchedAppsPackages(mainActivity);
+
+        // Update Watched-State setting
+        if (watched)
+            watchedAppsPackages.add(appInfo.packageName);
+        else
+            watchedAppsPackages.remove(appInfo.packageName);
+
+        // Write-back watched-back setting
+        DiscoWallSettings.getInstance().setWatchedAppsPackages(mainActivity, watchedAppsPackages);
+
+        // Apply watched-state change directly, if firewall is running
+        if (!mainActivity.firewall.isFirewallStopped()) {
+            try {
+                mainActivity.firewall.setAppTrafficWatched(appInfo.uid, watched);
+            } catch (FirewallExceptions.FirewallException e) {
+                ErrorDialog.showError(mainActivity, "App-Watch", "Error changing watched-state for app '" + appName + "': " + e.getMessage());
+            }
+        }
+    }
+
+    private void updateWatchedAppsList() {
+        Log.v(LOG_TAG, "Updating list of watched apps...");
+
+//        // Widgets cannot be clicked if firewall is not running
+//        final boolean widgetsEnabled = mainActivity.firewall != null && !mainActivity.firewall.isFirewallStopped();
+//
+//        // Set enabled-status of all views
+//        for(AppAdapter.AppInfoWidgets appInfoWidgets : watchedAppsListAdapter.getAppWidgets()) {
+//            for(View widgetView : appInfoWidgets.widgetViews) {
+//                Log.i(LOG_TAG, "widget: " + widgetView);
+//                widgetView.setEnabled(widgetsEnabled);
+//            }
+//        }
     }
 
     public void onFirewallSwitchCheckedChanged(CompoundButton buttonView, final boolean isChecked) {
@@ -165,8 +235,11 @@ public class MainActivityGuiHandlers {
      * @param firewallEnabled
      */
     private void onAfterFirewallEnabledStateChanged(boolean firewallEnabled) {
+        Log.v(LOG_TAG, "Firewall enabled-state changed.");
+
         // Select RadioButton matching current Firewall Policy and Enable/Disable RadioButtons
         updateFirewallPolicyRadioButtonsWithCurrentPolicy();
+        updateWatchedAppsList();
     }
 
     public void showFirewallEnabledState() {

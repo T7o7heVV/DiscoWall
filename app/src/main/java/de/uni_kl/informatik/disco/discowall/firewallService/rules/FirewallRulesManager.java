@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 
 import de.uni_kl.informatik.disco.discowall.firewallService.FirewallExceptions;
+import de.uni_kl.informatik.disco.discowall.netfilter.bridge.NetfilterFirewallRulesHandler;
 import de.uni_kl.informatik.disco.discowall.packages.Connections;
 import de.uni_kl.informatik.disco.discowall.packages.Packages;
 import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecuteExceptions;
@@ -17,14 +18,14 @@ public class FirewallRulesManager {
 
     //    private final HashMap<String, Connections.Connection> connectionIdToConnectionMap = new HashMap<>();
     private final RulesHash rulesHash = new RulesHash();
-    private final FirewallIptableRulesHandler iptablesRulesHandler;
+    private final FirewallIptableRulesHandler firewallIptableRulesHandler;
     private FirewallMode firewallMode;
     private FirewallPolicy firewallUnknownConnectionPolicy;
 
-    public FirewallRulesManager(FirewallIptableRulesHandler iptablesRulesHandler) {
-        this.iptablesRulesHandler = iptablesRulesHandler;
-        firewallMode = FirewallMode.FILTER_TCP;
-        firewallUnknownConnectionPolicy = FirewallPolicy.INTERACTIVE;
+    public FirewallRulesManager(FirewallIptableRulesHandler firewallIptableRulesHandler) {
+        this.firewallIptableRulesHandler = NetfilterFirewallRulesHandler.instance;
+        this.firewallMode = FirewallMode.FILTER_TCP;
+        this.firewallUnknownConnectionPolicy = FirewallPolicy.INTERACTIVE;
     }
 
     public FirewallPolicy getFirewallPolicy() {
@@ -38,13 +39,13 @@ public class FirewallRulesManager {
         try {
             switch(policy) {
                 case ALLOW:
-                    iptablesRulesHandler.setDefaultPackageHandlingMode(FirewallIptableRulesHandler.PackageHandlingMode.ACCEPT_PACKAGE);
+                    firewallIptableRulesHandler.setDefaultPackageHandlingMode(FirewallIptableRulesHandler.PackageHandlingMode.ACCEPT_PACKAGE);
                     break;
                 case BLOCK:
-                    iptablesRulesHandler.setDefaultPackageHandlingMode(FirewallIptableRulesHandler.PackageHandlingMode.REJECT_PACKAGE);
+                    firewallIptableRulesHandler.setDefaultPackageHandlingMode(FirewallIptableRulesHandler.PackageHandlingMode.REJECT_PACKAGE);
                     break;
                 case INTERACTIVE:
-                    iptablesRulesHandler.setDefaultPackageHandlingMode(FirewallIptableRulesHandler.PackageHandlingMode.INTERACTIVE);
+                    firewallIptableRulesHandler.setDefaultPackageHandlingMode(FirewallIptableRulesHandler.PackageHandlingMode.INTERACTIVE);
                     break;
             }
         } catch (ShellExecuteExceptions.ShellExecuteException e) {
@@ -110,10 +111,10 @@ public class FirewallRulesManager {
         FirewallRules.FirewallTransportRule rule = new FirewallRules.FirewallTransportRule(userId, sourceFilter, destinationFilter, deviceFilter, rulePolicy);
 
         try {
-            iptablesRulesHandler.addTcpConnectionRule(userId, new Packages.SourceDestinationPair(sourceFilter, destinationFilter), rulePolicy, deviceFilter);
+            firewallIptableRulesHandler.addTcpConnectionRule(userId, new Packages.SourceDestinationPair(sourceFilter, destinationFilter), rulePolicy, deviceFilter);
         } catch (ShellExecuteExceptions.ShellExecuteException e) {
             // Remove created rule (if any), when an exception occurrs:
-            iptablesRulesHandler.deleteTcpConnectionRule(userId, new Packages.SourceDestinationPair(sourceFilter, destinationFilter), rulePolicy, deviceFilter);
+            firewallIptableRulesHandler.deleteTcpConnectionRule(userId, new Packages.SourceDestinationPair(sourceFilter, destinationFilter), rulePolicy, deviceFilter);
             throw e;
         }
 

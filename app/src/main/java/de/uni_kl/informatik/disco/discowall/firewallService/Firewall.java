@@ -3,11 +3,13 @@ package de.uni_kl.informatik.disco.discowall.firewallService;
 import android.content.Context;
 import android.util.Log;
 
+import de.uni_kl.informatik.disco.discowall.firewallService.rules.FirewallIptableRulesHandler;
 import de.uni_kl.informatik.disco.discowall.firewallService.rules.FirewallRules;
 import de.uni_kl.informatik.disco.discowall.firewallService.rules.FirewallRulesManager;
 import de.uni_kl.informatik.disco.discowall.netfilter.bridge.NetfilterBridgeCommunicator;
 import de.uni_kl.informatik.disco.discowall.netfilter.bridge.NetfilterBridgeControl;
 import de.uni_kl.informatik.disco.discowall.netfilter.bridge.NetfilterBridgeIptablesHandler;
+import de.uni_kl.informatik.disco.discowall.netfilter.bridge.NetfilterFirewallRulesHandler;
 import de.uni_kl.informatik.disco.discowall.netfilter.iptables.IptablesControl;
 import de.uni_kl.informatik.disco.discowall.packages.ConnectionManager;
 import de.uni_kl.informatik.disco.discowall.packages.Connections;
@@ -26,8 +28,10 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
     private static final String LOG_TAG = Firewall.class.getSimpleName();
 
     private final ConnectionManager connectionManager = new ConnectionManager();
-    private FirewallRulesManager rulesManager;
     private final NetworkInterfaceHelper networkInterfaceHelper = new NetworkInterfaceHelper();
+    private final FirewallIptableRulesHandler iptableRulesManager = NetfilterFirewallRulesHandler.instance;
+    private final FirewallRulesManager rulesManager = new FirewallRulesManager(NetfilterFirewallRulesHandler.instance);
+
     private final Context firewallServiceContext;
     private FirewallStateListener firewallStateListener;
 
@@ -80,7 +84,6 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
             } catch(Exception e) {
                 throw new FirewallExceptions.FirewallException("Error initializing firewall: " + e.getMessage(), e);
             }
-            rulesManager = new FirewallRulesManager(control.getFirewallIptableRulesHandler()); // creating rulesManager with IptableRulesHandler from NetfitlerBridge, which requires the bridge-port
 
             // starting the dns cache for sniffing the dns-resolutions
 //            dnsCacheControl = new DnsCacheControl(DiscoWallConstants.DnsCache.dnsCachePort);
@@ -157,7 +160,7 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
 //            return false;
 //
 //        try {
-//            return !control.getFirewallIptableRulesHandler().isMainChainJumpsEnabled(); // the firewall is paused, when the iptable jump-rules to the firewall chain are not set
+//            return !iptableRulesManager.isMainChainJumpsEnabled(); // the firewall is paused, when the iptable jump-rules to the firewall chain are not set
 //        } catch(ShellExecuteExceptions.ShellExecuteException e) {
 //            throw new FirewallExceptions.FirewallException("Error fetching firewall state: " + e.getMessage(), e);
 //        }
@@ -183,7 +186,7 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
         else
             Log.v(LOG_TAG, "Changing firewall state to running...");
 
-        control.getFirewallIptableRulesHandler().setMainChainJumpsEnabled(!paused);
+        iptableRulesManager.setMainChainJumpsEnabled(!paused);
 
         if (paused) {
             Log.d(LOG_TAG, "new firewall state: paused");
@@ -254,10 +257,18 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
             } else {
                 if (!isFirewallRunning())
                     return "< firewall has to be enabled in order to retrieve firewall rules >";
-                return control.getFirewallIptableRulesHandler().getFirewallRulesText();
+                return iptableRulesManager.getFirewallRulesText();
             }
         } catch(ShellExecuteExceptions.ShellExecuteException e) {
             throw new FirewallExceptions.FirewallException("Error fetching iptable rules: " + e.getMessage(), e);
+        }
+    }
+
+    public void setAppTrafficWatched(int appUserId, boolean watchTraffic) throws FirewallExceptions.FirewallException {
+        try {
+            iptableRulesManager.setUserPackagesForwardToFirewall(appUserId, watchTraffic);
+        } catch (ShellExecuteExceptions.ShellExecuteException e) {
+            throw new FirewallExceptions.FirewallException("Error changing watched-state for apps by user id " + appUserId + ": " + e.getMessage(), e);
         }
     }
 
@@ -267,7 +278,7 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
 
     public void DEBUG_TEST() {
         try {
-            control.getFirewallIptableRulesHandler().setUserPackagesForwardToFirewall(0, true);
+            iptableRulesManager.setUserPackagesForwardToFirewall(0, true);
             FirewallRules.FirewallTransportRule rule = rulesManager.createTcpRule(0, new Packages.IpPortPair("localhost", 0), new Packages.IpPortPair("chip.de", 80), FirewallRules.DeviceFilter.ANY,  FirewallRules.RulePolicy.ACCEPT);
             Log.i(LOG_TAG, "RULE CREATED: " + rule);
         } catch (Exception e) {

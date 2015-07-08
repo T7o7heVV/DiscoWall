@@ -36,6 +36,7 @@
 
     <!-- GUI texts -->
 
+    <string name="main_activity_title">DiscoWall ─ interactive firewall</string>
     <string name="main_activity_label_firewallPolicy">Policy</string>
     <string name="main_activity_label_firewallEnabled">Firewall</string>
 
