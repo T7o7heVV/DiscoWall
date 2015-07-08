@@ -60,6 +60,8 @@ public class MainActivityGuiHandlers {
 
                 boolean appIsWatched = watchedAppsPackages.contains(appInfo.packageName);
                 appWatchedCheckboxWidget.setChecked(appIsWatched);
+
+                String appName = appInfo.loadLabel(mainActivity.getPackageManager()) + "";
             }
 
             @Override
@@ -90,7 +92,7 @@ public class MainActivityGuiHandlers {
 
     private void actionSetAppWatched(ApplicationInfo appInfo, boolean watched) {
         String appName = appInfo.loadLabel(mainActivity.getPackageManager()) + "";
-        Log.d(LOG_TAG, "Watch app-traffic for app: " + appName + " (uid=" + appInfo.uid + ") --> " + watched);
+        Log.v(LOG_TAG, "Watch app-traffic for app: " + appName + " (uid=" + appInfo.uid + ") --> " + watched);
 
         // Get Watched-State from discowall settings:
         Set<String> watchedAppsPackages = DiscoWallSettings.getInstance().getWatchedAppsPackages(mainActivity);
@@ -104,7 +106,13 @@ public class MainActivityGuiHandlers {
         // Write-back watched-back setting
         DiscoWallSettings.getInstance().setWatchedAppsPackages(mainActivity, watchedAppsPackages);
 
-        // Apply watched-state change directly, if firewall is running
+
+        // ----------------------------------------------------------------------------------------------------------------------------------
+        //  Apply watched-state change directly, if firewall is running
+        // ----------------------------------------------------------------------------------------------------------------------------------
+        if (mainActivity.firewall == null)
+            return;
+
         if (!mainActivity.firewall.isFirewallStopped()) {
             try {
                 mainActivity.firewall.setAppTrafficWatched(appInfo.uid, watched);
@@ -112,21 +120,6 @@ public class MainActivityGuiHandlers {
                 ErrorDialog.showError(mainActivity, "App-Watch", "Error changing watched-state for app '" + appName + "': " + e.getMessage());
             }
         }
-    }
-
-    private void updateWatchedAppsList() {
-        Log.v(LOG_TAG, "Updating list of watched apps...");
-
-//        // Widgets cannot be clicked if firewall is not running
-//        final boolean widgetsEnabled = mainActivity.firewall != null && !mainActivity.firewall.isFirewallStopped();
-//
-//        // Set enabled-status of all views
-//        for(AppAdapter.AppInfoWidgets appInfoWidgets : watchedAppsListAdapter.getAppWidgets()) {
-//            for(View widgetView : appInfoWidgets.widgetViews) {
-//                Log.i(LOG_TAG, "widget: " + widgetView);
-//                widgetView.setEnabled(widgetsEnabled);
-//            }
-//        }
     }
 
     public void onFirewallSwitchCheckedChanged(CompoundButton buttonView, final boolean isChecked) {
@@ -245,7 +238,6 @@ public class MainActivityGuiHandlers {
 
         // Select RadioButton matching current Firewall Policy and Enable/Disable RadioButtons
         updateFirewallPolicyRadioButtonsWithCurrentPolicy();
-        updateWatchedAppsList();
     }
 
     public void showFirewallEnabledState() {

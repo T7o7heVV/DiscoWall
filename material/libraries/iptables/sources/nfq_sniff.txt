@@ -1,0 +1,257 @@
+//================================================================
+// Sample NF_QUEUE packet handler program.  Set up a graceful
+// exit, create the queue and register the callback.  Then just
+// go into the packet loop until a SIGHUP or SIGINT
+//
+// This effectively acts like a packet sniffer with the selection
+// criteria set by iptables.
+//
+// The callback function just prints out the source and destination IPs
+// along with a dump of the packet before returning an ACCEPT verdict
+// to netlink
+//
+// Written by Paul Amaranth  paul@auroragrp.com
+//
+// Distribute freely
+//
+// This software program is distributed with ABSOLUTELY NO WARRANTY
+// WHATSOEVER, INCLUDING, BUT NOT LIMITED TO ANY IMPLIED WARRANTIES OF
+// MERCHANTABILITY OR FITNESS FOR  A PARTICULAR PURPOSE.&nbsp; IN NO EVENT
+// SHALL AURORA GROUP, INC OR ANY OF ITS OFFICERS OR EMPLOYEES BE LIABLE
+// FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
+// BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+// WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+// OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+// ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+//
+//
+// You must have the nfqueue facility turned on in your kernel.  The
+// following kernel options must be set:
+//    CONFIG_NETFILTER_NETLINK=y
+//    CONFIG_NETFILTER_NETLINK_QUEUE=y
+//    CONFIG_NETFILTER_NETLINK_LOG=y
+//    CONFIG_NETFILTER_XT_TARGET_NFQUEUE=y
+// You must also have libnfnetlink and libnetfilter_queue installed
+//                
+// Compile with
+//   gcc -Wall nfq_sniff.c -lnfnetlink  -lnetfilter_queue -o nfq_sniff
+//
+// Hook with iptables:
+//    iptables [put your criteria here] -j QUEUE
+//
+// To test this out:
+//   1)  As root, start this program
+//   2)  Set up a queue for port 80
+//         iptables -t mangle -N PktEcho
+//         iptables -t mangle -A PktEcho -j QUEUE
+//         iptables -t mangle -A PREROUTING -p tcp --dport 80 -j PktEcho
+//       Since this doesn't actually alter the packet, you could put it in
+//       the filter table as well, but there's hardly ever anything in mangle
+//       which makes it easier to get rid of.
+//       Use PREROUTING since the incoming packet will traverse that chain.
+//       although you could also use INPUT.
+//       Bonus: Use different chains and watch the hook value change.
+//   3)  In a different window on the same system, start a listener on 
+//       port 80 on the local system using netcat
+//         nc -l 80
+//   4)  On a remote system, open a tcp connection to the listener
+//         nc ip-of-the-system-with-this-program 80
+//
+//  Everying that is typed on the remote system will show up on the
+//  listener window and will also be echoed in a hex dump in the
+//  window that is running this program.
+//
+//  To shut it down, delete the iptables rule from the PREROUTING chain
+//      iptables -t mangle -D PREROUTING 1
+//  Then kill this program.
+//
+//================================================================
+
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <signal.h>
+
+#ifndef __USE_BSD
+#define __USE_BSD
+#endif
+
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netinet/ip.h>
+#define __FAVOR_BSD
+#include <netinet/tcp.h>
+#include <netinet/udp.h>
+#include <arpa/inet.h>
+
+#include <linux/netfilter_ipv4.h>
+#include <libnetfilter_queue/libnetfilter_queue.h>
+
+void graceful_exit();
+static int nfqueue_cb();
+
+// Global for signal handler
+struct nfq_q_handle *qh;
+static struct nfq_handle *h;
+
+int main () {
+
+    struct nfnl_handle *nh;
+    int ec, fd, rv;
+    char buf[1500];
+    
+// Set up signal handler
+signal (SIGINT,graceful_exit);
+signal (SIGHUP,graceful_exit);
+
+
+//======================================================================
+// 1) Open library handle.  
+//======================================================================
+h = nfq_open();
+if (!h) {
+    fprintf(stderr, "Error during nfq_open()\n");
+    exit(-1);
+    }
+
+//======================================================================
+// 2) Unbind existing nf_queue handler for AF_INET (if any)
+//    Ignore return code for 2.6.23 kernel 
+//    See http://www.spinics.net/lists/netfilter/msg42063.html
+//======================================================================
+ec = nfq_unbind_pf(h, AF_INET);
+//if (ec < 0)  {
+//    printf("Error during nfq_unbind_pf() error: %d\n", ec);
+//    exit(-1);
+//    } 
+
+//======================================================================
+// 3) Bind the given queue connection handle to process packets.
+//======================================================================
+ec =  nfq_bind_pf(h, AF_INET);
+if ( ec < 0) {
+  fprintf(stderr, "Error during nfq_bind_pf(), error: %d\n", ec);
+  exit(-1);
+  }
+
+//======================================================================
+// 4) Create queue, bind to queue 0 since that is what the default
+// QUEUE target in iptables expects, specify callback function
+//======================================================================
+qh = nfq_create_queue(h,  0, &nfqueue_cb, NULL);
+if (!qh) {
+  printf("Error during nfq_create_queue()\n");
+  exit(-1);
+  }
+
+//======================================================================
+// 5) Set the amount of data to be copied to userspace for each packet
+// queued to the given queue.
+//======================================================================
+if (nfq_set_mode(qh, NFQNL_COPY_PACKET, 0xffff) < 0) {
+  printf("Can't set packet_copy mode\n");
+  exit(-1);   
+  }
+
+//======================================================================
+// Get the netlink handle associated with the given queue connection
+// handle.  Possibly useful if you wish to perform other netlink
+// communication directly after opening a queue without opening a
+// new netlink connection to do so.  This is needed for the next step.
+//======================================================================
+nh = nfq_nfnlh(h);
+
+//======================================================================
+// Get a file descriptor for the netlink connection associated with
+// the given queue connection handle.  The file descriptor can then be
+// used for receiving the queued packets for processing.
+//======================================================================
+fd = nfnl_fd(nh);
+
+//======================================================================
+// Packet loop, use nfq function to invoke callback routine
+//======================================================================
+while ((rv = recv(fd, buf, sizeof(buf), 0)) && rv >= 0) {
+  nfq_handle_packet(h, buf, rv);
+  }
+
+// Should never get here
+printf ("Should not be here!\n");
+nfq_destroy_queue(qh);
+nfq_close(h);
+
+return(0);
+}
+  
+void graceful_exit () {
+//======================================================================
+// Called by a SIGHUP or SIGINT, unbind the queue and exit
+//======================================================================
+
+printf ("Signal caught, destroying queue ...");
+nfq_destroy_queue(qh);
+printf ("Closing handle \n");
+nfq_close(h);
+exit(0);
+}
+
+//==========================================================
+// NF_QUEUE callback function.  Print out contents of packet
+//==========================================================
+static int nfqueue_cb(struct nfq_q_handle *qh,
+                      struct nfgenmsg *nfmsg,
+                      struct nfq_data *nfa,
+                      void *data) {
+
+    struct nfqnl_msg_packet_hdr *ph;
+    int id = 0;
+    int size = 0;
+    int i;
+    unsigned char *full_packet;
+    unsigned char * c;
+    struct iphdr *ip;
+    struct in_addr ipa;
+    char src_ip_str[20];
+    char dst_ip_str[20];
+
+ph = nfq_get_msg_packet_hdr(nfa);
+ 
+if (ph) {
+  
+  // Print out metatdata
+  id = ntohl(ph->packet_id);
+  fprintf(stdout, "hw_protocol = 0x%04x hook = %u id = %u\n",
+          ntohs(ph->hw_protocol), ph->hook, id);
+
+  // Retrieve packet payload
+  size = nfq_get_payload(nfa, &full_packet);  
+
+  // Get IP addresses in char form
+  ip = (struct iphdr *) full_packet;
+  ipa.s_addr=ip->saddr;
+  strcpy (src_ip_str, inet_ntoa(ipa));
+  ipa.s_addr=ip->daddr;
+  strcpy (dst_ip_str, inet_ntoa(ipa));
+
+  fprintf(stdout, "Source IP: %s   Destination IP: %s\n", src_ip_str, dst_ip_str);
+
+  // Print out packet in hex
+  c = (unsigned char *)full_packet;
+  for (i=0; i<size; ++i,++c) {
+    fprintf (stdout, "%02x", (unsigned int)*c);
+  }
+  fprintf (stdout, "\n");
+
+  // Done with packet, accept it
+  nfq_set_verdict(qh, id, NF_ACCEPT, 0, NULL);
+  }
+
+return 0;
+}
+
+
+
