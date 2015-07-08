@@ -4,28 +4,47 @@ import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.os.AsyncTask;
+import android.util.Log;
+import android.view.View;
+import android.widget.AdapterView;
 import android.widget.CompoundButton;
+import android.widget.ListView;
 import android.widget.RadioButton;
 import android.widget.Switch;
 import android.widget.Toast;
 
+import de.uni_kl.informatik.disco.discowall.EditConnectionRuleDialog;
 import de.uni_kl.informatik.disco.discowall.MainActivity;
 import de.uni_kl.informatik.disco.discowall.R;
 import de.uni_kl.informatik.disco.discowall.firewallService.FirewallExceptions;
+import de.uni_kl.informatik.disco.discowall.firewallService.rules.FirewallRules;
 import de.uni_kl.informatik.disco.discowall.firewallService.rules.FirewallRulesManager;
 import de.uni_kl.informatik.disco.discowall.gui.dialogs.ErrorDialog;
+import de.uni_kl.informatik.disco.discowall.packages.Packages;
 import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecuteExceptions;
 
-/**
- * Created by tw on 7/6/15.
- */
 public class MainActivityGuiHandlers {
-    private MainActivity mainActivity;
-    private final Context context;
+    private static final String LOG_TAG = MainActivity.class.getSimpleName();
 
-    public MainActivityGuiHandlers(MainActivity mainActivity, Context context) {
+    private MainActivity mainActivity;
+
+    public MainActivityGuiHandlers(MainActivity mainActivity) {
         this.mainActivity = mainActivity;
-        this.context = context;
+    }
+
+    public void setupFirewallWatchedAppsList() {
+        ListView appsList = (ListView) mainActivity.findViewById(R.id.listViewFirewallMonitoredApps);
+
+        appsList.setAdapter(new DiscoWallAppAdapter(mainActivity));
+        appsList.setOnItemClickListener(
+                new AdapterView.OnItemClickListener() {
+                    @Override
+                    public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                        Log.i(LOG_TAG, "DEBUG CLICK!"); // DEBUG!!
+                        EditConnectionRuleDialog.show(mainActivity, "example tag", new Packages.IpPortPair("192.168.178.100", 1337), new Packages.IpPortPair("192.168.178.200", 4200), FirewallRules.RulePolicy.ACCEPT);
+                    }
+                }
+        );
     }
 
     public void onFirewallSwitchCheckedChanged(CompoundButton buttonView, final boolean isChecked) {
@@ -210,4 +229,5 @@ public class MainActivityGuiHandlers {
             }
         });
     }
+
 }

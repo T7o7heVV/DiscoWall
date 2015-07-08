@@ -1,10 +1,13 @@
 package de.uni_kl.informatik.disco.discowall.utils.gui;
 
+import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 import android.content.Context;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -15,26 +18,72 @@ import android.widget.TextView;
 import de.uni_kl.informatik.disco.discowall.R;
 
 public class AppAdapter extends ArrayAdapter<ApplicationInfo>{
-    private final int list_item_layoudID, app_name_viewID, app_package_viewID, app_icon_viewID;
-
+    private static final String LOG_TAG = AppAdapter.class.getSimpleName();
+    private final int listLayoutResourceId, app_name_viewID, app_package_viewID, app_icon_viewID;
 
     private List<ApplicationInfo> appList = null;
     private Context context;
     private PackageManager packageManager;
 
-    public AppAdapter(Context context, int resource, List<ApplicationInfo> objects,
-                      int list_item_layoudID, int app_name_viewID, int app_package_viewID, int app_icon_viewID
-    ) {
-        super(context, resource, objects);
+    public AppAdapter(Context context, int listLayoutResourceId, int app_name_viewID, int app_package_viewID, int app_icon_viewID) {
+        this(context, listLayoutResourceId, fetchAppsByLaunchIntent(context), app_name_viewID, app_package_viewID, app_icon_viewID);
+    }
+
+    public AppAdapter(Context context, int listLayoutResourceId, List<ApplicationInfo> appsToShow, int app_name_viewID, int app_package_viewID, int app_icon_viewID) {
+        super(context, listLayoutResourceId, appsToShow);
 
         this.packageManager = context.getPackageManager();
         this.context = context;
-        this.appList = objects;
+        this.appList = appsToShow;
 
-        this.list_item_layoudID = list_item_layoudID;
+        this.listLayoutResourceId = listLayoutResourceId;
         this.app_name_viewID = app_name_viewID;
         this.app_package_viewID = app_package_viewID;
         this.app_icon_viewID = app_icon_viewID;
+    }
+
+    public static List<ApplicationInfo> fetchAppsByLaunchIntent(Context context, boolean includeAppItself) {
+        if (includeAppItself)
+            return fetchAppsByLaunchIntent(context);
+        else
+            return fetchAppsByLaunchIntentWithoutAppItself(context);
+    }
+
+    private static List<ApplicationInfo> fetchAppsByLaunchIntentWithoutAppItself(Context context) {
+        LinkedList<ApplicationInfo> apps = new LinkedList<>();
+        ApplicationInfo appItself = context.getApplicationInfo();
+
+        for(ApplicationInfo appInfo : fetchAppsByLaunchIntent(context)) {
+            // skip app itself
+            if (appItself.packageName.equals(appInfo.packageName)) {
+                Log.v(LOG_TAG, "Found host-app itself: " + appInfo.packageName + " --> skipping as requested.");
+                continue;
+            }
+
+            apps.add(appInfo);
+        }
+
+        return apps;
+    }
+
+    public static List<ApplicationInfo> fetchAppsByLaunchIntent(Context context) {
+        final PackageManager pm = context.getPackageManager();
+
+        List<ApplicationInfo> infos = pm.getInstalledApplications(PackageManager.GET_META_DATA);
+        ArrayList<ApplicationInfo> appList = new ArrayList<ApplicationInfo>();
+
+        Log.v(LOG_TAG, "Fetching list of installed launchable apps...");
+
+        for(ApplicationInfo info : infos) {
+            try{
+                if(pm.getLaunchIntentForPackage(info.packageName) != null)
+                    appList.add(info);
+            } catch(Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        return appList;
     }
 
     @Override
@@ -59,7 +108,7 @@ public class AppAdapter extends ArrayAdapter<ApplicationInfo>{
         if(null == view) {
             LayoutInflater layoutInflater = (LayoutInflater) context
                     .getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-            view = layoutInflater.inflate(list_item_layoudID, null);
+            view = layoutInflater.inflate(listLayoutResourceId, null);
         }
 
         ApplicationInfo data = appList.get(position);

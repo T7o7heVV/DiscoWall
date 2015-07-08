@@ -12,28 +12,26 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
 import android.widget.CompoundButton;
 import android.widget.ListView;
 import android.widget.Switch;
 import android.widget.Toast;
 
-import java.util.LinkedList;
-
 import de.uni_kl.informatik.disco.discowall.firewallService.Firewall;
 import de.uni_kl.informatik.disco.discowall.firewallService.FirewallExceptions;
 import de.uni_kl.informatik.disco.discowall.firewallService.FirewallService;
 import de.uni_kl.informatik.disco.discowall.firewallService.rules.FirewallRules;
+import de.uni_kl.informatik.disco.discowall.gui.DiscoWallAppAdapter;
+import de.uni_kl.informatik.disco.discowall.utils.gui.AppAdapter;
 import de.uni_kl.informatik.disco.discowall.gui.MainActivityGuiHandlers;
 import de.uni_kl.informatik.disco.discowall.packages.Packages;
-import de.uni_kl.informatik.disco.discowall.utils.AppUtils;
 import de.uni_kl.informatik.disco.discowall.gui.dialogs.AboutDialog;
 import de.uni_kl.informatik.disco.discowall.utils.ressources.DiscoWallSettings;
 
 
 public class MainActivity extends ActionBarActivity {
     private static final String LOG_TAG = MainActivity.class.getSimpleName();
-    private final MainActivityGuiHandlers guiHandlers = new MainActivityGuiHandlers(this, this);
+    private final MainActivityGuiHandlers guiHandlers = new MainActivityGuiHandlers(this);
     public final DiscoWallSettings discowallSettings = DiscoWallSettings.getInstance();
 
     public FirewallService firewallService;
@@ -44,30 +42,7 @@ public class MainActivity extends ActionBarActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // Fill Apps List
-
-        ListView appsList = (ListView)findViewById(R.id.listViewFirewallMonitoredApps);
-
-        LinkedList<String> installedAppNames = new LinkedList<>();
-        for(Intent app : AppUtils.getInstalledAppsLaunchActivities(this))
-            installedAppNames.add(app + "");
-
-        appsList.setAdapter(new ArrayAdapter<String>(
-                this,
-                android.R.layout.simple_list_item_1,
-                //new String[]{ "App One", "App Two", "App Three" }
-                installedAppNames
-        ));
-
-        appsList.setOnItemClickListener(
-                new AdapterView.OnItemClickListener() {
-                    @Override
-                    public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                        Log.i(LOG_TAG, "DEBUG CLICK!"); // DEBUG!!
-                        EditConnectionRuleDialog.show(MainActivity.this, "example tag", new Packages.IpPortPair("192.168.178.100", 1337), new Packages.IpPortPair("192.168.178.200", 4200), FirewallRules.RulePolicy.ACCEPT);
-                    }
-                }
-        );
+        guiHandlers.setupFirewallWatchedAppsList();
     }
 
     @Override

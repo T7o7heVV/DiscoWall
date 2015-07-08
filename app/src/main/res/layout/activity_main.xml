@@ -29,8 +29,7 @@
             android:layout_alignParentRight="true"
             android:layout_alignParentEnd="true"
 
-            android:switchMinWidth="80dp"
-            android:paddingRight="60dp"
+            android:switchMinWidth="100dp"
 
             android:textStyle="bold"
             android:layout_weight="0.1"

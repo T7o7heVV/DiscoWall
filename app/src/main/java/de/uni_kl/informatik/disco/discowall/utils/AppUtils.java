@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
+import android.graphics.drawable.Drawable;
 
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -17,6 +18,23 @@ import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecute;
 import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecuteExceptions;
 
 public class AppUtils {
+    public static class AppInfo {
+        private final ResolveInfo info;
+        private final Context context;
+
+        public AppInfo(ResolveInfo info, Context context) {
+            this.info = info;
+            this.context = context;
+        }
+
+        public String getName() {
+            return info.loadLabel(context.getPackageManager()) + "";
+        }
+
+        public Drawable getIcon() {
+            return info.loadIcon(context.getPackageManager());
+        }
+    }
 
     public static String getRunningAppNameByPID(Context context, int pid) {
         ActivityManager manager = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
@@ -27,6 +45,19 @@ public class AppUtils {
         }
 
         return null;
+    }
+
+    public static List<AppInfo> getInstalledAppInfos(Context context) {
+        final Intent mainIntent = new Intent(Intent.ACTION_MAIN, null);
+        mainIntent.addCategory(Intent.CATEGORY_LAUNCHER);
+
+        List<ResolveInfo> resolveInfos = context.getPackageManager().queryIntentActivities(mainIntent, 0);
+        LinkedList<AppInfo> appInfos = new LinkedList<>();
+
+        for(ResolveInfo info : resolveInfos)
+            appInfos.add(new AppInfo(info, context));
+
+        return appInfos;
     }
 
     public static List<ResolveInfo> getInstalledAppsByActionMainIntent(Context context) {

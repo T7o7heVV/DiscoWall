@@ -31,11 +31,8 @@
 
     <!-- GUI texts -->
 
-    <string name="generic_button_text_OK">Ok</string>
-    <string name="generic_button_text_Cancel">Cancel</string>
-
     <string name="main_activity_label_firewallPolicy">Policy</string>
-    <string name="main_activity_label_firewallEnabled">Firewall Enabled</string>
+    <string name="main_activity_label_firewallEnabled">Firewall</string>
 
     <string name="firewall_service_notification_title">DiscoWall Service</string>
     <string name="firewall_service_notification_message__firewall_paused">firewall paused</string>
