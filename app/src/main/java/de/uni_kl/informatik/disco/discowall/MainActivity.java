@@ -79,18 +79,14 @@ public class MainActivity extends ActionBarActivity {
                 finish();
                 return true;
             }
-            case R.id.action_iptables_show:
+            case R.id.action_iptables_show_all:
             {
-                String content = "";
-
-                try {
-                    content = firewall.getIptableRules();
-                } catch (FirewallExceptions.FirewallException e) {
-                    content = e.getMessage(); // showing error directly in text-view.
-                    e.printStackTrace();
-                }
-
-                TextViewActivity.showText(this, "Iptable Rules", content);
+                actionShowIptableRules(true);
+                return true;
+            }
+            case R.id.action_iptables_show_discowall_only:
+            {
+                actionShowIptableRules(false);
                 return true;
             }
         }
@@ -98,12 +94,18 @@ public class MainActivity extends ActionBarActivity {
         return super.onOptionsItemSelected(item);
     }
 
-//    @Override
-//    protected void onResume() {
-//        super.onResume();
-//
-//        Log.i("TEST", "RESUMED!");
-//    }
+    private void actionShowIptableRules(boolean all) {
+        String content = "";
+
+        try {
+            content = firewall.getIptableRules(all);
+        } catch (FirewallExceptions.FirewallException e) {
+            content = e.getMessage(); // showing error directly in text-view.
+            e.printStackTrace();
+        }
+
+        TextViewActivity.showText(this, "Iptable Rules", content);
+    }
 
     @Override
     protected void onStart() {
