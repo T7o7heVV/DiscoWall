@@ -1,4 +1,4 @@
-package de.uni_kl.informatik.disco.discowall.firewallService;
+package de.uni_kl.informatik.disco.discowall.firewall;
 
 public final class FirewallExceptions {
     private FirewallExceptions() {};

@@ -4,9 +4,8 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.util.Log;
-import android.widget.Toast;
 
-import de.uni_kl.informatik.disco.discowall.firewallService.FirewallService;
+import de.uni_kl.informatik.disco.discowall.firewall.FirewallService;
 import de.uni_kl.informatik.disco.discowall.utils.ressources.DiscoWallSettings;
 
 public class AndroidBootCompletedReceiver extends BroadcastReceiver {

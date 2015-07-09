@@ -1,11 +1,16 @@
-package de.uni_kl.informatik.disco.discowall.firewallService;
+package de.uni_kl.informatik.disco.discowall.firewall;
 
 import android.content.Context;
+import android.content.pm.ApplicationInfo;
 import android.util.Log;
 
-import de.uni_kl.informatik.disco.discowall.firewallService.rules.FirewallIptableRulesHandler;
-import de.uni_kl.informatik.disco.discowall.firewallService.rules.FirewallRules;
-import de.uni_kl.informatik.disco.discowall.firewallService.rules.FirewallRulesManager;
+import java.util.List;
+
+import de.uni_kl.informatik.disco.discowall.firewall.helpers.WatchedAppsPreferencesManager;
+import de.uni_kl.informatik.disco.discowall.firewall.rules.FirewallIptableRulesHandler;
+import de.uni_kl.informatik.disco.discowall.firewall.rules.FirewallRules;
+import de.uni_kl.informatik.disco.discowall.firewall.rules.FirewallRulesManager;
+import de.uni_kl.informatik.disco.discowall.gui.dialogs.ErrorDialog;
 import de.uni_kl.informatik.disco.discowall.netfilter.bridge.NetfilterBridgeCommunicator;
 import de.uni_kl.informatik.disco.discowall.netfilter.bridge.NetfilterBridgeControl;
 import de.uni_kl.informatik.disco.discowall.netfilter.bridge.NetfilterBridgeIptablesHandler;
@@ -15,6 +20,7 @@ import de.uni_kl.informatik.disco.discowall.packages.ConnectionManager;
 import de.uni_kl.informatik.disco.discowall.packages.Connections;
 import de.uni_kl.informatik.disco.discowall.packages.Packages;
 import de.uni_kl.informatik.disco.discowall.utils.NetworkInterfaceHelper;
+import de.uni_kl.informatik.disco.discowall.utils.ressources.DiscoWallSettings;
 import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecuteExceptions;
 
 public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
@@ -31,6 +37,7 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
     private final NetworkInterfaceHelper networkInterfaceHelper = new NetworkInterfaceHelper();
     private final FirewallIptableRulesHandler iptableRulesManager = NetfilterFirewallRulesHandler.instance;
     private final FirewallRulesManager rulesManager = new FirewallRulesManager(NetfilterFirewallRulesHandler.instance);
+    private final WatchedAppsPreferencesManager watchedAppsManager;
 
     private final Context firewallServiceContext;
     private FirewallStateListener firewallStateListener;
@@ -38,11 +45,12 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
     private NetfilterBridgeControl control;
 //    private DnsCacheControl dnsCacheControl;
 
-    public Firewall(Context firewallServiceContext) {
+    public Firewall(FirewallService firewallServiceContext) {
         Log.i(LOG_TAG, "initializing firewall service...");
 
         this.firewallServiceContext = firewallServiceContext;
         this.firewallState = FirewallState.STOPPED;
+        this.watchedAppsManager = new WatchedAppsPreferencesManager(firewallServiceContext);
 
         Log.i(LOG_TAG, "firewall service running.");
     }
@@ -71,7 +79,7 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
         Log.i(LOG_TAG, "starting firewall...");
 
         boolean alreadyRunnig = isFirewallRunning();
-        Log.d(LOG_TAG, "check if firewall already running: " + alreadyRunnig);
+        Log.v(LOG_TAG, "check if firewall already running: " + alreadyRunnig);
 
         if (alreadyRunnig)
         {
@@ -88,10 +96,20 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
             // starting the dns cache for sniffing the dns-resolutions
 //            dnsCacheControl = new DnsCacheControl(DiscoWallConstants.DnsCache.dnsCachePort);
 
+            Log.d(LOG_TAG, "firewall engine running.");
+            onFirewallStateChanged(FirewallState.RUNNING); // has to be called here, so that all following algorithms get the correct firewall-running-state
+
+            // Start watching apps which have been watched before
+            Log.d(LOG_TAG, "restoring forwarding-rules for watched apps...");
+            for(ApplicationInfo watchedApp : watchedAppsManager.getWatchedApps())
+                setAppTrafficWatched(watchedApp, true);
+
+            Log.d(LOG_TAG, "restoring firewall-policy...");
+            FirewallRulesManager.FirewallPolicy policy = DiscoWallSettings.getInstance().getFirewallPolicy(firewallServiceContext);
+            rulesManager.setFirewallPolicy(policy);
+
             Log.i(LOG_TAG, "firewall started.");
         }
-
-        onFirewallStateChanged(FirewallState.RUNNING);
     }
 
     public void disableFirewall() throws FirewallExceptions.FirewallException {
@@ -203,12 +221,10 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
     }
 
     public FirewallRulesManager.FirewallPolicy getFirewallPolicy() {
-        assertFirewallRunning();
         return rulesManager.getFirewallPolicy();
     }
 
     public void setFirewallPolicy(FirewallRulesManager.FirewallPolicy newRulesPolicy) throws FirewallExceptions.FirewallException {
-        assertFirewallRunning();
         rulesManager.setFirewallPolicy(newRulesPolicy);
     }
 
@@ -264,16 +280,50 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
         }
     }
 
-    public void setAppTrafficWatched(int appUserId, boolean watchTraffic) throws FirewallExceptions.FirewallException {
-        try {
-            iptableRulesManager.setUserPackagesForwardToFirewall(appUserId, watchTraffic);
-        } catch (ShellExecuteExceptions.ShellExecuteException e) {
-            throw new FirewallExceptions.FirewallException("Error changing watched-state for apps by user id " + appUserId + ": " + e.getMessage(), e);
+    public void setAppTrafficWatched(List<ApplicationInfo> appInfos, boolean watchTraffic) throws FirewallExceptions.FirewallException {
+        for(ApplicationInfo appInfo : appInfos)
+            setAppTrafficWatched(appInfo, watchTraffic);
+    }
+
+    /**
+     * Makes sure the traffic of a specified application will be monitored by the firewall. The configuration is automatically stored persistently.
+     * <p></p>
+     * <b>Note: </b> If the firewall is not running, this call will have no effect. If the firewall is being started, all watched-states will be restored.
+     * @param appInfo
+     * @param watchTraffic
+     * @throws FirewallExceptions.FirewallException
+     */
+    public void setAppTrafficWatched(ApplicationInfo appInfo, boolean watchTraffic) throws FirewallExceptions.FirewallException {
+        String appName = appInfo.loadLabel(firewallServiceContext.getPackageManager()) + "";
+        Log.d(LOG_TAG, "enabling traffic-monitoring for app " + appName + " with uid " + appInfo.uid + ".");
+
+        if (!isFirewallStopped()) {
+            Log.v(LOG_TAG, "Firewall is running, iptable-rules will be created...");
+
+            try {
+                iptableRulesManager.setUserPackagesForwardToFirewall(appInfo.uid, watchTraffic);
+            } catch (ShellExecuteExceptions.ShellExecuteException e) {
+                throw new FirewallExceptions.FirewallException("Error changing watched-state for app(s) by user id " + appInfo.uid + ": " + e.getMessage(), e);
+            }
+        } else {
+            Log.v(LOG_TAG, "Firewall not running, iptable-rules will be created on next firewall-activation.");
         }
+
+        // updating watched apps persistent preferences
+        watchedAppsManager.setAppWatched(appInfo, watchTraffic);
+    }
+
+    public boolean isAppTrafficWatched(ApplicationInfo appInfo) {
+        return watchedAppsManager.isAppWatched(appInfo);
+    }
+
+    public List<ApplicationInfo> getWatchedApps() {
+        return watchedAppsManager.getWatchedApps();
     }
 
     @Override
     public void onInternalERROR(String message, Exception e) {
+        ErrorDialog.showError(firewallServiceContext, "DiscoWall Internal Error", "Error within package-filtering engine occurred: " + e.getMessage());
     }
 
     public void DEBUG_TEST() {

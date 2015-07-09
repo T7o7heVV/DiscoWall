@@ -2,8 +2,8 @@ package de.uni_kl.informatik.disco.discowall.netfilter.bridge;
 
 import android.util.Log;
 
-import de.uni_kl.informatik.disco.discowall.firewallService.rules.FirewallRules;
-import de.uni_kl.informatik.disco.discowall.firewallService.rules.FirewallIptableRulesHandler;
+import de.uni_kl.informatik.disco.discowall.firewall.rules.FirewallRules;
+import de.uni_kl.informatik.disco.discowall.firewall.rules.FirewallIptableRulesHandler;
 import de.uni_kl.informatik.disco.discowall.netfilter.iptables.IptableConstants;
 import de.uni_kl.informatik.disco.discowall.netfilter.iptables.IptablesControl;
 import de.uni_kl.informatik.disco.discowall.packages.Connections;

@@ -1,11 +1,11 @@
-package de.uni_kl.informatik.disco.discowall.firewallService.rules;
+package de.uni_kl.informatik.disco.discowall.firewall.rules;
 
 import android.util.Log;
 
 import java.util.HashMap;
 import java.util.LinkedList;
 
-import de.uni_kl.informatik.disco.discowall.firewallService.FirewallExceptions;
+import de.uni_kl.informatik.disco.discowall.firewall.FirewallExceptions;
 import de.uni_kl.informatik.disco.discowall.netfilter.bridge.NetfilterFirewallRulesHandler;
 import de.uni_kl.informatik.disco.discowall.packages.Connections;
 import de.uni_kl.informatik.disco.discowall.packages.Packages;
@@ -25,7 +25,7 @@ public class FirewallRulesManager {
     public FirewallRulesManager(FirewallIptableRulesHandler firewallIptableRulesHandler) {
         this.firewallIptableRulesHandler = NetfilterFirewallRulesHandler.instance;
         this.firewallMode = FirewallMode.FILTER_TCP;
-        this.firewallUnknownConnectionPolicy = FirewallPolicy.INTERACTIVE;
+        this.firewallUnknownConnectionPolicy = FirewallPolicy.INTERACTIVE; // Is default-policy as defined by NetfilterBridgeIptablesHandler
     }
 
     public FirewallPolicy getFirewallPolicy() {

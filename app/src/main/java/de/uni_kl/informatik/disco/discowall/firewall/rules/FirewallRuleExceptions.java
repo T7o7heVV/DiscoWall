@@ -1,4 +1,4 @@
-package de.uni_kl.informatik.disco.discowall.firewallService.rules;
+package de.uni_kl.informatik.disco.discowall.firewall.rules;
 
 public class FirewallRuleExceptions {
     public static class RuleException extends Exception {

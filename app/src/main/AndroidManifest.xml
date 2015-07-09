@@ -31,7 +31,7 @@
 
         <!-- important: the android:name of the service is its relative qualified name! -->
         <service
-            android:name=".firewallService.FirewallService"
+            android:name=".firewall.FirewallService"
             android:exported="false"
             android:label="Firewall Service" >
         </service>

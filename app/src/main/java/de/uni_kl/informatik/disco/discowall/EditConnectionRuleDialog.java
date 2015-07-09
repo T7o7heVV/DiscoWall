@@ -14,10 +14,9 @@ import android.widget.ImageView;
 import android.widget.RadioButton;
 import android.widget.TextView;
 
-import de.uni_kl.informatik.disco.discowall.firewallService.rules.FirewallRules;
+import de.uni_kl.informatik.disco.discowall.firewall.rules.FirewallRules;
 import de.uni_kl.informatik.disco.discowall.gui.dialogs.ErrorDialog;
 import de.uni_kl.informatik.disco.discowall.packages.Packages;
-import de.uni_kl.informatik.disco.discowall.utils.gui.AppAdapter;
 
 
 public class EditConnectionRuleDialog extends DialogFragment {

@@ -1,13 +1,10 @@
 package de.uni_kl.informatik.disco.discowall.gui;
 
-import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.pm.ApplicationInfo;
 import android.os.AsyncTask;
 import android.util.Log;
-import android.view.View;
-import android.widget.AdapterView;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.ImageView;
@@ -17,14 +14,17 @@ import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.util.List;
 import java.util.Set;
 
 import de.uni_kl.informatik.disco.discowall.EditConnectionRuleDialog;
 import de.uni_kl.informatik.disco.discowall.MainActivity;
 import de.uni_kl.informatik.disco.discowall.R;
-import de.uni_kl.informatik.disco.discowall.firewallService.FirewallExceptions;
-import de.uni_kl.informatik.disco.discowall.firewallService.rules.FirewallRules;
-import de.uni_kl.informatik.disco.discowall.firewallService.rules.FirewallRulesManager;
+import de.uni_kl.informatik.disco.discowall.firewall.Firewall;
+import de.uni_kl.informatik.disco.discowall.firewall.FirewallExceptions;
+import de.uni_kl.informatik.disco.discowall.firewall.helpers.WatchedAppsPreferencesManager;
+import de.uni_kl.informatik.disco.discowall.firewall.rules.FirewallRules;
+import de.uni_kl.informatik.disco.discowall.firewall.rules.FirewallRulesManager;
 import de.uni_kl.informatik.disco.discowall.gui.dialogs.ErrorDialog;
 import de.uni_kl.informatik.disco.discowall.packages.Packages;
 import de.uni_kl.informatik.disco.discowall.utils.gui.AppAdapter;
@@ -50,7 +50,7 @@ public class MainActivityGuiHandlers {
         watchedAppsListAdapter = appsAdapter;
 
         // WatchedAppsPackages persistent preference setting
-        final Set<String> watchedAppsPackages = DiscoWallSettings.getInstance().getWatchedAppsPackages(mainActivity);
+        final List<ApplicationInfo> watchedApps = mainActivity.firewall.getWatchedApps();
 
         // Adapter-Handler for manipulating list-view while it is being created etc.
         appsAdapter.setAdapterHandler(new AppAdapter.AdapterHandler() {
@@ -58,7 +58,7 @@ public class MainActivityGuiHandlers {
             public void onRowCreate(AppAdapter adapter, ApplicationInfo appInfo, TextView appNameWidget, TextView appPackageNameWidget, ImageView appIconImageWidget, CheckBox appWatchedCheckboxWidget) {
                 // This method is being called as the individual rows are being written. This usually happens way later, after the AdapterHandler has been initialized.
 
-                boolean appIsWatched = watchedAppsPackages.contains(appInfo.packageName);
+                boolean appIsWatched = WatchedAppsPreferencesManager.listContainsApp(watchedApps, appInfo);
                 appWatchedCheckboxWidget.setChecked(appIsWatched);
 
                 String appName = appInfo.loadLabel(mainActivity.getPackageManager()) + "";
@@ -90,36 +90,45 @@ public class MainActivityGuiHandlers {
         EditConnectionRuleDialog.show(mainActivity, "example tag", appInfo, new Packages.IpPortPair("192.168.178.100", 1337), new Packages.IpPortPair("192.168.178.200", 4200), FirewallRules.RulePolicy.ACCEPT);
     }
 
-    private void actionSetAppWatched(ApplicationInfo appInfo, boolean watched) {
-        String appName = appInfo.loadLabel(mainActivity.getPackageManager()) + "";
-        Log.v(LOG_TAG, "Watch app-traffic for app: " + appName + " (uid=" + appInfo.uid + ") --> " + watched);
-
-        // Get Watched-State from discowall settings:
-        Set<String> watchedAppsPackages = DiscoWallSettings.getInstance().getWatchedAppsPackages(mainActivity);
-
-        // Update Watched-State setting
-        if (watched)
-            watchedAppsPackages.add(appInfo.packageName);
-        else
-            watchedAppsPackages.remove(appInfo.packageName);
-
-        // Write-back watched-back setting
-        DiscoWallSettings.getInstance().setWatchedAppsPackages(mainActivity, watchedAppsPackages);
-
-
-        // ----------------------------------------------------------------------------------------------------------------------------------
-        //  Apply watched-state change directly, if firewall is running
-        // ----------------------------------------------------------------------------------------------------------------------------------
+    private void actionSetAppWatched(final ApplicationInfo appInfo, final boolean watched) {
+        // Nothing to do if firewall not yet initialized.
+        // These calls happen while the app is starting. The apps-list is being refreshed multiple times while the first calls (as firewall==null) are redundant and can be ignored.
         if (mainActivity.firewall == null)
             return;
 
-        if (!mainActivity.firewall.isFirewallStopped()) {
-            try {
-                mainActivity.firewall.setAppTrafficWatched(appInfo.uid, watched);
-            } catch (FirewallExceptions.FirewallException e) {
-                ErrorDialog.showError(mainActivity, "App-Watch", "Error changing watched-state for app '" + appName + "': " + e.getMessage());
+        // Nothing to do, if the desired watched-state is already present. This happens when the GUI refreshes (as it does on scrolling).
+        if (watched == mainActivity.firewall.isAppTrafficWatched(appInfo))
+            return;
+
+        // Show toast as this operation takes a few seconds
+        if (watched)
+            Toast.makeText(mainActivity, "monitor app traffic: " + appInfo.loadLabel(mainActivity.getPackageManager()), Toast.LENGTH_SHORT).show();
+        else
+            Toast.makeText(mainActivity, "ignore app traffic: " + appInfo.loadLabel(mainActivity.getPackageManager()), Toast.LENGTH_SHORT).show();
+
+        // Since this operation takes around a second, it is anoying that the GUI freezes for this amount of time ==> parallel task
+        new AsyncTask<Boolean, Boolean, Boolean>() {
+            private String errorMessage;
+
+            @Override
+            protected Boolean doInBackground(Boolean... params) {
+                try {
+                    mainActivity.firewall.setAppTrafficWatched(appInfo, watched);
+                } catch (FirewallExceptions.FirewallException e) {
+                    errorMessage = "Error changing watched-state for app '" + appInfo.packageName + "': " + e.getMessage();
+                }
+
+                return true;
             }
-        }
+
+            @Override
+            protected void onPostExecute(Boolean aBoolean) {
+                super.onPostExecute(aBoolean);
+
+                if (errorMessage != null)
+                    ErrorDialog.showError(mainActivity, "App-Watch", errorMessage);
+            }
+        }.execute();
     }
 
     public void onFirewallSwitchCheckedChanged(CompoundButton buttonView, final boolean isChecked) {
@@ -296,6 +305,12 @@ public class MainActivityGuiHandlers {
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if (!isChecked) // This method is also being called on the "un-check" event
                     return;
+
+                // No policy-update required if the current-policy is the same as the requested one:
+                if (mainActivity.firewall.getFirewallPolicy() == associatedFirewallPolicy)
+                    return;
+
+                Log.v(LOG_TAG, "Change firewall-policy to " + associatedFirewallPolicy);
 
                 try {
                     mainActivity.firewall.setFirewallPolicy(associatedFirewallPolicy);

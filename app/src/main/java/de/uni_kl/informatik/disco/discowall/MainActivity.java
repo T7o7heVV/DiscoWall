@@ -14,9 +14,9 @@ import android.widget.CompoundButton;
 import android.widget.Switch;
 import android.widget.Toast;
 
-import de.uni_kl.informatik.disco.discowall.firewallService.Firewall;
-import de.uni_kl.informatik.disco.discowall.firewallService.FirewallExceptions;
-import de.uni_kl.informatik.disco.discowall.firewallService.FirewallService;
+import de.uni_kl.informatik.disco.discowall.firewall.Firewall;
+import de.uni_kl.informatik.disco.discowall.firewall.FirewallExceptions;
+import de.uni_kl.informatik.disco.discowall.firewall.FirewallService;
 import de.uni_kl.informatik.disco.discowall.gui.MainActivityGuiHandlers;
 import de.uni_kl.informatik.disco.discowall.gui.dialogs.AboutDialog;
 import de.uni_kl.informatik.disco.discowall.utils.ressources.DiscoWallSettings;
@@ -35,8 +35,6 @@ public class MainActivity extends ActionBarActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         setTitle(getString(R.string.main_activity_title));
-
-        guiHandlers.setupWatchedAppsList();
     }
 
     @Override
@@ -144,6 +142,9 @@ public class MainActivity extends ActionBarActivity {
 
         // enable/disable buttons and select according to current policy
         guiHandlers.updateFirewallPolicyRadioButtonsWithCurrentPolicy();
+
+        // show apps and watched-status
+        guiHandlers.setupWatchedAppsList();
     }
 
     /** Defines callbacks for service binding, passed to bindService() */

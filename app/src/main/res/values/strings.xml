@@ -16,6 +16,7 @@
 
     <string name="preference_id__nfqueue_bridge_port">nfqueue bridge port</string>
     <string name="preference_id__firewall_enabled">firewall enabled</string>
+    <string name="preference_id__firewall_policy">firewall policy</string>
     <string name="preference_id__service_autostart">firewall service autostart</string>
     <string name="preference_id__watched_apps_packages">watched app packages</string>
 

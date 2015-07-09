@@ -1,4 +1,4 @@
-package de.uni_kl.informatik.disco.discowall.firewallService;
+package de.uni_kl.informatik.disco.discowall.firewall;
 
 import android.app.IntentService;
 import android.app.Notification;
@@ -8,7 +8,6 @@ import android.content.Intent;
 import android.os.Binder;
 import android.os.IBinder;
 import android.util.Log;
-import android.widget.Toast;
 
 import de.uni_kl.informatik.disco.discowall.MainActivity;
 import de.uni_kl.informatik.disco.discowall.utils.ressources.DiscoWallConstants;
