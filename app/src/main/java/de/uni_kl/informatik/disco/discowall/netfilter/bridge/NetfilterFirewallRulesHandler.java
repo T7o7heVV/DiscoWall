@@ -132,8 +132,8 @@ public class NetfilterFirewallRulesHandler implements FirewallIptableRulesHandle
     }
 
     public boolean isMainChainJumpsEnabled() throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.NonZeroReturnValueException {
-        return IptablesControl.ruleExistsAny(IptableConstants.Chains.INPUT, NetfilterBridgeIptablesHandler.RULE_TCP_JUMP_TO_FIREWALL_PREFILTER_CHAIN)
-                || IptablesControl.ruleExistsAny(IptableConstants.Chains.OUTPUT, NetfilterBridgeIptablesHandler.RULE_TCP_JUMP_TO_FIREWALL_PREFILTER_CHAIN)
+        return IptablesControl.ruleExists(IptableConstants.Chains.INPUT, NetfilterBridgeIptablesHandler.RULE_TCP_JUMP_TO_FIREWALL_PREFILTER_CHAIN)
+                || IptablesControl.ruleExists(IptableConstants.Chains.OUTPUT, NetfilterBridgeIptablesHandler.RULE_TCP_JUMP_TO_FIREWALL_PREFILTER_CHAIN)
                 || IptablesControl.ruleExists(IptableConstants.Chains.INPUT, NetfilterBridgeIptablesHandler.RULE_UDP_JUMP_TO_FIREWALL_PREFILTER_CHAIN)
                 || IptablesControl.ruleExists(IptableConstants.Chains.OUTPUT, NetfilterBridgeIptablesHandler.RULE_UDP_JUMP_TO_FIREWALL_PREFILTER_CHAIN);
     }

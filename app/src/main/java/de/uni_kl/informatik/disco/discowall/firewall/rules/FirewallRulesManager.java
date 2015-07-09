@@ -36,6 +36,17 @@ public class FirewallRulesManager {
         Log.i(LOG_TAG, "changing firewall policy: " + firewallUnknownConnectionPolicy + " --> " + policy);
         // it is allowed to re-apply the same policy, so that it is possible to re-write the iptable rule
 
+        /* IMPORTANT NOTE:
+         * As usually only SYN/RST/FIN packages are of interest to the firewall,
+         * changing the firewall-policy will NOT effect already established  connections.
+         *    [ Theoretically only relevant, when current policy is INTERACTIVE/ALLOW (i.e. when there can be active connections)
+         *      BUT: Connections could have been established even before changing to BLOCK, so also in BLOCK there could be existing connections ]
+         *
+         * ==> When changing to BLOCKED policy,ANY package must be blocked, so that running connections are closed too.
+         *    BUT: If all packages were to be forwarded into the firewall, the interactive-
+         *    ==> Only filter flags within interactive-chain
+         */
+
         try {
             switch(policy) {
                 case ALLOW:

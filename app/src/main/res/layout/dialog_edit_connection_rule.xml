@@ -73,7 +73,7 @@
                 android:id="@+id/dialog_edit_connection_textView_client_ip"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_weight=".75"
+                android:layout_weight=".50"
                 android:text="Client" />
 
             <EditText
@@ -111,7 +111,7 @@
                 android:id="@+id/dialog_edit_connection_textView_server_ip"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_weight=".75"
+                android:layout_weight=".50"
                 android:text="Server"
                 />
 
@@ -179,7 +179,7 @@
                 android:id="@+id/dialog_edit_connection_textView_rule_policy"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_weight=".75"
+                android:layout_weight=".5"
                 android:text="Policy"
                 />
 
@@ -205,6 +205,14 @@
                     android:text="Block"
                     android:id="@+id/dialog_edit_connection_radio_button_rule_policy_block"
                     android:layout_weight="1"
+                    />
+
+                <RadioButton
+                    android:layout_width="fill_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Interactive"
+                    android:id="@+id/dialog_edit_connection_radio_button_rule_policy_interactive"
+                    android:layout_weight=".9"
                     />
 
             </RadioGroup>

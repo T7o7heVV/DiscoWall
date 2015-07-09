@@ -29,12 +29,13 @@ public class NetfilterBridgeIptablesHandler {
     static final String CHAIN_FIREWALL_ACTION_INTERACTIVE = "discowall-interactive";
 
     // rules
-    static final String[] RULE_TCP_JUMP_TO_FIREWALL_PREFILTER_CHAIN = new String[] {
-            // "--tcp-flags Flag1,Flag2,...,FlagN <FlagX_only>" --- "--tcp-flags ALL SYN" will filter all flags and only accept if ONLY SYN is set. ==> Only the connection-esablishment is being filtered.
-//            "-p tcp --tcp-flags SYN,RST SYN -j " + CHAIN_FIREWALL_MAIN_PREFILTER, // within SYN,RST,FIN has only(!) SYN
-            "-p tcp --tcp-flags SYN,RST,FIN SYN -j " + CHAIN_FIREWALL_MAIN_PREFILTER, // within SYN,RST,FIN has only(!) SYN
-            "-p tcp --tcp-flags SYN,RST,FIN,ACK FIN,ACK -j " + CHAIN_FIREWALL_MAIN_PREFILTER  // within SYN,RST,FIN,ACK has only(!) FIN+ACK
-    };
+    static final String RULE_TCP_JUMP_TO_FIREWALL_PREFILTER_CHAIN = "-p tcp -j " + CHAIN_FIREWALL_MAIN_PREFILTER;
+//    static final String[] RULE_TCP_JUMP_TO_FIREWALL_PREFILTER_CHAIN = new String[] {
+//            // "--tcp-flags Flag1,Flag2,...,FlagN <FlagX_only>" --- "--tcp-flags ALL SYN" will filter all flags and only accept if ONLY SYN is set. ==> Only the connection-esablishment is being filtered.
+////            "-p tcp --tcp-flags SYN,RST SYN -j " + CHAIN_FIREWALL_MAIN_PREFILTER, // within SYN,RST,FIN has only(!) SYN
+//            "-p tcp --tcp-flags SYN,RST,FIN SYN -j " + CHAIN_FIREWALL_MAIN_PREFILTER, // within SYN,RST,FIN has only(!) SYN
+//            "-p tcp --tcp-flags SYN,RST,FIN,ACK FIN,ACK -j " + CHAIN_FIREWALL_MAIN_PREFILTER  // within SYN,RST,FIN,ACK has only(!) FIN+ACK
+//    };
     static final String RULE_UDP_JUMP_TO_FIREWALL_PREFILTER_CHAIN = "-p udp -j " + CHAIN_FIREWALL_MAIN_PREFILTER;
     static final String RULE_JUMP_TO_NFQUEUE = "-j NFQUEUE --queue-num 0 --queue-bypass"; // '--queue-bypass' will allow all packages, when no application is bound to the --queue-num 0
     static final String RULE_JUMP_TO_FIREWALL_ACCEPTED = "-j " + CHAIN_FIREWALL_ACTION_ACCEPT;
@@ -144,16 +145,14 @@ public class NetfilterBridgeIptablesHandler {
         IptablesControl.ruleAdd(CHAIN_FIREWALL_ACTION_REJECT, "-j REJECT --reject-with icmp-port-unreachable"); // alternatively: "--reject-with icmp-host-unreachable"
 
         // chain INTERACTIVE:
-        // rule: jump to NFQUEUE and handle package interactively
-        IptablesControl.ruleAdd(CHAIN_FIREWALL_ACTION_INTERACTIVE, RULE_JUMP_TO_NFQUEUE);
+        {
+//            // rule: jump to NFQUEUE and handle package interactively
+//            IptablesControl.ruleAdd(CHAIN_FIREWALL_ACTION_INTERACTIVE, RULE_JUMP_TO_NFQUEUE);
 
-//        // chain Interface-WIFI:
-//        // rule: Mark wifi-packages with wifi-mark
-//        IptablesControl.ruleAdd(CHAIN_FIREWALL_INTERFACE_WIFI, "-j MARK --set-mark " + DiscoWallConstants.Iptables.markPackageInterfaceWifi);
-//
-//        // chain Interface-3G:
-//        // rule: Mark umts-packages with 3G-mark
-//        IptablesControl.ruleAdd(CHAIN_FIREWALL_INTERFACE_3G, "-j MARK --set-mark " + DiscoWallConstants.Iptables.markPackageInterfaceUmts);
+            // rule: only SYN/FIN packages will jump to NFQUEUE and handle package interactively
+            IptablesControl.ruleAdd(CHAIN_FIREWALL_ACTION_INTERACTIVE, "-p tcp --tcp-flags SYN,RST,FIN SYN " + RULE_JUMP_TO_NFQUEUE);
+            IptablesControl.ruleAdd(CHAIN_FIREWALL_ACTION_INTERACTIVE, "-p tcp --tcp-flags SYN,RST,FIN,ACK FIN,ACK " + RULE_JUMP_TO_NFQUEUE);
+        }
 
         Log.v(LOG_TAG, "iptable chains AFTER adding rules:\n" + IptablesControl.getRuleInfoText(true, true));
 
