@@ -3,6 +3,7 @@ package de.uni_kl.informatik.disco.discowall.gui;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
 import android.os.AsyncTask;
 import android.util.Log;
 import android.widget.CheckBox;
@@ -14,13 +15,13 @@ import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
 
 import de.uni_kl.informatik.disco.discowall.EditConnectionRuleDialog;
 import de.uni_kl.informatik.disco.discowall.MainActivity;
 import de.uni_kl.informatik.disco.discowall.R;
-import de.uni_kl.informatik.disco.discowall.firewall.Firewall;
 import de.uni_kl.informatik.disco.discowall.firewall.FirewallExceptions;
 import de.uni_kl.informatik.disco.discowall.firewall.helpers.WatchedAppsPreferencesManager;
 import de.uni_kl.informatik.disco.discowall.firewall.rules.FirewallRules;
@@ -28,7 +29,6 @@ import de.uni_kl.informatik.disco.discowall.firewall.rules.FirewallRulesManager;
 import de.uni_kl.informatik.disco.discowall.gui.dialogs.ErrorDialog;
 import de.uni_kl.informatik.disco.discowall.packages.Packages;
 import de.uni_kl.informatik.disco.discowall.utils.gui.AppAdapter;
-import de.uni_kl.informatik.disco.discowall.utils.ressources.DiscoWallSettings;
 
 public class MainActivityGuiHandlers {
     private static final String LOG_TAG = MainActivity.class.getSimpleName();
@@ -90,14 +90,110 @@ public class MainActivityGuiHandlers {
         EditConnectionRuleDialog.show(mainActivity, "example tag", appInfo, new Packages.IpPortPair("192.168.178.100", 1337), new Packages.IpPortPair("192.168.178.200", 4200), FirewallRules.RulePolicy.ACCEPT);
     }
 
+    public void actionSetAllAppsWatched(boolean watched) {
+        Log.i(LOG_TAG, "set " +(watched ? "all":"no") + " apps to be watched by firewall...");
+
+        HashMap<ApplicationInfo, Boolean> appsToWatchedStateMap = new HashMap<>();
+
+        for(ApplicationInfo appInfo : mainActivity.firewall.getWatchableApps())
+            appsToWatchedStateMap.put(appInfo, watched);
+
+        setAppsWatched(appsToWatchedStateMap);
+    }
+
+    public void actionInvertAllAppsWatched() {
+        Log.i(LOG_TAG, "invert apps to be watched by firewall...");
+
+        List<ApplicationInfo> watchedApps = mainActivity.firewall.getWatchedApps();
+
+        // TODO
+
+        HashMap<ApplicationInfo, Boolean> appsToWatchedStateMap = new HashMap<>();
+
+        for(ApplicationInfo appInfo : mainActivity.firewall.getWatchableApps()) {
+        }
+
+        setAppsWatched(appsToWatchedStateMap);
+    }
+
+    private void setAppsWatched(final HashMap<ApplicationInfo, Boolean> appsToWatchedStateMap) {
+        // Since this operation might take up to a minute on slow devides ==> run with progress-bar etc..
+        new AsyncTask<List<ApplicationInfo>, Integer, Boolean>() {
+            private String errorMessage;
+            private ProgressDialog progressDialog;
+            private LinkedList<ApplicationInfo> apps = new LinkedList<ApplicationInfo>(appsToWatchedStateMap.keySet()); // a list, so that I can iterate over it and use integers to show progress
+
+            @Override
+            protected Boolean doInBackground(List<ApplicationInfo>... params) {
+                int i=0;
+
+                for(ApplicationInfo appInfo : apps) {
+                    publishProgress(i++);
+                    boolean watchApp = appsToWatchedStateMap.get(appInfo);
+
+                    try {
+                        if (mainActivity.firewall.isAppWatched(appInfo) != watchApp)
+                            mainActivity.firewall.setAppWatched(appInfo, watchApp);
+                    } catch(FirewallExceptions.FirewallException e) {
+                        if (!errorMessage.isEmpty())
+                            errorMessage += "\n";
+                        errorMessage += "Error changing watched-state for app '" + appInfo.packageName + "': " + e.getMessage();
+
+                        Log.e(LOG_TAG, "Error changing watched-state for app '" + appInfo.packageName + "': " + e.getMessage(), e);
+                    }
+                }
+
+                return true;
+            }
+
+            @Override
+            protected void onPreExecute() {
+                super.onPreExecute();
+
+                progressDialog = new ProgressDialog(mainActivity);
+                progressDialog.setTitle(R.string.main_activity__action__update_watched_apps);
+                progressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+                progressDialog.setMax(appsToWatchedStateMap.size());
+                progressDialog.setProgress(0);
+
+                progressDialog.show();
+            }
+
+            @Override
+            protected void onPostExecute(Boolean aBoolean) {
+                super.onPostExecute(aBoolean);
+                progressDialog.setProgress(progressDialog.getMax());
+                progressDialog.dismiss();
+
+                // So that the checkboxes for watched-state are updated
+                watchedAppsListAdapter.notifyDataSetChanged();
+            }
+
+            @Override
+            protected void onProgressUpdate(Integer... values) {
+                super.onProgressUpdate(values);
+                final PackageManager packageManager = mainActivity.getPackageManager();
+                final int appIndex = values[0];
+
+                ApplicationInfo appInfo = apps.get(appIndex);
+                String appName = appInfo.loadLabel(packageManager) + "";
+//                Toast.makeText(mainActivity, appName, Toast.LENGTH_SHORT).show(); // too slow, continues to show even after everything finished
+
+                progressDialog.setMessage(appName); // NOTE: current progressDialog implementation only shows message/icon when Intermediate
+                progressDialog.setIcon(appInfo.loadIcon(packageManager));
+                progressDialog.setProgress(appIndex);
+            }
+        }.execute();
+    }
+
     private void actionSetAppWatched(final ApplicationInfo appInfo, final boolean watched) {
         // Nothing to do if firewall not yet initialized.
-        // These calls happen while the app is starting. The apps-list is being refreshed multiple times while the first calls (as firewall==null) are redundant and can be ignored.
-        if (mainActivity.firewall == null)
-            return;
+//        // These calls happen while the app is starting. The apps-list is being refreshed multiple times while the first calls (as firewall==null) are redundant and can be ignored.
+//        if (mainActivity.firewall == null)
+//            return;
 
         // Nothing to do, if the desired watched-state is already present. This happens when the GUI refreshes (as it does on scrolling).
-        if (watched == mainActivity.firewall.isAppTrafficWatched(appInfo))
+        if (watched == mainActivity.firewall.isAppWatched(appInfo))
             return;
 
         // Show toast as this operation takes a few seconds
@@ -113,7 +209,7 @@ public class MainActivityGuiHandlers {
             @Override
             protected Boolean doInBackground(Boolean... params) {
                 try {
-                    mainActivity.firewall.setAppTrafficWatched(appInfo, watched);
+                    mainActivity.firewall.setAppWatched(appInfo, watched);
                 } catch (FirewallExceptions.FirewallException e) {
                     errorMessage = "Error changing watched-state for app '" + appInfo.packageName + "': " + e.getMessage();
                 }

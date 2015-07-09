@@ -81,6 +81,21 @@ public class MainActivity extends ActionBarActivity {
                 actionShowIptableRules(false);
                 return true;
             }
+            case R.id.action_monitored_apps__monitor_all:
+            {
+                guiHandlers.actionSetAllAppsWatched(true);
+                return true;
+            }
+            case R.id.action_monitored_apps__monitor_none:
+            {
+                guiHandlers.actionSetAllAppsWatched(false);
+                return true;
+            }
+            case R.id.action_monitored_apps__invert_selected:
+            {
+                guiHandlers.actionInvertAllAppsWatched();
+                return true;
+            }
         }
 
         return super.onOptionsItemSelected(item);

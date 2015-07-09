@@ -8,6 +8,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import de.uni_kl.informatik.disco.discowall.R;
+import de.uni_kl.informatik.disco.discowall.firewall.rules.FirewallRulesManager;
 
 public class DiscoWallSettings {
     private DiscoWallSettings() {}
@@ -36,6 +37,15 @@ public class DiscoWallSettings {
         setSettingBool(context, R.string.preference_id__firewall_enabled, enabled);
     }
 
+    public FirewallRulesManager.FirewallPolicy getFirewallPolicy(Context context) {
+        String policyAsString = getSetting(context, R.string.preference_id__firewall_policy, FirewallRulesManager.FirewallPolicy.INTERACTIVE.toString());
+        return FirewallRulesManager.FirewallPolicy.valueOf(policyAsString);
+    }
+
+    public void setFirewallPolicy(Context context, FirewallRulesManager.FirewallPolicy policy) {
+        setSetting(context, R.string.preference_id__firewall_policy, policy.toString());
+    }
+
     public Set<String> getWatchedAppsPackages(Context context) {
         return getSettingStringSet(context, R.string.preference_id__watched_apps_packages, new HashSet<String>());
     }
@@ -55,8 +65,17 @@ public class DiscoWallSettings {
     /****************************************************************************************************/
 
     private Set<String> getSettingStringSet(Context context, int preferenceKeyStringId, Set<String> defaultValue) {
+        /* Important Note: Known String-Set Android-Bug
+         * It is important to always return A NEW COPY of a string-set, when loading the string-set-preference.
+         * This is because android compares the object, which you wish to store, with the stored one - and if they match, android doesn't to anything.
+         * http://stackoverflow.com/questions/14034803/misbehavior-when-trying-to-store-a-string-set-using-sharedpreferences/14034804#14034804
+         *
+         * Android-Developer note on SharedPreference.getStringSet():
+         * "Note that you must not modify the set instance returned by this call. The consistency of the stored data is not guaranteed if you do, nor is your ability to modify the instance at all."
+         */
+
         SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(context);
-        return sharedPref.getStringSet(context.getString(preferenceKeyStringId), defaultValue);
+        return new HashSet<>(sharedPref.getStringSet(context.getString(preferenceKeyStringId), defaultValue));
     }
 
     private int getSettingInt(Context context, int preferenceKeyStringId, int defaultValue) {

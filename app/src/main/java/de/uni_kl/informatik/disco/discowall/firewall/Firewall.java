@@ -102,7 +102,7 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
             // Start watching apps which have been watched before
             Log.d(LOG_TAG, "restoring forwarding-rules for watched apps...");
             for(ApplicationInfo watchedApp : watchedAppsManager.getWatchedApps())
-                setAppTrafficWatched(watchedApp, true);
+                setAppWatched(watchedApp, true);
 
             Log.d(LOG_TAG, "restoring firewall-policy...");
             FirewallRulesManager.FirewallPolicy policy = DiscoWallSettings.getInstance().getFirewallPolicy(firewallServiceContext);
@@ -280,9 +280,8 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
         }
     }
 
-    public void setAppTrafficWatched(List<ApplicationInfo> appInfos, boolean watchTraffic) throws FirewallExceptions.FirewallException {
-        for(ApplicationInfo appInfo : appInfos)
-            setAppTrafficWatched(appInfo, watchTraffic);
+    public List<ApplicationInfo> getWatchableApps() {
+        return watchedAppsManager.getWatchableApps();
     }
 
     /**
@@ -293,7 +292,7 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
      * @param watchTraffic
      * @throws FirewallExceptions.FirewallException
      */
-    public void setAppTrafficWatched(ApplicationInfo appInfo, boolean watchTraffic) throws FirewallExceptions.FirewallException {
+    public void setAppWatched(ApplicationInfo appInfo, boolean watchTraffic) throws FirewallExceptions.FirewallException {
         String appName = appInfo.loadLabel(firewallServiceContext.getPackageManager()) + "";
         Log.d(LOG_TAG, "enabling traffic-monitoring for app " + appName + " with uid " + appInfo.uid + ".");
 
@@ -313,7 +312,7 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
         watchedAppsManager.setAppWatched(appInfo, watchTraffic);
     }
 
-    public boolean isAppTrafficWatched(ApplicationInfo appInfo) {
+    public boolean isAppWatched(ApplicationInfo appInfo) {
         return watchedAppsManager.isAppWatched(appInfo);
     }
 

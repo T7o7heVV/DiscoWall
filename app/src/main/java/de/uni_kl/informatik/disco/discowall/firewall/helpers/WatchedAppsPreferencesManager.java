@@ -38,8 +38,12 @@ public class WatchedAppsPreferencesManager {
         storeWatchedAppsPackages(watchedAppsPackageNames);
     }
 
+    public List<ApplicationInfo> getWatchableApps() {
+        return AppAdapter.fetchAppsByLaunchIntent(firewallServiceContext, false); // not buffering so that the apps-list is always up-to-date;
+    }
+
     public List<ApplicationInfo> getWatchedApps() {
-        List<ApplicationInfo> installedApps = AppAdapter.fetchAppsByLaunchIntent(firewallServiceContext, false); // not buffering so that the apps-list is always up-to-date
+        List<ApplicationInfo> installedApps = getWatchableApps();
         Set<String> watchedAppsPackages = loadWatchedAppsPackages();
 
         LinkedList<ApplicationInfo> watchedApps = new LinkedList<>();

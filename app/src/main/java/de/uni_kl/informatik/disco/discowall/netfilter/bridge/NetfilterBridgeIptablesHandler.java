@@ -31,6 +31,7 @@ public class NetfilterBridgeIptablesHandler {
     // rules
     static final String[] RULE_TCP_JUMP_TO_FIREWALL_PREFILTER_CHAIN = new String[] {
             // "--tcp-flags Flag1,Flag2,...,FlagN <FlagX_only>" --- "--tcp-flags ALL SYN" will filter all flags and only accept if ONLY SYN is set. ==> Only the connection-esablishment is being filtered.
+//            "-p tcp --tcp-flags SYN,RST SYN -j " + CHAIN_FIREWALL_MAIN_PREFILTER, // within SYN,RST,FIN has only(!) SYN
             "-p tcp --tcp-flags SYN,RST,FIN SYN -j " + CHAIN_FIREWALL_MAIN_PREFILTER, // within SYN,RST,FIN has only(!) SYN
             "-p tcp --tcp-flags SYN,RST,FIN,ACK FIN,ACK -j " + CHAIN_FIREWALL_MAIN_PREFILTER  // within SYN,RST,FIN,ACK has only(!) FIN+ACK
     };

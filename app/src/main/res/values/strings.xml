@@ -41,6 +41,8 @@
     <string name="main_activity_label_firewallPolicy">Policy</string>
     <string name="main_activity_label_firewallEnabled">Firewall</string>
 
+    <string name="main_activity__action__update_watched_apps">Updating Monitored Apps...</string>
+
     <string name="firewall_service_notification_title">DiscoWall Service</string>
     <string name="firewall_service_notification_message__firewall_paused">firewall paused</string>
     <string name="firewall_service_notification_message__firewall_enabled">firewall enabled, traffic is being filtered</string>
