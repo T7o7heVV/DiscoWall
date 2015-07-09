@@ -1,5 +1,6 @@
 package de.uni_kl.informatik.disco.discowall;
 
+import android.app.ProgressDialog;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -35,6 +36,14 @@ public class MainActivity extends ActionBarActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         setTitle(getString(R.string.main_activity_title));
+
+//        ProgressDialog progressDialog = new ProgressDialog(this);
+//        progressDialog.setTitle("title");
+//        progressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+//        progressDialog.setMessage("message");
+//        progressDialog.setMax(100);
+//        progressDialog.setProgress(50);
+//        progressDialog.show();
     }
 
     @Override

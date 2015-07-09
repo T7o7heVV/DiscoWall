@@ -134,7 +134,7 @@ public class DiscoWallSettings {
         SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(context);
 
         SharedPreferences.Editor editor = sharedPref.edit();
-        editor.putStringSet(context.getString(preferenceKeyStringId), value);
+        editor.putStringSet(context.getString(preferenceKeyStringId), new HashSet<>(value));
         editor.commit();
     }
 }
