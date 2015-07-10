@@ -98,7 +98,7 @@ public class MainActivityGuiHandlers {
         for(ApplicationInfo appInfo : mainActivity.firewall.getWatchableApps())
             appsToWatchedStateMap.put(appInfo, watched);
 
-        setAppsWatched(appsToWatchedStateMap);
+        setAppsWatched(appsToWatchedStateMap, watched ? R.string.action_main_menu_monitor_all_apps : R.string.action_main_menu_monitor_no_apps);
     }
 
     public void actionInvertAllAppsWatched() {
@@ -113,10 +113,10 @@ public class MainActivityGuiHandlers {
         for(ApplicationInfo appInfo : mainActivity.firewall.getWatchableApps()) {
         }
 
-        setAppsWatched(appsToWatchedStateMap);
+        setAppsWatched(appsToWatchedStateMap, R.string.action_main_menu_monitor_invert_monitored);
     }
 
-    private void setAppsWatched(final HashMap<ApplicationInfo, Boolean> appsToWatchedStateMap) {
+    private void setAppsWatched(final HashMap<ApplicationInfo, Boolean> appsToWatchedStateMap, final int updateDialogTitleStringRessourceId) {
         // Since this operation might take up to a minute on slow devides ==> run with progress-bar etc..
         new AsyncTask<List<ApplicationInfo>, Integer, Boolean>() {
             private String errorMessage;
@@ -151,8 +151,17 @@ public class MainActivityGuiHandlers {
                 super.onPreExecute();
 
                 progressDialog = new ProgressDialog(mainActivity);
-                progressDialog.setTitle(R.string.main_activity__action__update_watched_apps);
+
+                /* IMPORTANT:
+                 * The design of the progress-dialog has to be defined BEFORE showing.
+                 * ==> Any Message, Title and Icon have to be defined so that the dialog can be updated with new information after it's visible.
+                 *     If the dialog is shown without an icon/title/message, it cannot show one later on.
+                 */
+
+                progressDialog.setTitle(updateDialogTitleStringRessourceId);
                 progressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+                progressDialog.setMessage("");
+                progressDialog.setIcon(apps.get(0).loadIcon(mainActivity.getPackageManager()));
                 progressDialog.setMax(appsToWatchedStateMap.size());
                 progressDialog.setProgress(0);
 
@@ -166,7 +175,11 @@ public class MainActivityGuiHandlers {
                 progressDialog.dismiss();
 
                 // So that the checkboxes for watched-state are updated
-                watchedAppsListAdapter.notifyDataSetChanged();
+//                watchedAppsListAdapter.notifyDataSetChanged(); // sometimes not working
+
+                // Restart Main-Activity to update gui:
+                mainActivity.finish();
+                mainActivity.startActivity(mainActivity.getIntent());
             }
 
             @Override
@@ -177,9 +190,8 @@ public class MainActivityGuiHandlers {
 
                 ApplicationInfo appInfo = apps.get(appIndex);
                 String appName = appInfo.loadLabel(packageManager) + "";
-//                Toast.makeText(mainActivity, appName, Toast.LENGTH_SHORT).show(); // too slow, continues to show even after everything finished
 
-                progressDialog.setMessage(appName); // NOTE: current progressDialog implementation only shows message/icon when Intermediate
+                progressDialog.setMessage(appName + "\n" + appInfo.packageName);
                 progressDialog.setIcon(appInfo.loadIcon(packageManager));
                 progressDialog.setProgress(appIndex);
             }
