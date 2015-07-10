@@ -36,9 +36,8 @@ public class TextViewActivity extends ActionBarActivity {
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
 
-        TextView textView = getControlTextView();
-        outState.putString(INTENT_EXTRA_TEXTVIEW_CONTENT, textView.getText() + ""); // puts current content into intent, so that pause/resume (also screen-rotation) works.
-        outState.putString(INTENT_EXTRA_ACTIVITY_TITLE, getTitle() + "");
+        // puts current content into intent, so that pause/resume (also screen-rotation) works.
+        outState.putAll(getIntent().getExtras());
     }
 
     @Override

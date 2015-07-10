@@ -4,6 +4,8 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.DialogFragment;
+import android.content.DialogInterface;
+import android.content.pm.ActivityInfo;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
@@ -45,7 +47,7 @@ public class EditConnectionRuleDialog extends DialogFragment {
                 .setTitle("Edit Connection Rule");
 
         // Fetching ApplicationInfo:
-        Activity context = getActivity();
+        final Activity context = getActivity();
         PackageManager packageManager = context.getPackageManager();
         String packageName = bundle.getString("app.packageName");
         ApplicationInfo appInfo;
@@ -82,10 +84,8 @@ public class EditConnectionRuleDialog extends DialogFragment {
 
         args.putString("rule.client.ip", client.getIp());
         args.putInt("rule.client.port", client.getPort());
-
         args.putString("rule.server.ip", server.getIp());
         args.putInt("rule.server.port", server.getPort());
-
         args.putSerializable("rule.policy", policy);
 
         // Dialog-Infos:
