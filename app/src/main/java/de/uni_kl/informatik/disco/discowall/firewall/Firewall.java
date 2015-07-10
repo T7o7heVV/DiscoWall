@@ -4,7 +4,9 @@ import android.content.Context;
 import android.content.pm.ApplicationInfo;
 import android.util.Log;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Set;
 
 import de.uni_kl.informatik.disco.discowall.firewall.helpers.WatchedAppsPreferencesManager;
 import de.uni_kl.informatik.disco.discowall.firewall.rules.FirewallIptableRulesHandler;
@@ -282,6 +284,37 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
 
     public List<ApplicationInfo> getWatchableApps() {
         return watchedAppsManager.getWatchableApps();
+    }
+
+//    public HashMap<ApplicationInfo, Boolean> getAppsToWatchStateMap() throws FirewallExceptions.FirewallException {
+//        return watchedAppsManager.createAppsToWatchStateMap();
+//    }
+
+    /**
+     * Disables watching of all apps besides those who are specified within the list.
+     * @param appsToWatch
+     * @throws FirewallExceptions.FirewallException
+     */
+    public void setWatchedApps(List<ApplicationInfo> appsToWatch) throws FirewallExceptions.FirewallException {
+        HashMap<String, ApplicationInfo> packageNameToAppInfoMap = WatchedAppsPreferencesManager.packageNameToApplicationInfoMap(getWatchedApps());
+
+        Set<String> appsToWatchSet = WatchedAppsPreferencesManager.applicationListToPackageNameSet(appsToWatch);
+        Set<String> currentlyWatchedAppsSet = WatchedAppsPreferencesManager.applicationListToPackageNameSet(watchedAppsManager.getWatchedApps());
+
+        // Disable watching of those apps, which are not in the "watchedAppsSet"
+        for(String watchedApp : currentlyWatchedAppsSet) {
+            if (!appsToWatchSet.contains(watchedApp))
+                setAppWatched(packageNameToAppInfoMap.get(watchedApp), false);
+        }
+
+        // List has changed, updating list of currently watched apps:
+        currentlyWatchedAppsSet = WatchedAppsPreferencesManager.applicationListToPackageNameSet(watchedAppsManager.getWatchedApps());
+
+        // Enable watching of those apps, which are in the "appsToWatchSet" (and not currently watched)
+        for(ApplicationInfo appToWatch : appsToWatch) {
+            if (!currentlyWatchedAppsSet.contains(appToWatch.packageName)) // checking via Set.contains(), as this can be done within O(n), whereas isAppWatched() takes O(n²)
+                setAppWatched(appToWatch, true);
+        }
     }
 
     /**

@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.pm.ApplicationInfo;
 import android.util.Log;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -49,8 +50,6 @@ public class WatchedAppsPreferencesManager {
         LinkedList<ApplicationInfo> watchedApps = new LinkedList<>();
 
         for(ApplicationInfo app : installedApps) {
-            Log.i("MATCH", app.packageName + " --> " + watchedAppsPackages.contains(app.packageName));
-
             if (watchedAppsPackages.contains(app.packageName))
                 watchedApps.add(app);
         }
@@ -80,11 +79,61 @@ public class WatchedAppsPreferencesManager {
         return isAppWatched(applicationInfo.packageName);
     }
 
-    public static boolean listContainsApp(List<ApplicationInfo> applicationInfoList, ApplicationInfo searchedAppInfo) {
+    public static boolean applicationListContainsApp(List<ApplicationInfo> applicationInfoList, ApplicationInfo searchedAppInfo) {
         for(ApplicationInfo info : applicationInfoList)
             if (info.packageName.equals(searchedAppInfo.packageName))
                 return true;
 
         return false;
     }
+
+    public static Set<String> applicationListToPackageNameSet(List<ApplicationInfo> watchedApps) {
+        Set<String> watchedAppsPackageNames = new HashSet<>();
+
+        for(ApplicationInfo info : watchedApps)
+            watchedAppsPackageNames.add(info.packageName);
+
+        return watchedAppsPackageNames;
+    }
+
+    public static HashMap<ApplicationInfo, String> applicationInfoToPackageNameMap(List<ApplicationInfo> apps) {
+        HashMap<ApplicationInfo, String> appInfoToPackageNameHash = new HashMap<>();
+
+        for(ApplicationInfo info : apps)
+            appInfoToPackageNameHash.put(info, info.packageName);
+
+        return appInfoToPackageNameHash;
+    }
+
+    public static HashMap<String, ApplicationInfo> packageNameToApplicationInfoMap(List<ApplicationInfo> apps) {
+        HashMap<String, ApplicationInfo> packageNameToAppMap = new HashMap<>();
+
+        for(ApplicationInfo info : apps)
+            packageNameToAppMap.put(info.packageName, info);
+
+        return packageNameToAppMap;
+    }
+
+//    public HashMap<ApplicationInfo, Boolean> createAppsToWatchStateMap() {
+//        return createAppsToWatchStateMap(getWatchableApps());
+//    }
+//
+//    public static HashMap<ApplicationInfo, Boolean> createAppsToWatchStateMap(List<ApplicationInfo> allApps) {
+//        HashMap<ApplicationInfo, Boolean> appToWatchStateMap = new HashMap<>();
+//
+//        HashMap<String, ApplicationInfo> packageNameToAppMap = packageNameToApplicationInfoMap(allApps);
+//
+//        Set<String> allAppsSet = WatchedAppsPreferencesManager.applicationListToPackageNameSet(allApps);
+//        Set<String> currentlyWatchedAppsSet = WatchedAppsPreferencesManager.applicationListToPackageNameSet(allApps);
+//
+//        // Disable watching of those apps, which are not in the "watchedAppsSet"
+//        for(String appPackageName : allAppsSet) {
+//            ApplicationInfo appInfo = packageNameToAppMap.get(appPackageName);
+//            boolean isWatched = currentlyWatchedAppsSet.contains(appPackageName);
+//
+//            appToWatchStateMap.put(appInfo, isWatched);
+//        }
+//
+//        return appToWatchStateMap;
+//    }
 }
