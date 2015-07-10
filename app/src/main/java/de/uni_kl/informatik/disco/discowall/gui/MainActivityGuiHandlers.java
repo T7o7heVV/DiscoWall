@@ -186,6 +186,7 @@ public class MainActivityGuiHandlers {
                 progressDialog.setIcon(apps.get(0).loadIcon(mainActivity.getPackageManager()));
                 progressDialog.setMax(appsToWatchedStateMap.size());
                 progressDialog.setProgress(0);
+                progressDialog.setCancelable(false);
 
                 progressDialog.show();
             }
@@ -304,6 +305,7 @@ public class MainActivityGuiHandlers {
         progressDialog.setTitle(actionName);
         progressDialog.setIcon(R.drawable.firewall_launcher);
         progressDialog.setMessage(message);
+        progressDialog.setCancelable(false);
 
         class FirewallSetupTask extends AsyncTask<Boolean, Boolean, Boolean> {
             private AlertDialog.Builder errorAlert;

@@ -80,7 +80,7 @@
                 android:id="@+id/dialog_edit_connection_editText_client_ip"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_weight="1.25"
+                android:layout_weight="1"
                 android:hint="ip / hostname"
                 android:gravity="right"
                 />
@@ -119,7 +119,7 @@
                 android:id="@+id/dialog_edit_connection_editText_server_ip"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_weight="1.25"
+                android:layout_weight="1"
                 android:hint="ip / hostname"
                 android:gravity="right"
                 />
@@ -166,6 +166,99 @@
             android:text="Firewall Rule"
             android:textAppearance="?android:attr/textAppearanceMedium" />
 
+
+        <!--    Rule Devices -->
+        <LinearLayout
+            android:layout_width="fill_parent"
+            android:layout_height="45dp"
+            android:layout_weight="2"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            >
+
+            <TextView
+                android:id="@+id/dialog_edit_connection_textView_rule_devices"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight=".5"
+                android:text="Interfaces"
+                />
+
+            <RadioGroup
+                android:layout_width="0dp"
+                android:layout_weight="1.5"
+                android:layout_height="fill_parent"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                >
+
+                <CheckBox
+                    android:layout_width="fill_parent"
+                    android:layout_height="wrap_content"
+                    android:text="WLAN"
+                    android:id="@+id/dialog_edit_connection_check_box_rule_device_wlan"
+                    android:layout_weight="1"
+                    />
+
+                <CheckBox
+                    android:layout_width="fill_parent"
+                    android:layout_height="wrap_content"
+                    android:text="3G / 4G"
+                    android:id="@+id/dialog_edit_connection_check_box_rule_device_3g_4g"
+                    android:layout_weight="1"
+                    />
+
+            </RadioGroup>
+
+        </LinearLayout>
+
+
+        <!--    Rule Protocol -->
+        <LinearLayout
+            android:layout_width="fill_parent"
+            android:layout_height="45dp"
+            android:layout_weight="2"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            >
+
+            <TextView
+                android:id="@+id/dialog_edit_connection_textView_rule_protocol"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight=".5"
+                android:text="Protocols"
+                />
+
+            <RadioGroup
+                android:layout_width="0dp"
+                android:layout_weight="1.5"
+                android:layout_height="fill_parent"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                >
+
+                <CheckBox
+                    android:layout_width="fill_parent"
+                    android:layout_height="wrap_content"
+                    android:text="TCP"
+                    android:id="@+id/dialog_edit_connection_check_box_rule_protocol_tcp"
+                    android:layout_weight="1"
+                    />
+
+                <CheckBox
+                    android:layout_width="fill_parent"
+                    android:layout_height="wrap_content"
+                    android:text="UDP"
+                    android:id="@+id/dialog_edit_connection_check_box_rule_protocol_udp"
+                    android:layout_weight="1"
+                    />
+
+            </RadioGroup>
+
+        </LinearLayout>
+
+
         <!--    Rule Policy -->
         <LinearLayout
             android:layout_width="fill_parent"
@@ -185,7 +278,7 @@
 
             <RadioGroup
                 android:layout_width="0dp"
-                android:layout_weight="1.75"
+                android:layout_weight="2.75"
                 android:layout_height="fill_parent"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
@@ -196,7 +289,7 @@
                     android:layout_height="wrap_content"
                     android:text="Accept"
                     android:id="@+id/dialog_edit_connection_radio_button_rule_policy_accept"
-                    android:layout_weight="1"
+                    android:layout_weight=".95"
                     />
 
                 <RadioButton
@@ -212,7 +305,7 @@
                     android:layout_height="wrap_content"
                     android:text="Interactive"
                     android:id="@+id/dialog_edit_connection_radio_button_rule_policy_interactive"
-                    android:layout_weight=".9"
+                    android:layout_weight=".8"
                     />
 
             </RadioGroup>

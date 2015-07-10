@@ -149,9 +149,12 @@ public class NetfilterBridgeIptablesHandler {
 //            // rule: jump to NFQUEUE and handle package interactively
 //            IptablesControl.ruleAdd(CHAIN_FIREWALL_ACTION_INTERACTIVE, RULE_JUMP_TO_NFQUEUE);
 
-            // rule: only SYN/FIN packages will jump to NFQUEUE and handle package interactively
+            // rule, TCP: only SYN/FIN packages will jump to NFQUEUE and handle package interactively
             IptablesControl.ruleAdd(CHAIN_FIREWALL_ACTION_INTERACTIVE, "-p tcp --tcp-flags SYN,RST,FIN SYN " + RULE_JUMP_TO_NFQUEUE);
             IptablesControl.ruleAdd(CHAIN_FIREWALL_ACTION_INTERACTIVE, "-p tcp --tcp-flags SYN,RST,FIN,ACK FIN,ACK " + RULE_JUMP_TO_NFQUEUE);
+
+            // rule, UDP: since packages are indistinguishable ALL have to be forwarded into the firewall
+            IptablesControl.ruleAdd(CHAIN_FIREWALL_ACTION_INTERACTIVE, "-p udp " + RULE_JUMP_TO_NFQUEUE);
         }
 
         Log.v(LOG_TAG, "iptable chains AFTER adding rules:\n" + IptablesControl.getRuleInfoText(true, true));

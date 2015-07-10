@@ -70,6 +70,12 @@ public class EditConnectionRuleDialog extends DialogFragment {
         return builder.create();
     }
 
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putAll(getArguments());
+    }
+
     public static EditConnectionRuleDialog show(Activity context, String dialogTag, ApplicationInfo appInfo, Packages.IpPortPair client, Packages.IpPortPair server, FirewallRules.RulePolicy policy) {
         final PackageManager packageManager = context.getPackageManager();
         Bundle args = new Bundle();
