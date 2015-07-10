@@ -217,14 +217,9 @@ public class MainActivityGuiHandlerWatchedApps extends MainActivityGuiHandler {
     }
 
     private void actionSetAppWatched(final ApplicationInfo appInfo, final boolean watched) {
-        // Nothing to do if firewall not yet initialized.
-//        // These calls happen while the app is starting. The apps-list is being refreshed multiple times while the first calls (as firewall==null) are redundant and can be ignored.
-//        if (mainActivity.firewall == null)
-//            return;
-
         // Nothing to do, if the desired watched-state is already present. This happens when the GUI refreshes (as it does on scrolling).
         if (watched == mainActivity.firewall.isAppWatched(appInfo)) {
-            Log.v(LOG_TAG, "App already " + (watched?"":"not ") + "watched. No change in sate required. This call happens when creating the list.");
+//            Log.v(LOG_TAG, "App already " + (watched?"":"not ") + "watched. No change in sate required. This call happens when creating the list.");
             return;
         }
 
