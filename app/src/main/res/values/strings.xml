@@ -34,7 +34,7 @@
     <string name="action_main_menu_monitor_no_apps">Monitor None</string>
     <string name="action_main_menu_monitor_invert_monitored">Invert Selection</string>
 
-    <string name="action_menu_watched_apps_list_app_start">Run</string>
+    <string name="action_menu_watched_apps_list_app_start">Run Application</string>
     <string name="action_menu_watched_apps_list_app_show_rules">Show Rules</string>
 
 

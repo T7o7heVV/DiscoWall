@@ -2,6 +2,7 @@ package de.uni_kl.informatik.disco.discowall.gui;
 
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
+import android.content.Intent;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.os.AsyncTask;
@@ -460,4 +461,28 @@ public class MainActivityGuiHandlers {
 
         mainActivity.startActivity(mainActivity.getIntent());
     }
+
+    public void actionWatchedAppStartApp(int listViewItemPosition) {
+        Log.v(LOG_TAG, "run application at list-position: " + listViewItemPosition + ")");
+        final PackageManager packageManager = mainActivity.getPackageManager();
+
+        // Cannot be null, index has to be within bounds. Otherwise something has SERIOUSLY gone wrong within the GUI framework.
+        ApplicationInfo appInfo = watchedAppsListAdapter.getItem(listViewItemPosition);
+        Log.i(LOG_TAG, "Application: Run " + appInfo.loadLabel(packageManager) + " (" + appInfo.packageName + ")");
+
+        Toast.makeText(mainActivity, "starting app: " + appInfo.loadLabel(packageManager) + "\n" + appInfo.packageName, Toast.LENGTH_SHORT).show();
+        Intent startIntent = packageManager.getLaunchIntentForPackage(appInfo.packageName);
+        mainActivity.startActivity(startIntent);
+    }
+
+    public void actionWatchedAppShowRules(int listViewItemPosition) {
+        Log.v(LOG_TAG, "show application rules at list-position: " + listViewItemPosition + ")");
+
+        // Cannot be null, index has to be within bounds. Otherwise something has SERIOUSLY gone wrong within the GUI framework.
+        ApplicationInfo appInfo = watchedAppsListAdapter.getItem(listViewItemPosition);
+        Log.i(LOG_TAG, "Application: Show Rules: " + appInfo.packageName);
+
+        //TODO: Start Edit-Activity
+    }
+
 }
