@@ -18,6 +18,7 @@ import android.widget.Toast;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
 import de.uni_kl.informatik.disco.discowall.EditConnectionRuleDialog;
 import de.uni_kl.informatik.disco.discowall.MainActivity;
@@ -49,19 +50,17 @@ public class MainActivityGuiHandlers {
         // Storing reference, so that the list can be updated when enabling/disabling the firewall
         watchedAppsListAdapter = appsAdapter;
 
-        // WatchedAppsPackages persistent preference setting
-        final List<ApplicationInfo> watchedApps = mainActivity.firewall.getWatchedApps();
-
         // Adapter-Handler for manipulating list-view while it is being created etc.
         appsAdapter.setAdapterHandler(new AppAdapter.AdapterHandler() {
             @Override
             public void onRowCreate(AppAdapter adapter, ApplicationInfo appInfo, TextView appNameWidget, TextView appPackageNameWidget, ImageView appIconImageWidget, CheckBox appWatchedCheckboxWidget) {
-                // This method is being called as the individual rows are being written. This usually happens way later, after the AdapterHandler has been initialized.
+                /* This method is being called when...
+                 * - the individual rows are being written when creating the list
+                 * - the list is being scrolled and therefore updated
+                 */
 
-                boolean appIsWatched = WatchedAppsPreferencesManager.listContainsApp(watchedApps, appInfo);
-                appWatchedCheckboxWidget.setChecked(appIsWatched);
-
-                String appName = appInfo.loadLabel(mainActivity.getPackageManager()) + "";
+                // IMPORTANT: If I would buffer the "watched apps" at any point, scrolling the list will reset the value to the buffered state!
+                appWatchedCheckboxWidget.setChecked(mainActivity.firewall.isAppWatched(appInfo));
             }
 
             @Override
@@ -106,12 +105,10 @@ public class MainActivityGuiHandlers {
 
         List<ApplicationInfo> watchedApps = mainActivity.firewall.getWatchedApps();
 
-        // TODO
-
         HashMap<ApplicationInfo, Boolean> appsToWatchedStateMap = new HashMap<>();
 
-        for(ApplicationInfo appInfo : mainActivity.firewall.getWatchableApps()) {
-        }
+        for(ApplicationInfo appInfo : mainActivity.firewall.getWatchableApps())
+            appsToWatchedStateMap.put(appInfo, !mainActivity.firewall.isAppWatched(appInfo));
 
         setAppsWatched(appsToWatchedStateMap, R.string.action_main_menu_monitor_invert_monitored);
     }
@@ -178,8 +175,7 @@ public class MainActivityGuiHandlers {
 //                watchedAppsListAdapter.notifyDataSetChanged(); // sometimes not working
 
                 // Restart Main-Activity to update gui:
-                mainActivity.finish();
-                mainActivity.startActivity(mainActivity.getIntent());
+                refreshMainActivity();
             }
 
             @Override
@@ -205,8 +201,10 @@ public class MainActivityGuiHandlers {
 //            return;
 
         // Nothing to do, if the desired watched-state is already present. This happens when the GUI refreshes (as it does on scrolling).
-        if (watched == mainActivity.firewall.isAppWatched(appInfo))
+        if (watched == mainActivity.firewall.isAppWatched(appInfo)) {
+            Log.v(LOG_TAG, "App already " + (watched?"":"not ") + "watched. No change in sate required. This call happens when creating the list.");
             return;
+        }
 
         // Show toast as this operation takes a few seconds
         if (watched)
@@ -430,4 +428,12 @@ public class MainActivityGuiHandlers {
         });
     }
 
+    private void refreshMainActivity() {
+        // == refreshing the MainActivity be closing and reopening the activity ==
+
+        mainActivity.finish();
+        mainActivity.overridePendingTransition(0, 0); // disabling slide-animation on Activity-finish
+
+        mainActivity.startActivity(mainActivity.getIntent());
+    }
 }

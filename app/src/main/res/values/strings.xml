@@ -37,10 +37,11 @@
 
     <!-- GUI texts -->
 
+    <string name="settings_activity_title">DiscoWall Settings</string>
+
     <string name="main_activity_title">DiscoWall ─ interactive firewall</string>
     <string name="main_activity_label_firewallPolicy">Policy</string>
     <string name="main_activity_label_firewallEnabled">Firewall</string>
-
     <string name="main_activity__action__update_watched_apps">Updating Monitored Apps...</string>
 
     <string name="firewall_service_notification_title">DiscoWall Service</string>
