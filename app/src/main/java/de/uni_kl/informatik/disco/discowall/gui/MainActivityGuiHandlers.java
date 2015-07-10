@@ -6,6 +6,8 @@ import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.os.AsyncTask;
 import android.util.Log;
+import android.view.View;
+import android.widget.AdapterView;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.ImageView;
@@ -47,6 +49,13 @@ public class MainActivityGuiHandlers {
         final DiscoWallAppAdapter appsAdapter = new DiscoWallAppAdapter(mainActivity);
         appsListView.setAdapter(appsAdapter);
 
+        appsAdapter.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+            @Override
+            public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
+                return false;
+            }
+        });
+
         // Storing reference, so that the list can be updated when enabling/disabling the firewall
         watchedAppsListAdapter = appsAdapter;
 
@@ -76,6 +85,21 @@ public class MainActivityGuiHandlers {
             @Override
             public void onAppIconClicked(AppAdapter appAdapter, ApplicationInfo appInfo, ImageView appIconImageWidget) {
                 actionWatchedAppShowFirewallRules(appInfo);
+            }
+
+            @Override
+            public boolean onAppNameLongClicked(AppAdapter appAdapter, ApplicationInfo appInfo, TextView appNameWidgetview) {
+                return false;
+            }
+
+            @Override
+            public boolean onAppPackageLongClicked(AppAdapter appAdapter, ApplicationInfo appInfo, TextView appPackageNameWidget) {
+                return false;
+            }
+
+            @Override
+            public boolean onAppIconLongClicked(AppAdapter appAdapter, ApplicationInfo appInfo, ImageView appIconImageWidget) {
+                return false;
             }
 
             @Override
