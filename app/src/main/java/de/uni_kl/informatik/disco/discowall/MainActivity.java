@@ -1,6 +1,5 @@
 package de.uni_kl.informatik.disco.discowall;
 
-import android.app.ProgressDialog;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -8,6 +7,7 @@ import android.content.ServiceConnection;
 import android.os.IBinder;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
+import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.ContextMenu;
 import android.view.Menu;
@@ -22,14 +22,17 @@ import android.widget.Toast;
 import de.uni_kl.informatik.disco.discowall.firewall.Firewall;
 import de.uni_kl.informatik.disco.discowall.firewall.FirewallExceptions;
 import de.uni_kl.informatik.disco.discowall.firewall.FirewallService;
-import de.uni_kl.informatik.disco.discowall.gui.MainActivityGuiHandlers;
+import de.uni_kl.informatik.disco.discowall.gui.handlers.MainActivityGuiHandlerFirewallControl;
 import de.uni_kl.informatik.disco.discowall.gui.dialogs.AboutDialog;
+import de.uni_kl.informatik.disco.discowall.gui.handlers.MainActivityGuiHandlerWatchedApps;
 import de.uni_kl.informatik.disco.discowall.utils.ressources.DiscoWallSettings;
 
 
-public class MainActivity extends ActionBarActivity {
+public class MainActivity extends AppCompatActivity {
     private static final String LOG_TAG = MainActivity.class.getSimpleName();
-    private final MainActivityGuiHandlers guiHandlers = new MainActivityGuiHandlers(this);
+
+    private final MainActivityGuiHandlerFirewallControl guiHandlerFirewallControl = new MainActivityGuiHandlerFirewallControl(this);
+    private final MainActivityGuiHandlerWatchedApps guiHandlerWatchedApps = new MainActivityGuiHandlerWatchedApps(this);
     public final DiscoWallSettings discowallSettings = DiscoWallSettings.getInstance();
 
     public FirewallService firewallService;
@@ -93,17 +96,17 @@ public class MainActivity extends ActionBarActivity {
             }
             case R.id.action_monitored_apps__monitor_all:
             {
-                guiHandlers.actionSetAllAppsWatched(true);
+                guiHandlerWatchedApps.actionSetAllAppsWatched(true);
                 return true;
             }
             case R.id.action_monitored_apps__monitor_none:
             {
-                guiHandlers.actionSetAllAppsWatched(false);
+                guiHandlerWatchedApps.actionSetAllAppsWatched(false);
                 return true;
             }
             case R.id.action_monitored_apps__invert_selected:
             {
-                guiHandlers.actionInvertAllAppsWatched();
+                guiHandlerWatchedApps.actionInvertAllAppsWatched();
                 return true;
             }
         }
@@ -145,7 +148,7 @@ public class MainActivity extends ActionBarActivity {
                 Log.i(LOG_TAG, "Application: Show Rules");
                 return true;
             case R.id.action_menu_watched_apps_list_app_start:
-                guiHandlers.actionWatchedAppStartApp(info.position);
+                guiHandlerWatchedApps.actionWatchedAppStartApp(info.position);
                 return true;
             default:
                 return super.onContextItemSelected(item);
@@ -179,25 +182,25 @@ public class MainActivity extends ActionBarActivity {
         Log.d(LOG_TAG, "FirewallService bound");
 
         if (discowallSettings.isFirewallEnabled(this))
-            guiHandlers.actionSetFirewallEnabled(true, false);
+            guiHandlerFirewallControl.actionSetFirewallEnabled(true, false);
 
-        guiHandlers.showFirewallEnabledState();
+        guiHandlerFirewallControl.showFirewallEnabledState();
 
         Switch firewallEnabledSwitch = (Switch) findViewById(R.id.switchFirewallEnabled);
         firewallEnabledSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                guiHandlers.onFirewallSwitchCheckedChanged(buttonView, isChecked);
+                guiHandlerFirewallControl.onFirewallSwitchCheckedChanged(buttonView, isChecked);
             }
         });
 
-        guiHandlers.setupFirewallPolicyRadioButtons();
+        guiHandlerFirewallControl.setupFirewallPolicyRadioButtons();
 
         // enable/disable buttons and select according to current policy
-        guiHandlers.updateFirewallPolicyRadioButtonsWithCurrentPolicy();
+        guiHandlerFirewallControl.updateFirewallPolicyRadioButtonsWithCurrentPolicy();
 
         // show apps and watched-status
-        guiHandlers.setupWatchedAppsList();
+        guiHandlerWatchedApps.setupWatchedAppsList();
     }
 
     /** Defines callbacks for service binding, passed to bindService() */
