@@ -9,8 +9,12 @@ import android.os.IBinder;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.ContextMenu;
 import android.view.Menu;
+import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.AdapterView;
 import android.widget.CompoundButton;
 import android.widget.Switch;
 import android.widget.Toast;
@@ -37,13 +41,10 @@ public class MainActivity extends ActionBarActivity {
         setContentView(R.layout.activity_main);
         setTitle(getString(R.string.main_activity_title));
 
-//        ProgressDialog progressDialog = new ProgressDialog(this);
-//        progressDialog.setTitle("title");
-//        progressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
-//        progressDialog.setMessage("message");
-//        progressDialog.setMax(100);
-//        progressDialog.setProgress(50);
-//        progressDialog.show();
+        // for creating the Floating-Menu on the Apps-List ==> Long-Press will now show the menu
+        registerForContextMenu(findViewById(R.id.listViewFirewallMonitoredApps)); // see http://developer.android.com/guide/topics/ui/menus.html#FloatingContextMenu
+
+        // NOTE: All initialization of GUI-Elements etc. is being done onFirewallServiceBound
     }
 
     @Override
@@ -121,6 +122,34 @@ public class MainActivity extends ActionBarActivity {
         }
 
         TextViewActivity.showText(this, "Iptable Rules", content);
+    }
+
+    @Override
+    public void onCreateContextMenu(ContextMenu menu, View v, ContextMenu.ContextMenuInfo menuInfo) {
+        super.onCreateContextMenu(menu, v, menuInfo);
+
+        // Creating floating-menu for Watched-Apps-List:
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.menu_watched_apps_list, menu);
+    }
+
+    @Override
+    public boolean onContextItemSelected(MenuItem item) {
+        // = Info: This method is automatically called by android-os, as the user long-clicks a view, which has been registered for a menu using 'registerForContextMenu()'
+
+        AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo) item.getMenuInfo();
+        Log.v(LOG_TAG, "Context/Floating-Menu opened on listViewItem: " + info.position);
+
+        switch (item.getItemId()) {
+            case R.id.action_menu_watched_apps_list_app_show_rules:
+                Log.i(LOG_TAG, "Application: Show Rules");
+                return true;
+            case R.id.action_menu_watched_apps_list_app_start:
+                guiHandlers.actionWatchedAppStartApp(info.position);
+                return true;
+            default:
+                return super.onContextItemSelected(item);
+        }
     }
 
     @Override
