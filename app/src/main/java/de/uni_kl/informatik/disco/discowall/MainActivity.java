@@ -181,8 +181,10 @@ public class MainActivity extends AppCompatActivity {
     private void onFirewallServiceBound() {
         Log.d(LOG_TAG, "FirewallService bound");
 
-        if (discowallSettings.isFirewallEnabled(this))
-            guiHandlerFirewallControl.actionSetFirewallEnabled(true, false);
+        // Restoring firewall-state, if current state differs from supposed state
+        // (happens when app is started and firewall was enabled last time)
+        if (discowallSettings.isFirewallEnabled(this) != firewall.isFirewallRunning())
+            guiHandlerFirewallControl.actionSetFirewallEnabled(true);
 
         guiHandlerFirewallControl.showFirewallEnabledState();
 

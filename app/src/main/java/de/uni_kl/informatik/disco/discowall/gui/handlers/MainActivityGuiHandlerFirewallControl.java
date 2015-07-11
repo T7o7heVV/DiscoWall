@@ -27,12 +27,14 @@ import java.util.Set;
 import de.uni_kl.informatik.disco.discowall.EditConnectionRuleDialog;
 import de.uni_kl.informatik.disco.discowall.MainActivity;
 import de.uni_kl.informatik.disco.discowall.R;
+import de.uni_kl.informatik.disco.discowall.firewall.Firewall;
 import de.uni_kl.informatik.disco.discowall.firewall.FirewallExceptions;
 import de.uni_kl.informatik.disco.discowall.firewall.helpers.WatchedAppsPreferencesManager;
 import de.uni_kl.informatik.disco.discowall.firewall.rules.FirewallRules;
 import de.uni_kl.informatik.disco.discowall.firewall.rules.FirewallRulesManager;
 import de.uni_kl.informatik.disco.discowall.gui.DiscoWallAppAdapter;
 import de.uni_kl.informatik.disco.discowall.gui.dialogs.ErrorDialog;
+import de.uni_kl.informatik.disco.discowall.netfilter.iptables.IptablesControl;
 import de.uni_kl.informatik.disco.discowall.packages.Packages;
 import de.uni_kl.informatik.disco.discowall.utils.gui.AppAdapter;
 
@@ -46,20 +48,14 @@ public class MainActivityGuiHandlerFirewallControl {
     }
 
     public void onFirewallSwitchCheckedChanged(CompoundButton buttonView, final boolean isChecked) {
-        actionSetFirewallEnabled(isChecked, true);
+        actionSetFirewallEnabled(isChecked);
     }
 
-    public void actionSetFirewallEnabled(final boolean enabled, boolean showToastIfAlreadyEnabled) {
+    public void actionSetFirewallEnabled(final boolean enabled) {
         try {
             if (enabled && mainActivity.firewall.isFirewallRunning()) {
-                if (showToastIfAlreadyEnabled)
-                    Toast.makeText(mainActivity, "Firewall already enabled.", Toast.LENGTH_SHORT).show();
-
                 return;
             } else if (!enabled && !mainActivity.firewall.isFirewallRunning()) {
-                if (showToastIfAlreadyEnabled)
-                    Toast.makeText(mainActivity, "Firewall already disabled.", Toast.LENGTH_SHORT).show();
-
                 return;
             }
         } catch (Exception e) {
@@ -73,50 +69,54 @@ public class MainActivityGuiHandlerFirewallControl {
             return;
         }
 
-        String actionName, message;
+        final String actionName, message;
         if (enabled) {
-            actionName = "Enabling Firewall";
+            actionName = "Enable Firewall";
             message = "adding iptable rules...";
         } else {
-            actionName = "Disabling Firewall";
+            actionName = "Disable Firewall";
             message = "removing iptable rules...";
         }
 
-        // Creating "busy dialog" (will be shown before async-task is being started)
-        final ProgressDialog progressDialog = new ProgressDialog(mainActivity);
-        progressDialog.setTitle(actionName);
-        progressDialog.setIcon(R.drawable.firewall_launcher);
-        progressDialog.setMessage(message);
-        progressDialog.setCancelable(false);
-
-        class FirewallSetupTask extends AsyncTask<Boolean, Boolean, Boolean> {
+        class FirewallSetupTask extends AsyncTask<Boolean, Object, Boolean> implements Firewall.FirewallEnableProgressListener, Firewall.FirewallDisableProgressListener {
             private AlertDialog.Builder errorAlert;
+            private ProgressDialog progressDialog;
+            private final PackageManager packageManager = mainActivity.getPackageManager();
+
+            class IptablesCommandUpdate {
+                String command;
+            }
+            class WatchedAppsUpdateBeforeRestore {
+                List<ApplicationInfo> watchedApps;
+            }
+            class WatchedAppsUpdateRestoreApp {
+                ApplicationInfo watchedApp;
+                int appIndex;
+            }
+            class FirewallPolicyUpdate {
+                FirewallRulesManager.FirewallPolicy policy;
+            }
 
             @Override
-            protected Boolean doInBackground(Boolean... params) {
+            protected void onPreExecute() {
+                super.onPreExecute();
+
+                progressDialog = new ProgressDialog(mainActivity);
+                progressDialog.setTitle(actionName);
+                progressDialog.setIcon(R.drawable.firewall_launcher);
+
                 if (enabled) {
-                    try {
-                        mainActivity.firewall.enableFirewall(mainActivity.discowallSettings.getFirewallPort(mainActivity));
-                    } catch (Exception e) {
-                        errorAlert = new AlertDialog.Builder(mainActivity)
-                                .setTitle("Firewall ERROR")
-                                .setMessage("Firewall could not start due to error: " + e.getMessage())
-                                .setIcon(android.R.drawable.ic_dialog_alert);
-                        e.printStackTrace();
-                    }
+                    progressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+                    progressDialog.setMax(1);
                 } else {
-                    try {
-                        mainActivity.firewall.disableFirewall();
-                    } catch (Exception e) {
-                        errorAlert = new AlertDialog.Builder(mainActivity)
-                                .setTitle("Firewall ERROR")
-                                .setMessage("Firewall could not stop correctly due to error: " + e.getMessage())
-                                .setIcon(android.R.drawable.ic_dialog_alert);
-                        e.printStackTrace();
-                    }
+                    progressDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
                 }
 
-                return null;
+                progressDialog.setCancelable(false);
+                progressDialog.setIndeterminate(true);
+                progressDialog.setMessage(message);
+
+                progressDialog.show();
             }
 
             protected void onPostExecute(Boolean result) {
@@ -143,12 +143,132 @@ public class MainActivityGuiHandlerFirewallControl {
                 // Hide Busy-Dialog
                 progressDialog.dismiss();
             }
+
+            @Override
+            protected Boolean doInBackground(Boolean... params) {
+                if (enabled) {
+                    int port = mainActivity.discowallSettings.getFirewallPort(mainActivity);
+
+                    try {
+                        mainActivity.firewall.enableFirewall(port, this);
+                    } catch (Exception e) {
+                        errorAlert = new AlertDialog.Builder(mainActivity)
+                                .setTitle("Firewall ERROR")
+                                .setMessage("Firewall could not start due to error: " + e.getMessage())
+                                .setIcon(android.R.drawable.ic_dialog_alert);
+                        e.printStackTrace();
+                    }
+                } else {
+                    try {
+                        mainActivity.firewall.disableFirewall(this);
+                    } catch (Exception e) {
+                        errorAlert = new AlertDialog.Builder(mainActivity)
+                                .setTitle("Firewall ERROR")
+                                .setMessage("Firewall could not stop correctly due to error: " + e.getMessage())
+                                .setIcon(android.R.drawable.ic_dialog_alert);
+                        e.printStackTrace();
+                    }
+                }
+
+                return null;
+            }
+
+            @Override
+            protected void onProgressUpdate(Object... values) {
+                super.onProgressUpdate(values);
+
+                Object value = values[0];
+
+                if (enabled) {
+                    // Enabling Firewall actions
+
+                    if (value instanceof IptablesCommandUpdate) {
+                        IptablesCommandUpdate commandUpdate = (IptablesCommandUpdate) value;
+
+                        progressDialog.setMessage("creating iptables structure...\n\n" + "iptables " + commandUpdate.command);
+                    } else if (value instanceof WatchedAppsUpdateBeforeRestore) {
+                        WatchedAppsUpdateBeforeRestore watchedAppsUpdateBeforeRestore = (WatchedAppsUpdateBeforeRestore) value;
+
+                        progressDialog.setMessage("restoring monitored apps...");
+                        progressDialog.setIndeterminate(true);
+                        progressDialog.setMax(watchedAppsUpdateBeforeRestore.watchedApps.size());
+                        progressDialog.setProgress(0);
+                    } else if (value instanceof WatchedAppsUpdateRestoreApp) {
+                        WatchedAppsUpdateRestoreApp updateRestoreApp = (WatchedAppsUpdateRestoreApp) value;
+
+                        ApplicationInfo appInfo = updateRestoreApp.watchedApp;
+                        String appName = appInfo.loadLabel(packageManager) + "";
+
+                        progressDialog.setMessage("monitoring apps...\n\n" + appName + "\n" + appInfo.packageName);
+                        progressDialog.setIndeterminate(false);
+                        progressDialog.setProgress(updateRestoreApp.appIndex + 1);
+                        progressDialog.setIcon(appInfo.loadIcon(packageManager));
+                    } else if (value instanceof FirewallPolicyUpdate) {
+                        FirewallPolicyUpdate firewallPolicyUpdate = (FirewallPolicyUpdate) value;
+
+                        progressDialog.setIndeterminate(true);
+                        progressDialog.setMessage("applying firewall-policy...\n\nPolicy: " + firewallPolicyUpdate.policy);
+                        progressDialog.setIcon(R.drawable.firewall_launcher);
+                    } else {
+                        Log.d(LOG_TAG, "Unknown update-action: " + value);
+                    }
+                } else {
+                    // Disabling Firewall actions
+
+                    if (value instanceof IptablesCommandUpdate) {
+                        IptablesCommandUpdate commandUpdate = (IptablesCommandUpdate) value;
+
+                        progressDialog.setMessage("removing iptables structure...\n\n" + "iptables " + commandUpdate.command);
+                    } else {
+                        Log.d(LOG_TAG, "Unknown update-action: " + value);
+                    }
+                }
+            }
+
+            @Override
+            public void onWatchedAppsBeforeRestore(List<ApplicationInfo> watchedApps) {
+                WatchedAppsUpdateBeforeRestore watchedAppsUpdateBeforeRestore = new WatchedAppsUpdateBeforeRestore();
+                watchedAppsUpdateBeforeRestore.watchedApps = new LinkedList<>(watchedApps);
+
+                publishProgress(watchedAppsUpdateBeforeRestore);
+            }
+
+            @Override
+            public void onWatchedAppsRestoreApp(ApplicationInfo watchedApp, int appIndex) {
+                WatchedAppsUpdateRestoreApp updateRestoreApp = new WatchedAppsUpdateRestoreApp();
+                updateRestoreApp.watchedApp = watchedApp;
+                updateRestoreApp.appIndex = appIndex;
+
+                publishProgress(updateRestoreApp);
+            }
+
+            @Override
+            public void onFirewallPolicyBeforeApplyPolicy(FirewallRulesManager.FirewallPolicy policy) {
+                FirewallPolicyUpdate firewallPolicyUpdate = new FirewallPolicyUpdate();
+                firewallPolicyUpdate.policy = policy;
+
+                publishProgress(firewallPolicyUpdate);
+            }
+
+            @Override
+            public void onIptablesCommandBeforeExecute(String command) {
+                // Used for both: ENABLING/DISABLING firewall progress
+
+                IptablesCommandUpdate commandUpdate = new IptablesCommandUpdate();
+                commandUpdate.command = command;
+
+                publishProgress(commandUpdate);
+            }
+
+            @Override
+            public void onIptablesCommandAfterExecute(String command) {
+                // do nothing here
+            }
         }
 
         // Store enabled/disabled state in settings, so that it can be restored on app-start
         mainActivity.discowallSettings.setFirewallEnabled(mainActivity, enabled);
 
-        progressDialog.show();
         new FirewallSetupTask().execute();
     }
 

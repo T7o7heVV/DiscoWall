@@ -36,6 +36,10 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
         void onFirewallPolicyBeforeApplyPolicy(FirewallRulesManager.FirewallPolicy policy);
     }
 
+    public static interface FirewallDisableProgressListener extends IptablesControl.IptablesCommandListener {
+
+    }
+
     public static interface FirewallStateListener {
         void onFirewallStateChanged(FirewallState state);
     }
@@ -154,6 +158,10 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
     }
 
     public void disableFirewall() throws FirewallExceptions.FirewallException {
+        disableFirewall(null);
+    }
+
+    public void disableFirewall(FirewallDisableProgressListener progressListener) throws FirewallExceptions.FirewallException {
         Log.i(LOG_TAG, "disabling firewall...");
 
         if (control == null) {
@@ -168,12 +176,18 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
         // Disable iptables hooking-rules, so that no package will be sent to netfilter-bridge binary
         Log.v(LOG_TAG, "disconnecting bridge");
 
+        if (progressListener != null)
+            IptablesControl.setCommandListener(progressListener);
+
         try {
             control.disconnectBridge();
         } catch (Exception e) {
+            IptablesControl.setCommandListener(null); // remove temporary listener
             throw new FirewallExceptions.FirewallException("Error disconnecting netfilter-bridge: " + e.getMessage(), e);
         }
+
         control = null;
+        IptablesControl.setCommandListener(null); // remove temporary listener
 
         Log.i(LOG_TAG, "firewall disabled.");
         onFirewallStateChanged(FirewallState.STOPPED);
@@ -193,14 +207,6 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
          *
          * ==> Buffering the state removes the problem and removes the possibility of causing exceptions on query.
          */
-
-//        if (!isFirewallRunning())
-//            return FirewallState.STOPPED;
-//
-//        if (isFirewallPaused())
-//            return FirewallState.PAUSED;
-//        else
-//            return FirewallState.RUNNING;
     }
 
     public boolean isFirewallRunning() {
