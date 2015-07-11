@@ -2,7 +2,6 @@ package de.uni_kl.informatik.disco.discowall.firewall.helpers;
 
 import android.content.Context;
 import android.content.pm.ApplicationInfo;
-import android.util.Log;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -11,7 +10,7 @@ import java.util.List;
 import java.util.Set;
 
 import de.uni_kl.informatik.disco.discowall.firewall.FirewallService;
-import de.uni_kl.informatik.disco.discowall.utils.gui.AppAdapter;
+import de.uni_kl.informatik.disco.discowall.gui.adapters.AppAdapter;
 import de.uni_kl.informatik.disco.discowall.utils.ressources.DiscoWallSettings;
 
 public class WatchedAppsPreferencesManager {

@@ -2,41 +2,24 @@ package de.uni_kl.informatik.disco.discowall.gui.handlers;
 
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
-import android.content.Intent;
-import android.content.pm.ActivityInfo;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.os.AsyncTask;
 import android.util.Log;
-import android.view.View;
-import android.widget.AdapterView;
-import android.widget.CheckBox;
 import android.widget.CompoundButton;
-import android.widget.ImageView;
-import android.widget.ListView;
 import android.widget.RadioButton;
 import android.widget.Switch;
-import android.widget.TextView;
 import android.widget.Toast;
 
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
 
-import de.uni_kl.informatik.disco.discowall.EditConnectionRuleDialog;
 import de.uni_kl.informatik.disco.discowall.MainActivity;
 import de.uni_kl.informatik.disco.discowall.R;
 import de.uni_kl.informatik.disco.discowall.firewall.Firewall;
 import de.uni_kl.informatik.disco.discowall.firewall.FirewallExceptions;
-import de.uni_kl.informatik.disco.discowall.firewall.helpers.WatchedAppsPreferencesManager;
-import de.uni_kl.informatik.disco.discowall.firewall.rules.FirewallRules;
 import de.uni_kl.informatik.disco.discowall.firewall.rules.FirewallRulesManager;
-import de.uni_kl.informatik.disco.discowall.gui.DiscoWallAppAdapter;
 import de.uni_kl.informatik.disco.discowall.gui.dialogs.ErrorDialog;
-import de.uni_kl.informatik.disco.discowall.netfilter.iptables.IptablesControl;
-import de.uni_kl.informatik.disco.discowall.packages.Packages;
-import de.uni_kl.informatik.disco.discowall.utils.gui.AppAdapter;
 
 public class MainActivityGuiHandlerFirewallControl {
     private static final String LOG_TAG = MainActivity.class.getSimpleName();

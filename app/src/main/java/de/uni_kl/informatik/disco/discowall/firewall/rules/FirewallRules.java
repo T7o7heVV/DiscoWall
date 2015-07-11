@@ -6,8 +6,32 @@ public class FirewallRules {
     /************************* Rule Data ***********************************************************/
 
     public enum RulePolicy { ACCEPT, BLOCK, INTERACTIVE }
-    public enum DeviceFilter { WIFI, UMTS_3G, ANY; }
-    public enum ProtocolFilter { TCP, UDP, TCP_UDP }
+
+    public enum ProtocolFilter { TCP, UDP, TCP_UDP;
+        public boolean allowsTcp() {
+            return this == TCP || this == TCP_UDP;
+        }
+        public boolean allowsUdp() {
+            return this == UDP || this == TCP_UDP;
+        }
+        public boolean allowsTcpAndUdp() {
+            return this == TCP_UDP;
+        }
+    }
+
+    public enum DeviceFilter {
+        WIFI, UMTS_3G_4G, ANY;
+
+        public boolean allowsWifi() {
+            return this == WIFI || this == ANY;
+        }
+        public boolean allowsUmts() {
+            return this == UMTS_3G_4G || this == ANY;
+        }
+        public boolean allowsAny() {
+            return this == ANY;
+        }
+    }
 
     /*************************** ARCHITECTURE ******************************************************/
     public interface IFirewallRule {

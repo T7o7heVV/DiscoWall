@@ -102,6 +102,17 @@
             android:id="@+id/activity_show_app_rules_listView_rules"
             android:fastScrollEnabled="true" />
 
+        <!-- Here is the view to show if the list is emtpy -->
+
+        <TextView android:id="@android:id/empty"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:textStyle="italic"
+            android:textSize="17dp"
+            android:text="No Rules Defined" />
+
     </LinearLayout>
 
 </LinearLayout>

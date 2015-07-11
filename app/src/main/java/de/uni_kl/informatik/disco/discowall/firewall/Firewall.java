@@ -5,6 +5,7 @@ import android.content.pm.ApplicationInfo;
 import android.util.Log;
 
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
@@ -420,13 +421,43 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
         ErrorDialog.showError(firewallServiceContext, "DiscoWall Internal Error", "Error within package-filtering engine occurred: " + e.getMessage());
     }
 
-    public void DEBUG_TEST() {
+    public LinkedList<FirewallRules.IFirewallPolicyRule> getAppPolicyRules(ApplicationInfo appInfo) {
+        return rulesManager.getPolicyRules(appInfo.uid);
+    }
+
+    public LinkedList<FirewallRules.IFirewallRule> getAppRules(ApplicationInfo appInfo) {
+//        try {
+//            rulesManager.createTcpRule(
+//                    appInfo.uid,
+//                    new Packages.IpPortPair("localhost", 1337 + rulesManager.getRules().size()),
+//                    new Packages.IpPortPair("google.de", 80 + rulesManager.getRules().size()),
+//                    FirewallRules.DeviceFilter.WIFI,
+//                    FirewallRules.RulePolicy.ACCEPT
+//            );
+//        } catch (ShellExecuteExceptions.ShellExecuteException e) {
+//            throw new FirewallExceptions.FirewallException("Error creating firewall-rule: " + e.getMessage(), e);
+//        }
+
+        return rulesManager.getRules(appInfo.uid);
+    }
+
+    public void DEBUG_TEST(ApplicationInfo appInfo) {
         try {
-            iptableRulesManager.setUserPackagesForwardToFirewall(0, true);
-            FirewallRules.FirewallTransportRule rule = rulesManager.createTcpRule(0, new Packages.IpPortPair("localhost", 0), new Packages.IpPortPair("chip.de", 80), FirewallRules.DeviceFilter.ANY,  FirewallRules.RulePolicy.ACCEPT);
+//            iptableRulesManager.setUserPackagesForwardToFirewall(0, true);
+//            FirewallRules.FirewallTransportRule rule = rulesManager.createTcpRule(0, new Packages.IpPortPair("localhost", 0), new Packages.IpPortPair("chip.de", 80), FirewallRules.DeviceFilter.ANY,  FirewallRules.RulePolicy.ACCEPT);
+
+            FirewallRules.FirewallTransportRule rule = rulesManager.createTcpRule(
+                    appInfo.uid,
+                    new Packages.IpPortPair("localhost", 1337 + rulesManager.getRules().size()),
+                    new Packages.IpPortPair("google.de", 80 + rulesManager.getRules().size()),
+                    FirewallRules.DeviceFilter.WIFI,
+                    FirewallRules.RulePolicy.ACCEPT
+            );
+
             Log.i(LOG_TAG, "RULE CREATED: " + rule);
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
+
 }

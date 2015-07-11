@@ -18,16 +18,13 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 
-import de.uni_kl.informatik.disco.discowall.EditConnectionRuleDialog;
 import de.uni_kl.informatik.disco.discowall.MainActivity;
 import de.uni_kl.informatik.disco.discowall.R;
 import de.uni_kl.informatik.disco.discowall.ShowAppRulesActivity;
 import de.uni_kl.informatik.disco.discowall.firewall.FirewallExceptions;
-import de.uni_kl.informatik.disco.discowall.firewall.rules.FirewallRules;
-import de.uni_kl.informatik.disco.discowall.gui.DiscoWallAppAdapter;
+import de.uni_kl.informatik.disco.discowall.gui.adapters.DiscoWallAppAdapter;
 import de.uni_kl.informatik.disco.discowall.gui.dialogs.ErrorDialog;
-import de.uni_kl.informatik.disco.discowall.packages.Packages;
-import de.uni_kl.informatik.disco.discowall.utils.gui.AppAdapter;
+import de.uni_kl.informatik.disco.discowall.gui.adapters.AppAdapter;
 
 public class MainActivityGuiHandlerWatchedApps extends MainActivityGuiHandler {
     private DiscoWallAppAdapter watchedAppsListAdapter;

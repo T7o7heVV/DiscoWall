@@ -208,8 +208,6 @@ public class MainActivity extends AppCompatActivity {
     private ServiceConnection mConnection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName className, IBinder service) {
-//            Log.v(LOG_TAG, "conntected to service");
-
             FirewallService.FirewallBinder binder = (FirewallService.FirewallBinder) service;
             firewallService = binder.getService();
             firewall = firewallService.getFirewall();

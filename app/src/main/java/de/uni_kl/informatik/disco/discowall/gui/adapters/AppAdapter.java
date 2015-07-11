@@ -1,7 +1,6 @@
-package de.uni_kl.informatik.disco.discowall.utils.gui;
+package de.uni_kl.informatik.disco.discowall.gui.adapters;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -19,8 +18,6 @@ import android.widget.CompoundButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-import de.uni_kl.informatik.disco.discowall.R;
-
 public class AppAdapter extends ArrayAdapter<ApplicationInfo>{
     public interface AdapterHandler {
         void onRowCreate(AppAdapter adapter, ApplicationInfo appInfo, TextView appNameWidget, TextView appPackageNameWidget, ImageView appIconImageWidget, CheckBox appWatchedCheckboxWidget);
@@ -29,7 +26,6 @@ public class AppAdapter extends ArrayAdapter<ApplicationInfo>{
         void onAppNameClicked(AppAdapter appAdapter, ApplicationInfo appInfo, TextView appNameWidgetview);
         void onAppPackageClicked(AppAdapter appAdapter, ApplicationInfo appInfo, TextView appPackageNameWidget);
         void onAppIconClicked(AppAdapter appAdapter, ApplicationInfo appInfo, ImageView appIconImageWidget);
-
 
         // LongClicks:
         boolean onAppNameLongClicked(AppAdapter appAdapter, ApplicationInfo appInfo, TextView appNameWidgetview);

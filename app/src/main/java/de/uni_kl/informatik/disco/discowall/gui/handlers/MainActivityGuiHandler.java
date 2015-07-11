@@ -1,9 +1,6 @@
 package de.uni_kl.informatik.disco.discowall.gui.handlers;
 
-import android.util.Log;
-
 import de.uni_kl.informatik.disco.discowall.MainActivity;
-import de.uni_kl.informatik.disco.discowall.gui.DiscoWallAppAdapter;
 
 abstract class MainActivityGuiHandler {
     protected static final String LOG_TAG = MainActivity.class.getSimpleName();

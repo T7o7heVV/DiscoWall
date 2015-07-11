@@ -13,6 +13,7 @@ import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecuteExceptions;
 
 public class FirewallRulesManager {
     private static final String LOG_TAG = FirewallRulesManager.class.getSimpleName();
+
     public enum FirewallMode { FILTER_TCP, FILTER_UDP, FILTER_ALL, ALLOW_ALL, BLOCK_ALL }
     public enum FirewallPolicy { ALLOW, BLOCK, INTERACTIVE }
 
@@ -129,7 +130,7 @@ public class FirewallRulesManager {
             throw e;
         }
 
-        rulesHash.getRulesForUser(userId).add(rule);
+        rulesHash.addRule(rule);
         return rule;
     }
 
@@ -138,7 +139,7 @@ public class FirewallRulesManager {
 
         // TODO
 
-        rulesHash.getRulesForUser(userId).add(rule);
+        rulesHash.addRule(rule);
         return rule;
     }
 
@@ -152,19 +153,61 @@ public class FirewallRulesManager {
 //        return true;
 //    }
 
+    public LinkedList<FirewallRules.IFirewallRule> getRules() {
+        return new LinkedList<>(rulesHash.getRules());
+    }
+
+    public LinkedList<FirewallRules.IFirewallRule> getRules(int userId) {
+        return new LinkedList<>(rulesHash.getRules(userId));
+    }
+
+    public LinkedList<FirewallRules.IFirewallPolicyRule> getPolicyRules(int userId) {
+        LinkedList<FirewallRules.IFirewallPolicyRule> policyRules = new LinkedList<>();
+
+        for(FirewallRules.IFirewallRule rule : rulesHash.getRules(userId))
+            if (rule instanceof FirewallRules.IFirewallPolicyRule)
+                policyRules.add((FirewallRules.IFirewallPolicyRule) rule);
+
+        return policyRules;
+    }
+
+    public LinkedList<FirewallRules.IFirewallRedirectRule> getRedirectionRules(int userId) {
+        LinkedList<FirewallRules.IFirewallRedirectRule> redirectRules = new LinkedList<>();
+
+        for(FirewallRules.IFirewallRule rule : rulesHash.getRules(userId))
+            if (rule instanceof FirewallRules.IFirewallRedirectRule)
+                redirectRules.add((FirewallRules.IFirewallRedirectRule) rule);
+
+        return redirectRules;
+    }
+
     private class RulesHash {
         private final HashMap<Integer, LinkedList<FirewallRules.IFirewallRule>> userIdToRulesListHash = new HashMap<>();
 
-        public RulesHash() {
+        public void addRule(FirewallRules.IFirewallRule rule) {
+            getUserRules(rule.getUserId()).add(rule);
         }
 
-        public LinkedList<FirewallRules.IFirewallRule> getRulesForUser(int userId) {
+        public LinkedList<FirewallRules.IFirewallRule> getRules(int userId) {
+            return new LinkedList<>(getUserRules(userId));
+        }
+
+        private LinkedList<FirewallRules.IFirewallRule> getUserRules(int userId) {
             LinkedList<FirewallRules.IFirewallRule> rules = userIdToRulesListHash.get(userId);
 
             if (rules == null) {
                 rules = new LinkedList<>();
                 userIdToRulesListHash.put(userId, rules);
             }
+
+            return rules;
+        }
+
+        public LinkedList<FirewallRules.IFirewallRule> getRules() {
+            LinkedList<FirewallRules.IFirewallRule> rules = new LinkedList<>();
+
+            for(LinkedList<FirewallRules.IFirewallRule> userRules : userIdToRulesListHash.values())
+                rules.addAll(userRules);
 
             return rules;
         }
