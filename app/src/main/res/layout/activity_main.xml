@@ -4,7 +4,7 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:background="@drawable/main_brackground_fire"
-    >
+    tools:context=".MainActivity">
 
     <LinearLayout
         android:orientation="horizontal"

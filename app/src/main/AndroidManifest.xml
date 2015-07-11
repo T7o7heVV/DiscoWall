@@ -49,8 +49,7 @@
             android:name=".broadcastReceivers.AndroidBootCompletedReceiver"
             android:enabled="true"
             android:exported="true"
-            android:label="DiscoWallFirewallAutostartAtBootReceiver"
-            >
+            android:label="DiscoWallFirewallAutostartAtBootReceiver" >
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
@@ -58,6 +57,11 @@
                 <action android:name="android.intent.action.ACTION_EXTERNAL_APPLICATIONS_AVAILABLE" />
             </intent-filter>
         </receiver>
+
+        <activity
+            android:name=".ShowAppRulesActivity"
+            android:label="@string/title_activity_show_app_rules" >
+        </activity>
     </application>
 
 </manifest>

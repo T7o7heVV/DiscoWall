@@ -54,4 +54,8 @@
 
     <string name="title_activity_text_view">TextViewActivity</string>
     <string name="title_activity_edit_connection_rule_dialog">Edit Connection Rule</string>
+    <string name="title_activity_show_app_rules">ShowAppRulesActivity</string>
+
+    <string name="hello_world">Hello world!</string>
+    <string name="action_settings">Settings</string>
 </resources>

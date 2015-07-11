@@ -6,6 +6,8 @@
     android:background="#ffffff"
     >
 
+    <!-- App-Icon with Name and Packagename -->
+
     <LinearLayout
         android:orientation="horizontal"
         android:layout_width="match_parent"

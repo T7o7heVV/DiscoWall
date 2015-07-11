@@ -24,12 +24,6 @@ import de.uni_kl.informatik.disco.discowall.packages.Packages;
 public class EditConnectionRuleDialog extends DialogFragment {
     private static final String LOG_TAG = EditConnectionRuleDialog.class.getSimpleName();
 
-//    @Override
-//    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-//        // Inflate the layout to use as dialog or embedded fragment
-//        return inflater.inflate(R.layout.dialog_edit_connection_rule, container, false);
-//    }
-
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
