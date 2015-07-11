@@ -53,8 +53,8 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center"
-        android:paddingLeft="10dp"
-        android:paddingRight="10dp"
+        android:paddingLeft="20dp"
+        android:paddingRight="20dp"
         >
 
         <Button
@@ -64,8 +64,9 @@
             android:id="@+id/activity_show_app_rules_button_createRule"
             android:layout_gravity="center_horizontal"
             android:layout_weight="1"
-            android:layout_marginRight="5dp"
+            android:layout_marginRight="6dp"
             />
+
         <Button
             android:layout_width="match_parent"
             android:layout_height="40dp"
@@ -73,7 +74,7 @@
             android:id="@+id/activity_show_app_rules_button_clearRules"
             android:layout_gravity="center_horizontal"
             android:layout_weight="1"
-            android:layout_marginLeft="5dp"
+            android:layout_marginLeft="6dp"
             />
 
     </LinearLayout>
@@ -82,7 +83,11 @@
         android:orientation="vertical"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:padding="15dp">
+        android:paddingTop="10dp"
+        android:paddingLeft="15dp"
+        android:paddingRight="15dp"
+        android:paddingBottom="5dp"
+        >
 
         <TextView
             android:layout_width="wrap_content"

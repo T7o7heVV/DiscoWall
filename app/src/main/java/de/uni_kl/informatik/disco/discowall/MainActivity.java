@@ -5,7 +5,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.IBinder;
-import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
@@ -148,7 +147,7 @@ public class MainActivity extends AppCompatActivity {
                 Log.i(LOG_TAG, "Application: Show Rules");
                 return true;
             case R.id.action_menu_watched_apps_list_app_start:
-                guiHandlerWatchedApps.actionWatchedAppStartApp(info.position);
+                guiHandlerWatchedApps.actionWatchedAppsContextMenuStartApp(info.position);
                 return true;
             default:
                 return super.onContextItemSelected(item);

@@ -21,6 +21,7 @@ import java.util.List;
 import de.uni_kl.informatik.disco.discowall.EditConnectionRuleDialog;
 import de.uni_kl.informatik.disco.discowall.MainActivity;
 import de.uni_kl.informatik.disco.discowall.R;
+import de.uni_kl.informatik.disco.discowall.ShowAppRulesActivity;
 import de.uni_kl.informatik.disco.discowall.firewall.FirewallExceptions;
 import de.uni_kl.informatik.disco.discowall.firewall.rules.FirewallRules;
 import de.uni_kl.informatik.disco.discowall.gui.DiscoWallAppAdapter;
@@ -107,7 +108,9 @@ public class MainActivityGuiHandlerWatchedApps extends MainActivityGuiHandler {
     }
 
     private void actionWatchedAppShowFirewallRules(ApplicationInfo appInfo) {
-        EditConnectionRuleDialog.show(mainActivity, "example tag", appInfo, new Packages.IpPortPair("192.168.178.100", 1337), new Packages.IpPortPair("192.168.178.200", 4200), FirewallRules.RulePolicy.ACCEPT);
+//        EditConnectionRuleDialog.show(mainActivity, "example tag", appInfo, new Packages.IpPortPair("192.168.178.100", 1337), new Packages.IpPortPair("192.168.178.200", 4200), FirewallRules.RulePolicy.ACCEPT);
+
+        ShowAppRulesActivity.showAppRules(mainActivity, appInfo);
     }
 
     public void actionSetAllAppsWatched(boolean watched) {
@@ -255,7 +258,7 @@ public class MainActivityGuiHandlerWatchedApps extends MainActivityGuiHandler {
     }
 
 
-    public void actionWatchedAppStartApp(int listViewItemPosition) {
+    public void actionWatchedAppsContextMenuStartApp(int listViewItemPosition) {
         Log.v(LOG_TAG, "run application at list-position: " + listViewItemPosition + ")");
         final PackageManager packageManager = mainActivity.getPackageManager();
 
@@ -268,14 +271,14 @@ public class MainActivityGuiHandlerWatchedApps extends MainActivityGuiHandler {
         mainActivity.startActivity(startIntent);
     }
 
-    public void actionWatchedAppShowRules(int listViewItemPosition) {
+    public void actionWatchedAppsContextMenuShowRules(int listViewItemPosition) {
         Log.v(LOG_TAG, "show application rules at list-position: " + listViewItemPosition + ")");
 
         // Cannot be null, index has to be within bounds. Otherwise something has SERIOUSLY gone wrong within the GUI framework.
         ApplicationInfo appInfo = watchedAppsListAdapter.getItem(listViewItemPosition);
         Log.i(LOG_TAG, "Application: Show Rules: " + appInfo.packageName);
 
-        //TODO: Start Edit-Activity
+        actionWatchedAppShowFirewallRules(appInfo);
     }
 
 }
