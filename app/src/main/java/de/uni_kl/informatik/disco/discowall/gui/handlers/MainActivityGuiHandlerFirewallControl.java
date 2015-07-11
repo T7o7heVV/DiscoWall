@@ -345,14 +345,33 @@ public class MainActivityGuiHandlerFirewallControl {
                 if (mainActivity.firewall.getFirewallPolicy() == associatedFirewallPolicy)
                     return;
 
-                Log.v(LOG_TAG, "Change firewall-policy to " + associatedFirewallPolicy);
+                // Since this operation takes around a second, it is anoying that the GUI freezes for this amount of time ==> parallel task
+                new AsyncTask<Boolean, Boolean, Boolean>() {
+                    private String errorMessage;
 
-                try {
-                    mainActivity.firewall.setFirewallPolicy(associatedFirewallPolicy);
-                } catch (FirewallExceptions.FirewallException e) {
-                    ErrorDialog.showError(mainActivity, "Firewall Policy", "Error changing policy: " + e.getMessage());
-                    e.printStackTrace();
-                }
+                    @Override
+                    protected Boolean doInBackground(Boolean... params) {
+                        Log.v(LOG_TAG, "Change firewall-policy to " + associatedFirewallPolicy);
+
+                        try {
+                            mainActivity.firewall.setFirewallPolicy(associatedFirewallPolicy);
+                        } catch (FirewallExceptions.FirewallException e) {
+                            errorMessage = "Error changing policy: " + e.getMessage();
+                        }
+
+                        return true;
+                    }
+
+                    @Override
+                    protected void onPostExecute(Boolean aBoolean) {
+                        super.onPostExecute(aBoolean);
+
+                        if (errorMessage != null)
+                            ErrorDialog.showError(mainActivity, "Firewall Policy", errorMessage);
+
+                        Toast.makeText(mainActivity, "Firewall-Policy: " + mainActivity.firewall.getFirewallPolicy(), Toast.LENGTH_SHORT).show();
+                    }
+                }.execute();
             }
         });
     }

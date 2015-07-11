@@ -49,7 +49,7 @@
 
     <string name="firewall_service_notification_title">DiscoWall Service</string>
     <string name="firewall_service_notification_message__firewall_paused">firewall paused</string>
-    <string name="firewall_service_notification_message__firewall_enabled">firewall enabled, traffic is being filtered</string>
+    <string name="firewall_service_notification_message__firewall_enabled">firewall enabled, policy</string> <!-- string will be appended with FirewallPolicy -->
     <string name="firewall_service_notification_message__firewall_disabled">firewall disabled</string>
 
     <string name="title_activity_text_view">TextViewActivity</string>

@@ -29,6 +29,11 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
     public static enum FirewallState { RUNNING, PAUSED, STOPPED;}
     private FirewallState firewallState;
 
+    /**
+     * Listener used so that the busy-dialog may show relevant data to the user, while the firewall is being enabled.
+     *
+     * @see de.uni_kl.informatik.disco.discowall.firewall.Firewall.FirewallDisableProgressListener
+     */
     public static interface FirewallEnableProgressListener extends IptablesControl.IptablesCommandListener {
         void onWatchedAppsBeforeRestore(List<ApplicationInfo> watchedApps);
         void onWatchedAppsRestoreApp(ApplicationInfo watchedApp, int appIndex);
@@ -36,12 +41,21 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
         void onFirewallPolicyBeforeApplyPolicy(FirewallRulesManager.FirewallPolicy policy);
     }
 
+    /**
+     * Listener used so that the busy-dialog may show relevant data to the user, while the firewall is being disabled.
+     *
+     * @see de.uni_kl.informatik.disco.discowall.firewall.Firewall.FirewallEnableProgressListener
+     */
     public static interface FirewallDisableProgressListener extends IptablesControl.IptablesCommandListener {
-
+        // No extra callbacks but the inherrited Iptables-Command-Callbacks
     }
 
+    /**
+     * Listener implemented by the {@link FirewallService} in order to update the <b>notification-icon</b> as the firewall-state changes.
+     */
     public static interface FirewallStateListener {
-        void onFirewallStateChanged(FirewallState state);
+        void onFirewallStateChanged(FirewallState state, FirewallRulesManager.FirewallPolicy policy);
+        void onFirewallPolicyChanged(FirewallRulesManager.FirewallPolicy policy);
     }
 
     private static final String LOG_TAG = Firewall.class.getSimpleName();
@@ -85,7 +99,7 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
         Log.d(LOG_TAG, "Firewall state changed: " + state);
 
         if (firewallStateListener != null)
-            firewallStateListener.onFirewallStateChanged(state);
+            firewallStateListener.onFirewallStateChanged(state, getFirewallPolicy());
     }
 
     public void enableFirewall(int port) throws FirewallExceptions.FirewallException {
@@ -261,11 +275,11 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
             onFirewallStateChanged(FirewallState.RUNNING);
         }
     }
-
-    private void assertFirewallRunning() {
-        if (!isFirewallRunning())
-            throw new FirewallExceptions.FirewallInvalidStateException("Firewall needs to be running to perform specified action.", FirewallState.STOPPED);
-    }
+//
+//    private void assertFirewallRunning() {
+//        if (!isFirewallRunning())
+//            throw new FirewallExceptions.FirewallInvalidStateException("Firewall needs to be running to perform specified action.", FirewallState.STOPPED);
+//    }
 
     public FirewallRulesManager.FirewallPolicy getFirewallPolicy() {
         return rulesManager.getFirewallPolicy();
@@ -273,6 +287,9 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
 
     public void setFirewallPolicy(FirewallRulesManager.FirewallPolicy newRulesPolicy) throws FirewallExceptions.FirewallException {
         rulesManager.setFirewallPolicy(newRulesPolicy);
+
+        if (firewallStateListener != null)
+            firewallStateListener.onFirewallPolicyChanged(newRulesPolicy);
     }
 
     @Override

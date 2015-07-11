@@ -10,6 +10,7 @@ import android.os.IBinder;
 import android.util.Log;
 
 import de.uni_kl.informatik.disco.discowall.MainActivity;
+import de.uni_kl.informatik.disco.discowall.firewall.rules.FirewallRulesManager;
 import de.uni_kl.informatik.disco.discowall.utils.ressources.DiscoWallConstants;
 import de.uni_kl.informatik.disco.discowall.R;
 import de.uni_kl.informatik.disco.discowall.utils.ressources.DiscoWallSettings;
@@ -44,8 +45,13 @@ public class FirewallService extends IntentService {
 
         firewall.setFirewallStateListener(new Firewall.FirewallStateListener() {
             @Override
-            public void onFirewallStateChanged(Firewall.FirewallState state) {
-                updateServiceNotification();
+            public void onFirewallStateChanged(Firewall.FirewallState state, FirewallRulesManager.FirewallPolicy policy) {
+                updateServiceNotification(state, policy);
+            }
+
+            @Override
+            public void onFirewallPolicyChanged(FirewallRulesManager.FirewallPolicy policy) {
+                updateServiceNotification(firewall.getFirewallState(), policy);
             }
         });
     }
@@ -84,7 +90,7 @@ public class FirewallService extends IntentService {
         }
 
         serviceRunning = true;
-        updateServiceNotification();
+        updateServiceNotification(firewall.getFirewallState(), firewall.getFirewallPolicy());
         Log.i(LOG_TAG, "service started.");
 
 
@@ -167,18 +173,17 @@ public class FirewallService extends IntentService {
         context.startService(serviceStartIntent);
     }
 
-    public void updateServiceNotification() {
+    public void updateServiceNotification(Firewall.FirewallState state, FirewallRulesManager.FirewallPolicy policy) {
         Intent clickIntent = new Intent(this, MainActivity.class);
 //        clickIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         PendingIntent pendingClickIntent = PendingIntent.getActivity(this, 1, clickIntent, PendingIntent.FLAG_UPDATE_CURRENT);
 //        PendingIntent pendingClickIntent = PendingIntent.getActivity(this, 1, clickIntent, 0);
 
         String text;
-        Firewall.FirewallState state = firewall.getFirewallState();
 
         switch (state) {
             case RUNNING:
-                text = getString(R.string.firewall_service_notification_message__firewall_enabled);
+                text = getString(R.string.firewall_service_notification_message__firewall_enabled) +" " +  policy + ".";
                 break;
             case STOPPED:
                 text = getString(R.string.firewall_service_notification_message__firewall_disabled);
