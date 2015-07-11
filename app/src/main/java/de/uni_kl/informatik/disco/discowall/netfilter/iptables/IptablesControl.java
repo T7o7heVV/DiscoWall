@@ -7,7 +7,22 @@ import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecute;
 import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecuteExceptions;
 
 public class IptablesControl {
+    public static interface IptablesCommandListener {
+        void onIptablesCommandBeforeExecute(String command);
+        void onIptablesCommandAfterExecute(String command);
+    }
+
     private static final String LOG_TAG = "IptablesControl";
+    private static IptablesCommandListener commandListener;
+
+    public static void setCommandListener(IptablesCommandListener listener) {
+        IptablesControl.commandListener = listener;
+    }
+
+    public static IptablesCommandListener getCommandListener() {
+        return IptablesControl.commandListener;
+    }
+
 
     public static boolean ruleAddIfMissingAny(String chain, String[] rules) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.NonZeroReturnValueException {
         boolean any = false;
@@ -208,6 +223,14 @@ public class IptablesControl {
     }
 
     private static ShellExecute.ShellExecuteResult executeEx(String command) throws ShellExecuteExceptions.CallException {
-        return RootShellExecute.execute(true, true, "iptables " + command);
+        if (commandListener != null)
+            commandListener.onIptablesCommandBeforeExecute(command);
+
+        ShellExecute.ShellExecuteResult result = RootShellExecute.execute(true, true, "iptables " + command);
+
+        if (commandListener != null)
+            commandListener.onIptablesCommandAfterExecute(command);
+
+        return result;
     }
 }

@@ -29,6 +29,13 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
     public static enum FirewallState { RUNNING, PAUSED, STOPPED;}
     private FirewallState firewallState;
 
+    public static interface FirewallEnableProgressListener extends IptablesControl.IptablesCommandListener {
+        void onWatchedAppsBeforeRestore(List<ApplicationInfo> watchedApps);
+        void onWatchedAppsRestoreApp(ApplicationInfo watchedApp, int appIndex);
+
+        void onFirewallPolicyBeforeApplyPolicy(FirewallRulesManager.FirewallPolicy policy);
+    }
+
     public static interface FirewallStateListener {
         void onFirewallStateChanged(FirewallState state);
     }
@@ -78,6 +85,10 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
     }
 
     public void enableFirewall(int port) throws FirewallExceptions.FirewallException {
+        enableFirewall(port, null);
+    }
+
+    public void enableFirewall(int port, FirewallEnableProgressListener progressListener) throws FirewallExceptions.FirewallException {
         Log.i(LOG_TAG, "starting firewall...");
 
         boolean alreadyRunnig = isFirewallRunning();
@@ -88,12 +99,20 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
             Log.i(LOG_TAG, "firewall already running. nothing to do.");
         } else {
 
+            // Commandlistener is only temporarily being set
+            if (progressListener != null)
+                IptablesControl.setCommandListener(progressListener);
+
             // starting netfilter bridge - i.e. the "firewall core"
             try {
                 control = new NetfilterBridgeControl(this, firewallServiceContext, port);
             } catch(Exception e) {
+                IptablesControl.setCommandListener(null); // removing command-listener
                 throw new FirewallExceptions.FirewallException("Error initializing firewall: " + e.getMessage(), e);
             }
+
+            // removing iptables-command-listener.
+            IptablesControl.setCommandListener(null);
 
             // starting the dns cache for sniffing the dns-resolutions
 //            dnsCacheControl = new DnsCacheControl(DiscoWallConstants.DnsCache.dnsCachePort);
@@ -103,12 +122,32 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
 
             // Start watching apps which have been watched before
             Log.d(LOG_TAG, "restoring forwarding-rules for watched apps...");
-            for(ApplicationInfo watchedApp : watchedAppsManager.getWatchedApps())
-                setAppWatched(watchedApp, true);
+            {
+                List<ApplicationInfo> watchedApps = watchedAppsManager.getWatchedApps();
+
+                // reporting progress to listener
+                if (progressListener != null)
+                    progressListener.onWatchedAppsBeforeRestore(watchedApps);
+
+                int appIndex = 0;
+                for (ApplicationInfo watchedApp : watchedApps) {
+                    if (progressListener != null)
+                        progressListener.onWatchedAppsRestoreApp(watchedApp, appIndex++); // reporting progress to listener
+
+                    setAppWatched(watchedApp, true);
+                }
+            }
 
             Log.d(LOG_TAG, "restoring firewall-policy...");
-            FirewallRulesManager.FirewallPolicy policy = DiscoWallSettings.getInstance().getFirewallPolicy(firewallServiceContext);
-            rulesManager.setFirewallPolicy(policy);
+            {
+                FirewallRulesManager.FirewallPolicy policy = DiscoWallSettings.getInstance().getFirewallPolicy(firewallServiceContext);
+
+                // reporting progress to listener
+                if (progressListener != null)
+                    progressListener.onFirewallPolicyBeforeApplyPolicy(policy);
+
+                rulesManager.setFirewallPolicy(policy);
+            }
 
             Log.i(LOG_TAG, "firewall started.");
         }
