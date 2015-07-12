@@ -8,6 +8,21 @@
         android:inputType="number">
     </EditTextPreference>
 
+    <EditTextPreference
+        android:title="Firewall connection decision timeout"
+        android:key="@string/preference_id__firewall_connection_decision_timeoutMS"
+        android:summary="@string/preference_summary__firewall_connection_decision_timeoutMS"
+        android:defaultValue="30000"
+        android:inputType="number">
+    </EditTextPreference>
+
+    <SwitchPreference
+        android:title="Firewall-Service Autostart"
+        android:key="@string/preference_id__firewall_connection_decision_default_action"
+        android:summary="@string/preference_summary__firewall_connection_decision_default_action"
+        android:defaultValue="true">
+    </SwitchPreference>
+
     <SwitchPreference
         android:title="Firewall-Service Autostart"
         android:key="@string/preference_id__service_autostart"

@@ -95,7 +95,7 @@ public class Firewall implements NetfilterBridgeCommunicator.BridgeEventsHandler
         this.firewallState = FirewallState.STOPPED;
 
         // Helpers:
-        this.packageFilter = new FirewallPackageFilter(policyManager, firewallRulesManager);
+        this.packageFilter = new FirewallPackageFilter(firewallServiceContext, policyManager, firewallRulesManager);
 
         // Subsystems:
         this.subsystemWatchedApps = new SubsystemWatchedApps(this, firewallServiceContext, iptableRulesManager);

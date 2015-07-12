@@ -1,83 +1,85 @@
 package de.uni_kl.informatik.disco.discowall.firewall;
 
+import android.content.Context;
 import android.util.Log;
 
-import de.uni_kl.informatik.disco.discowall.firewall.rules.FirewallIptableRulesHandler;
+import de.uni_kl.informatik.disco.discowall.firewall.helpers.FirewallPolicyManager;
+import de.uni_kl.informatik.disco.discowall.firewall.helpers.FirewallRulesManager;
+import de.uni_kl.informatik.disco.discowall.firewall.rules.FirewallRules;
+import de.uni_kl.informatik.disco.discowall.netfilter.bridge.NetfilterBridgeCommunicator;
 import de.uni_kl.informatik.disco.discowall.packages.Connections;
 import de.uni_kl.informatik.disco.discowall.packages.Packages;
+import de.uni_kl.informatik.disco.discowall.utils.ressources.DiscoWallSettings;
 
 public class FirewallPackageFilter {
     private static final String LOG_TAG = FirewallPackageFilter.class.getSimpleName();
+    private final FirewallPolicyManager policyManager;
+    private final FirewallRulesManager rulesManager;
+    private final Context context;
 
-    public enum FirewallMode { FILTER_TCP, FILTER_UDP, FILTER_ALL, ALLOW_ALL, BLOCK_ALL }
-
-    private FirewallMode firewallMode;
-
-    public FirewallPackageFilter(FirewallIptableRulesHandler firewallIptableRulesHandler) {
-        this.firewallMode = FirewallMode.FILTER_TCP;
+    public FirewallPackageFilter(Context context, FirewallPolicyManager policyManager, FirewallRulesManager rulesManager) {
+        this.context = context;
+        this.policyManager = policyManager;
+        this.rulesManager = rulesManager;
     }
 
-    public FirewallMode getFirewallMode() {
-        return firewallMode;
-    }
-
-    public void setFirewallMode(FirewallMode firewallMode) {
-        this.firewallMode = firewallMode;
-    }
-
-    public boolean isPackageAccepted(Packages.TransportLayerPackage tlPackage, Connections.Connection connection) {
-        switch(firewallMode) {
-            case ALLOW_ALL:     // MODE: accept all packages
-                return true;
-
-            case BLOCK_ALL:     // MODE: block all packages
-                return false;
-
-            case FILTER_TCP:    // MODE: filter tcp only, accept rest
-                if (tlPackage.getProtocol() != Packages.TransportLayerProtocol.TCP)
-                    return true; // package is not tcp ==> will not be filtered
-                else
-                    break;
-
-            case FILTER_UDP:    // MODE: filter udp only, accept rest
-                if (tlPackage.getProtocol() != Packages.TransportLayerProtocol.UDP)
-                    return true;
-                else
-                    break;
-
-            case FILTER_ALL:    // MODE: filter any package
-                break;
+    private FirewallRules.IFirewallPolicyRule getPackageRule(Packages.TransportLayerPackage tlPackage, Connections.Connection connection) {
+        // Find first matching rule for package:
+        for(FirewallRules.IFirewallPolicyRule rule : rulesManager.getPolicyRules(tlPackage.getUserId())) {
+            if (rule.appliesTo(tlPackage))
+                return rule;
         }
 
-//        switch(tlPackage.getProtocol())
-//        {
-//            case TCP:
-//                return isFilteredTcpPackageAccepted((Packages.TcpPackage) tlPackage, (Connections.TcpConnection) connection);
-//            case UDP:
-//                return isFilteredUdpPackageAccepted((Packages.UdpPackage) tlPackage, (Connections.UdpConnection) connection);
-//            default:
-//                Log.e(LOG_TAG, "Unsupported Protocol: " + tlPackage.getProtocol());
-//                return true;
-//        }
-
-        return isFilteredPackageAccepted(tlPackage, connection);
+        return null;
     }
 
-    private boolean isFilteredPackageAccepted(Packages.TransportLayerPackage tlPackage, Connections.Connection connection) {
-        Log.i(LOG_TAG, "filtering package: " + tlPackage);
+    private void decidePackageAcceptedInteractively(Packages.TransportLayerPackage tlPackage, Connections.Connection connection, NetfilterBridgeCommunicator.PackageActionCallback actionCallback) {
+        boolean defaultActionAccept = DiscoWallSettings.getInstance().isNewConnectionDefaultDecisionAccept(context); // default-action (ACCEPT/BLOCK)
+        int decisionTimeout = DiscoWallSettings.getInstance().getNewConnectionDecisionTimeoutMS(context); // time after which the default-action will be taken
 
-        return true;
+        // TODO!
+        Log.w(LOG_TAG, "INTERACTIVE decision is NOT impelmented yet! Accepting package...");
+        actionCallback.acceptPackage(tlPackage);
     }
 
-//    private boolean isFilteredUdpPackageAccepted(Packages.UdpPackage udpPackage, Connections.UdpConnection connection) {
-//        return true;
-//    }
-//
-//    private boolean isFilteredTcpPackageAccepted(Packages.TcpPackage tcpPackage, Connections.TcpConnection connection) {
-//        Log.i(LOG_TAG, "Connection: " + connection);
-//
-//        return true;
-//    }
+    public void decidePackageAccepted(Packages.TransportLayerPackage tlPackage, Connections.Connection connection, NetfilterBridgeCommunicator.PackageActionCallback actionCallback) {
+        FirewallRules.IFirewallPolicyRule packagePolicyRule = getPackageRule(tlPackage, connection);
 
+        Log.i("RULE-MATCH", "Package: " + tlPackage);
+        Log.i("RULE-MATCH", "Matching Rule: " + packagePolicyRule);
+
+        if (packagePolicyRule != null) {
+            // Apply rule-policy:
+
+            switch(packagePolicyRule.getRulePolicy()) {
+                case ALLOW:
+                    actionCallback.acceptPackage(tlPackage);
+                    break;
+                case BLOCK:
+                    actionCallback.blockPackage(tlPackage);
+                    break;
+                case INTERACTIVE:
+                    decidePackageAcceptedInteractively(tlPackage, connection, actionCallback);
+                    break;
+                default:
+                    throw new RuntimeException("Rule-Policy filter-behavior not implemented: " + packagePolicyRule.getRulePolicy());
+            }
+        }
+
+        // Apply firewall-policy:
+        switch (policyManager.getFirewallPolicy()) {
+            case ALLOW:
+                actionCallback.acceptPackage(tlPackage);
+                break;
+            case BLOCK:
+                actionCallback.blockPackage(tlPackage);
+                break;
+            case INTERACTIVE:
+                decidePackageAcceptedInteractively(tlPackage, connection, actionCallback);
+                break;
+            default:
+                throw new RuntimeException("Firewall-Policy filter-behavior not implemented: " + policyManager.getFirewallPolicy());
+        }
+    }
 
 }

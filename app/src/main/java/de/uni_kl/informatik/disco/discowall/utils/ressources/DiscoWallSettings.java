@@ -25,6 +25,10 @@ public class DiscoWallSettings {
         return getSettingIntFromStr(context, R.string.preference_id__nfqueue_bridge_port, DiscoWallConstants.Firewall.defaultPort);
     }
 
+    public int getNewConnectionDecisionTimeoutMS(Context context) {
+        return getSettingIntFromStr(context, R.string.preference_id__firewall_connection_decision_timeoutMS, 30000);
+    }
+
     public boolean isAutostartFirewallService(Context context) {
         return getSettingBool(context, R.string.preference_id__service_autostart, true);
     }
@@ -52,6 +56,10 @@ public class DiscoWallSettings {
 
     public void setWatchedAppsPackages(Context context, Set<String> watchedAppPackages) {
         setSettingStringSet(context, R.string.preference_id__watched_apps_packages, watchedAppPackages);
+    }
+
+    public boolean isNewConnectionDefaultDecisionAccept(Context context) {
+        return getSettingBool(context, R.string.preference_id__firewall_connection_decision_default_action, true);
     }
 
     public boolean isHandleConnectionDialogDefaultCreateRule(Context context) {
