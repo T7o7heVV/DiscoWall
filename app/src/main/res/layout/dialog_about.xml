@@ -8,6 +8,7 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:padding="20dip"
+    android:background="@drawable/main_brackground_fire"
     >
 
     <TextView

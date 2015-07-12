@@ -5,9 +5,8 @@
     <string name="app_name">DiscoWall</string>
     <string name="app_about_disco_ag_url">disco.cs.uni-kl.de</string>
     <string name="app_about_description">
-        DiscoWall is an interactive firewall which controls permissions for TCP-connections on app-basis.\n
-        \n
-        In contrast to regular firewalls, DiscoWall uses netfilter\'s nfqueue-library to filter packages and thereby reacts to connections as they are being established.</string>
+        DiscoWall is an interactive firewall which controls permissions for TCP- and UDP-connections per app.\n
+        \nIn contrast to regular firewalls, DiscoWall uses netfilter\'s nfqueue-library to filter packages and thereby reacts to connections as they are being established.</string>
     <string name="app_about_build">build 2015-07-06</string>
     <string name="app_about_credits">Tewanima Löwe,\nDisco AG TU-Kaiserslautern, disco.cs.uni-kl.de</string>
 
