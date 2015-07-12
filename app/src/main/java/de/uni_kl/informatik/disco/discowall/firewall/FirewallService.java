@@ -202,7 +202,7 @@ public class FirewallService extends IntentService {
                 .setContentIntent(pendingClickIntent)
                 .build();
 
-        stopForeground(true);
+//        stopForeground(true); // not required for refresh. Creates strange flicker-effect anyway.
         startForeground(DiscoWallConstants.NotificationIDs.firewallService, notification);
     }
 

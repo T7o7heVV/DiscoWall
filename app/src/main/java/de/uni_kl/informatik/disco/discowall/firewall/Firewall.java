@@ -359,7 +359,7 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
 
     public void DEBUG_TEST(ApplicationInfo appInfo) {
         try {
-            FirewallRules.FirewallTransportRule rule = subsystemRulesManager.createTransportLayerRule(
+            subsystemRulesManager.createTransportLayerRule(
                     appInfo,
                     new Packages.IpPortPair("localhost", 1337 + subsystemRulesManager.getAllRules().size()),
                     new Packages.IpPortPair("google.de", 80 + subsystemRulesManager.getAllRules().size()),
@@ -368,7 +368,23 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
                     FirewallRules.RulePolicy.ACCEPT
             );
 
-            Log.i(LOG_TAG, "RULE CREATED: " + rule);
+            subsystemRulesManager.createTransportLayerRule(
+                    appInfo,
+                    new Packages.IpPortPair("localhost", 13370 + subsystemRulesManager.getAllRules().size()),
+                    new Packages.IpPortPair("google.de", 800 + subsystemRulesManager.getAllRules().size()),
+                    FirewallRules.DeviceFilter.WIFI,
+                    FirewallRules.ProtocolFilter.TCP,
+                    FirewallRules.RulePolicy.BLOCK
+            );
+
+            subsystemRulesManager.createTransportLayerRedirectionRule(
+                    appInfo,
+                    new Packages.IpPortPair("localhost", 1337 + subsystemRulesManager.getAllRules().size()),
+                    new Packages.IpPortPair("google.de", 80 + subsystemRulesManager.getAllRules().size()),
+                    FirewallRules.DeviceFilter.WIFI,
+                    FirewallRules.ProtocolFilter.TCP,
+                    new Packages.IpPortPair("remote", 42)
+            );
         } catch (Exception e) {
             e.printStackTrace();
         }
