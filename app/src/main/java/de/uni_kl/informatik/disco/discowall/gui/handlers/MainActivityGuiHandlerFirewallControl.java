@@ -288,25 +288,16 @@ public class MainActivityGuiHandlerFirewallControl {
         RadioButton buttonBlock = (RadioButton) mainActivity.findViewById(R.id.radioButtonFirewallModeBlock);
         RadioButton buttonInteractive = (RadioButton) mainActivity.findViewById(R.id.radioButtonFirewallModeInteractive);
 
-        boolean firewallRunning = mainActivity.firewall.isFirewallRunning();
-
-        // Buttons can only be used, if firewall is running
-        buttonAllow.setEnabled(firewallRunning);
-        buttonBlock.setEnabled(firewallRunning);
-        buttonInteractive.setEnabled(firewallRunning);
-
-        if (firewallRunning) {
-            switch (mainActivity.firewall.getFirewallPolicy()) {
-                case ALLOW:
-                    buttonAllow.setChecked(true);
-                    break;
-                case BLOCK:
-                    buttonBlock.setChecked(true);
-                    break;
-                case INTERACTIVE:
-                    buttonInteractive.setChecked(true);
-                    break;
-            }
+        switch (mainActivity.firewall.getFirewallPolicy()) {
+            case ALLOW:
+                buttonAllow.setChecked(true);
+                break;
+            case BLOCK:
+                buttonBlock.setChecked(true);
+                break;
+            case INTERACTIVE:
+                buttonInteractive.setChecked(true);
+                break;
         }
     }
 
@@ -352,7 +343,16 @@ public class MainActivityGuiHandlerFirewallControl {
                         if (errorMessage != null)
                             ErrorDialog.showError(mainActivity, "Firewall Policy", errorMessage);
 
-                        Toast.makeText(mainActivity, "Firewall-Policy: " + mainActivity.firewall.getFirewallPolicy(), Toast.LENGTH_SHORT).show();
+                        String message = "Firewall-Policy: " + mainActivity.firewall.getFirewallPolicy();
+
+                        // Short message with short toast if firewall enabled, info with long toast if disabled:
+                        if (!mainActivity.firewall.isFirewallRunning()) {
+                            message += "\nEnable firewall for policy to take effect.";
+                            Toast.makeText(mainActivity, message, Toast.LENGTH_LONG).show();
+                        } else {
+                            Toast.makeText(mainActivity, message, Toast.LENGTH_SHORT).show();
+                        }
+
                     }
                 }.execute();
             }
