@@ -12,9 +12,27 @@ import java.net.Socket;
 import de.uni_kl.informatik.disco.discowall.packages.Packages;
 
 public class NetfilterBridgeCommunicator implements Runnable {
-    public static interface EventsHandler {
-        boolean onPackageReceived(Packages.TransportLayerPackage tlPackage);
+    public static interface PackageActionCallback {
+        void acceptPackage(Packages.TransportLayerPackage tlPackage);
+        void blockPackage(Packages.TransportLayerPackage tlPackage);
+    }
 
+    public static interface PackageReceivedHandler {
+        /**
+         * This method is being called for each received package.
+         * <p></p>
+         * For any action-decision, except INTERACTIVE, the result can be fetched simply by querying the matching rule (if any), or using the firewall-policy.
+         * For INTERACTIVE decisions, however, the user must react by use of a dialog. As android-dialogs are inherintly <b>non-modal</b>, a callback must be used for deciding the response.
+         * <p>
+         * <b>IMPORTANT: </b> The netfilter-bridge will block until a decision has been reached.
+         * @param tlPackage
+         * @param actionCallback the callback which lets the PackageReceivedHandler declare his decision.
+         * @return
+         */
+        void onPackageReceived(Packages.TransportLayerPackage tlPackage, PackageActionCallback actionCallback);
+    }
+
+    public static interface BridgeEventsHandler {
         /**
          * This method should NEVER be called. It only exists to make debugging simpler, so that errors do not get stuck within LOGCAT only.
          * @param e
@@ -25,7 +43,10 @@ public class NetfilterBridgeCommunicator implements Runnable {
 
     private static final String LOG_TAG = "NfBridgeCommunicator";
     public final int listeningPort;
-    private final EventsHandler eventsHandler;
+
+    // Callbacks & Listeners
+    private final BridgeEventsHandler eventsHandler;
+    private final PackageReceivedHandler packageReceivedHandler;
 
     private volatile boolean runCommunicationLoop;
     private volatile boolean connected;
@@ -36,7 +57,8 @@ public class NetfilterBridgeCommunicator implements Runnable {
     private PrintWriter socketOut;
     private BufferedReader socketIn;
 
-    public NetfilterBridgeCommunicator(EventsHandler eventsHandler, int listeningPort) throws IOException {
+    public NetfilterBridgeCommunicator(PackageReceivedHandler packageReceivedHandler, BridgeEventsHandler eventsHandler, int listeningPort) throws IOException {
+        this.packageReceivedHandler = packageReceivedHandler;
         this.eventsHandler = eventsHandler;
         this.listeningPort = listeningPort;
 
@@ -125,7 +147,7 @@ public class NetfilterBridgeCommunicator implements Runnable {
         }
     }
 
-    private void sendMessage(String prefix, String message) {
+    private synchronized void sendMessage(String prefix, String message) {
         Log.v(LOG_TAG, "sendMessage(): " + prefix + message);
         socketOut.println(prefix + message);
         socketOut.flush();
@@ -252,22 +274,16 @@ public class NetfilterBridgeCommunicator implements Runnable {
     }
 
     private void onPackageReceived(Packages.TransportLayerPackage tlPackage) {
-        boolean acceptPackage = eventsHandler.onPackageReceived(tlPackage);
-
-        if (acceptPackage)
-            Log.v(LOG_TAG, "Accepting package: " + tlPackage);
-        else
-            Log.v(LOG_TAG, "Dropping package: " + tlPackage);
-
-        sendPackageQueryResponse(acceptPackage);
+        PackageActionCallbackHandler callbackHandler = new PackageActionCallbackHandler(tlPackage);
+        packageReceivedHandler.onPackageReceived(tlPackage, callbackHandler);
     }
 
     private void onErroneousPackageReceived() {
-        Log.d(LOG_TAG, "Accepting erroneous package, so that the netfilter-bridge will not stay blocked while waiting for response.");
+        Log.e(LOG_TAG, "Accepting erroneous package, so that the netfilter-bridge will not stay blocked while waiting for response.");
         sendPackageQueryResponse(true);
     }
 
-    private void sendPackageQueryResponse(boolean accept) {
+    private synchronized void sendPackageQueryResponse(boolean accept) {
         if (accept)
             sendMessage(NetfilterBridgeProtocol.QueryPackageActionResponse.MSG_PREFIX, NetfilterBridgeProtocol.QueryPackageActionResponse.FLAG_ACCEPT_PACKAGE);
         else
@@ -286,4 +302,68 @@ public class NetfilterBridgeCommunicator implements Runnable {
         runCommunicationLoop = false;
     }
 
+    /**
+     * Is being called from within the firewall, as a package-decision is made.
+     * For each package, there is one instance.
+     */
+    private class PackageActionCallbackHandler implements PackageActionCallback {
+        private final String LOG_TAG = PackageActionCallbackHandler.class.getSimpleName();
+        private final Packages.TransportLayerPackage tlPackage;
+
+        private volatile boolean isAnswered = false;
+
+        public boolean isAnswered() {
+            return isAnswered;
+        }
+
+        public PackageActionCallbackHandler(Packages.TransportLayerPackage tlPackage) {
+            this.tlPackage = tlPackage;
+        }
+
+        /**
+         * Will start a thread which automatically answers the package with ACCEPT or BLOCK
+         * after a certain amount of time.
+         */
+        public void startAutoAnswerCountdown(final boolean accept, final int timeoutInMilliseconds) {
+            Thread answerThread = new Thread() {
+                @Override
+                public void run() {
+                    try {
+                        Thread.sleep(timeoutInMilliseconds);
+                    } catch(Exception e) {
+                        Log.e(LOG_TAG, "Auto-Answer-Thread has been stopped due to exception: " + e.getMessage(), e);
+                    }
+
+                    if (isAnswered)
+                        return;
+
+                    Log.v(LOG_TAG, "Auto-Answer: " + accept);
+
+                    if (accept)
+                        acceptPackage(tlPackage);
+                    else
+                        blockPackage(tlPackage);
+                }
+            };
+
+            answerThread.setDaemon(true);
+            answerThread.start();
+        }
+
+        @Override
+        public void acceptPackage(Packages.TransportLayerPackage tlPackage) {
+            Log.v(LOG_TAG, "Accepting package: " + tlPackage);
+            isAnswered = true;
+
+            sendPackageQueryResponse(true);
+        }
+
+        @Override
+        public void blockPackage(Packages.TransportLayerPackage tlPackage) {
+            Log.v(LOG_TAG, "Dropping package: " + tlPackage);
+            isAnswered = true;
+
+            sendPackageQueryResponse(false);
+        }
+    }
 }

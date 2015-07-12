@@ -113,26 +113,5 @@ public class WatchedAppsPreferencesManager {
         return packageNameToAppMap;
     }
 
-//    public HashMap<ApplicationInfo, Boolean> createAppsToWatchStateMap() {
-//        return createAppsToWatchStateMap(getWatchableApps());
-//    }
-//
-//    public static HashMap<ApplicationInfo, Boolean> createAppsToWatchStateMap(List<ApplicationInfo> allApps) {
-//        HashMap<ApplicationInfo, Boolean> appToWatchStateMap = new HashMap<>();
-//
-//        HashMap<String, ApplicationInfo> packageNameToAppMap = packageNameToApplicationInfoMap(allApps);
-//
-//        Set<String> allAppsSet = WatchedAppsPreferencesManager.applicationListToPackageNameSet(allApps);
-//        Set<String> currentlyWatchedAppsSet = WatchedAppsPreferencesManager.applicationListToPackageNameSet(allApps);
-//
-//        // Disable watching of those apps, which are not in the "watchedAppsSet"
-//        for(String appPackageName : allAppsSet) {
-//            ApplicationInfo appInfo = packageNameToAppMap.get(appPackageName);
-//            boolean isWatched = currentlyWatchedAppsSet.contains(appPackageName);
-//
-//            appToWatchStateMap.put(appInfo, isWatched);
-//        }
-//
-//        return appToWatchStateMap;
-//    }
+
 }

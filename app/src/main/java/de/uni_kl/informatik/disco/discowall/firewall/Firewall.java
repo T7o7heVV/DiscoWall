@@ -4,7 +4,6 @@ import android.content.Context;
 import android.content.pm.ApplicationInfo;
 import android.util.Log;
 
-import java.util.LinkedList;
 import java.util.List;
 
 import de.uni_kl.informatik.disco.discowall.firewall.helpers.FirewallPolicyManager;
@@ -26,7 +25,7 @@ import de.uni_kl.informatik.disco.discowall.utils.NetworkInterfaceHelper;
 import de.uni_kl.informatik.disco.discowall.utils.ressources.DiscoWallSettings;
 import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecuteExceptions;
 
-public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
+public class Firewall implements NetfilterBridgeCommunicator.BridgeEventsHandler, NetfilterBridgeCommunicator.PackageReceivedHandler {
     private static final String LOG_TAG = Firewall.class.getSimpleName();
 
     // ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -73,7 +72,7 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
     private final ConnectionManager connectionManager = new ConnectionManager();
     private final NetworkInterfaceHelper networkInterfaceHelper = new NetworkInterfaceHelper();
     private final FirewallIptableRulesHandler iptableRulesManager = NetfilterFirewallRulesHandler.instance;
-    private final FirewallPackageFilter packageFilter = new FirewallPackageFilter(NetfilterFirewallRulesHandler.instance);
+    private final FirewallPackageFilter packageFilter;
     private final FirewallPolicyManager policyManager = new FirewallPolicyManager(NetfilterFirewallRulesHandler.instance);
     private final FirewallRulesManager firewallRulesManager = new FirewallRulesManager();
 
@@ -94,6 +93,9 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
 
         this.firewallServiceContext = firewallServiceContext;
         this.firewallState = FirewallState.STOPPED;
+
+        // Helpers:
+        this.packageFilter = new FirewallPackageFilter(policyManager, firewallRulesManager);
 
         // Subsystems:
         this.subsystemWatchedApps = new SubsystemWatchedApps(this, firewallServiceContext, iptableRulesManager);
@@ -144,7 +146,7 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
 
             // starting netfilter bridge - i.e. the "firewall core"
             try {
-                control = new NetfilterBridgeControl(this, firewallServiceContext, port);
+                control = new NetfilterBridgeControl(this, this, firewallServiceContext, port);
             } catch(Exception e) {
                 IptablesControl.setCommandListener(null); // removing command-listener
                 throw new FirewallExceptions.FirewallException("Error initializing firewall: " + e.getMessage(), e);
@@ -301,7 +303,7 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
     }
 
     @Override
-    public boolean onPackageReceived(Packages.TransportLayerPackage tlPackage) {
+    public void onPackageReceived(Packages.TransportLayerPackage tlPackage, NetfilterBridgeCommunicator.PackageActionCallback actionCallback) {
         // Find device-name for package:
         if (tlPackage.getInputDeviceIndex() >= 0) {
             tlPackage.setNetworkInterface(networkInterfaceHelper.getPackageInterfaceById(tlPackage.getInputDeviceIndex()));
@@ -312,30 +314,23 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
         // Store user-id within package
         tlPackage.setUserId(tlPackage.getMark() - NetfilterBridgeIptablesHandler.PACKAGE_UID_MARK_OFFSET);
 
-        boolean accepted;
+        Connections.Connection connection;
 
         if (tlPackage instanceof Packages.TcpPackage) {
             Packages.TcpPackage tcpPackage = (Packages.TcpPackage) tlPackage;
-            Connections.TcpConnection tcpConnection = connectionManager.getTcpConnection(tcpPackage);
-
-            accepted = packageFilter.isPackageAccepted(tcpPackage, tcpConnection);
-            if (accepted)
-                tcpConnection.update(tcpPackage);
-
-            Log.v(LOG_TAG, "Connection: " + tcpConnection);
+            connection = connectionManager.getTcpConnection(tcpPackage);
         } else if (tlPackage instanceof Packages.UdpPackage) {
             Packages.UdpPackage udpPackage = (Packages.UdpPackage) tlPackage;
-            Connections.UdpConnection udpConnection = connectionManager.getUdpConnection(udpPackage);
-
-            accepted = packageFilter.isPackageAccepted(udpPackage, udpConnection);
-            if (accepted)
-                udpConnection.update(udpPackage);
+            connection = connectionManager.getUdpConnection(udpPackage);
         } else {
             Log.e(LOG_TAG, "No handler package-protocol implemented! Package is: " + tlPackage);
-            return true;
+            return;
         }
 
-        return accepted;
+        connection.update(tlPackage);
+        Log.v(LOG_TAG, "Connection: " + connection);
+
+        packageFilter.decidePackageAccepted(tlPackage, connection, actionCallback);
     }
 
     @Override
@@ -347,11 +342,11 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
         try {
             subsystemRulesManager.createTransportLayerRule(
                     appInfo,
-                    new Packages.IpPortPair("localhost", 1337 + subsystemRulesManager.getAllRules().size()),
-                    new Packages.IpPortPair("google.de", 80 + subsystemRulesManager.getAllRules().size()),
-                    FirewallRules.DeviceFilter.WIFI,
-                    FirewallRules.ProtocolFilter.TCP,
-                    FirewallRules.RulePolicy.ACCEPT
+                    new Packages.IpPortPair("localhost", 0),
+                    new Packages.IpPortPair("*", 80),
+                    FirewallRules.DeviceFilter.ANY,
+                    FirewallRules.ProtocolFilter.TCP_UDP,
+                    FirewallRules.RulePolicy.ALLOW
             );
 
             subsystemRulesManager.createTransportLayerRule(

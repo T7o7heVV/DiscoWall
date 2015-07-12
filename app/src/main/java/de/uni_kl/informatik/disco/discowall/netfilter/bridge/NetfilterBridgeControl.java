@@ -13,18 +13,16 @@ public class NetfilterBridgeControl {
     public static final boolean DEBUG_USE_EXTERNAL_BINARY = false;
 
     private final Context firewallServiceContext;
-    private final NetfilterBridgeCommunicator.EventsHandler bridgeEventsHandler;
 
     private final NetfilterBridgeIptablesHandler iptablesHandler;
     private final NetfilterBridgeBinaryHandler bridgeBinaryHandler;
     private NetfilterBridgeCommunicator bridgeCommunicator;
     private final int bridgeCommunicationPort;
 
-    public NetfilterBridgeControl(NetfilterBridgeCommunicator.EventsHandler bridgeEventsHandler, Context firewallServiceContext, int bridgeCommunicationPort) throws NetfilterExceptions.NetfilterBridgeDeploymentException, ShellExecuteExceptions.ReturnValueException, ShellExecuteExceptions.CallException, IOException {
+    public NetfilterBridgeControl(NetfilterBridgeCommunicator.PackageReceivedHandler packageReceivedHandler, NetfilterBridgeCommunicator.BridgeEventsHandler bridgeEventsHandler, Context firewallServiceContext, int bridgeCommunicationPort) throws NetfilterExceptions.NetfilterBridgeDeploymentException, ShellExecuteExceptions.ReturnValueException, ShellExecuteExceptions.CallException, IOException {
         Log.d(LOG_TAG, "initializing NetfilterBridgeControl...");
         Log.d(LOG_TAG, "NetfilterBridge communication port: " + bridgeCommunicationPort);
 
-        this.bridgeEventsHandler = bridgeEventsHandler;
         this.bridgeCommunicationPort = bridgeCommunicationPort;
 
         this.firewallServiceContext = firewallServiceContext;
@@ -51,7 +49,7 @@ public class NetfilterBridgeControl {
         iptablesHandler.rulesEnableAll();
 
         Log.d(LOG_TAG, "starting netfilter bridge communicator as listening server...");
-        bridgeCommunicator = new NetfilterBridgeCommunicator(bridgeEventsHandler, bridgeCommunicationPort);
+        bridgeCommunicator = new NetfilterBridgeCommunicator(packageReceivedHandler, bridgeEventsHandler, bridgeCommunicationPort);
         Log.d(LOG_TAG, "listening on port: " + bridgeCommunicationPort);
 
         Log.d(LOG_TAG, "killing all possibly running netfilter bridge instances...");

@@ -60,7 +60,7 @@ public class NetfilterFirewallRulesHandler implements FirewallIptableRulesHandle
         String target;
 
         switch (policy) {
-            case ACCEPT:
+            case ALLOW:
                 target = NetfilterBridgeIptablesHandler.CHAIN_FIREWALL_ACTION_ACCEPT;
                 break;
             case BLOCK:

@@ -165,7 +165,7 @@ public class AppRulesAdapter extends ArrayAdapter<FirewallRules.IFirewallRule> {
             FirewallRules.IFirewallPolicyRule policyRule = (FirewallRules.IFirewallPolicyRule) rule;
 
             switch(((FirewallRules.IFirewallPolicyRule) rule).getRulePolicy()) {
-                case ACCEPT:
+                case ALLOW:
                     imageViewActionIcon.setImageDrawable(getContext().getResources().getDrawable(R.mipmap.symbol_rule_policy_allow));
                     break;
                 case BLOCK:

@@ -119,7 +119,7 @@ public class MainActivity extends AppCompatActivity implements DecideConnectionD
         String content = "";
 
         try {
-            content = firewall.getIptableRules(all);
+            content = firewall.subsystem.rulesManager.getIptableRules(all);
         } catch (FirewallExceptions.FirewallException e) {
             content = e.getMessage(); // showing error directly in text-view.
             e.printStackTrace();

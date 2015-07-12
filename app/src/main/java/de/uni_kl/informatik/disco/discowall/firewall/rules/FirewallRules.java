@@ -5,7 +5,8 @@ import de.uni_kl.informatik.disco.discowall.packages.Packages;
 public class FirewallRules {
     /************************* Rule Data ***********************************************************/
 
-    public enum RulePolicy { ACCEPT, BLOCK, INTERACTIVE }
+    public enum RulePolicy {
+        ALLOW, BLOCK, INTERACTIVE }
 
     public enum ProtocolFilter { TCP, UDP, TCP_UDP;
         public boolean isTcp() {
@@ -41,11 +42,11 @@ public class FirewallRules {
         ProtocolFilter getProtocolFilter();
         Packages.IpPortPair getSourceFilter();
         Packages.IpPortPair getDestinationFilter();
+        boolean appliesTo(Packages.TransportLayerPackage tlPackage);
     }
 
     public interface IFirewallPolicyRule extends IFirewallRule {
         RulePolicy getRulePolicy();
-        boolean appliesTo(Packages.TransportLayerPackage tlPackage);
         boolean isPackageAccepted(Packages.TransportLayerPackage tlPackage);
     }
 
@@ -99,6 +100,29 @@ public class FirewallRules {
             return destinationFilter;
         }
 
+        private boolean filterMatches(Packages.IpPortPair filter, Packages.IpPortPair packageInfo) {
+            // check ip
+            if (filter.hasIp()) {
+                if (!packageInfo.getIp().equals(filter.getIp()))
+                    return false;
+            }
+
+            // check port
+            if (filter.hasPort()) {
+                if (packageInfo.getPort() != filter.getPort())
+                    return false;
+            }
+
+            return true;
+        }
+
+        @Override
+        public boolean appliesTo(Packages.TransportLayerPackage tlPackage) {
+            // Since the connection allows the passing of a connectin-package in BOTH directions, the role of the source- and destination-filter has to be tested in both directions for one package.
+            return ( filterMatches(getSourceFilter(), tlPackage.getSource()) && filterMatches(getDestinationFilter(), tlPackage.getDestination()) ) // package in direction intended for rule
+                    || ( filterMatches(getDestinationFilter(), tlPackage.getSource()) && filterMatches(getSourceFilter(), tlPackage.getDestination()) ); // returning package in opposite direction
+        }
+
         @Override
         public String toString() {
             String sourceFilterStr;
@@ -131,30 +155,6 @@ public class FirewallRules {
             return rulePolicy;
         }
 
-        private boolean filterMatches(Packages.IpPortPair filter, Packages.IpPortPair packageInfo) {
-            // check ip
-            if (filter.hasIp()) {
-                if (!packageInfo.getIp().equals(filter.getIp()))
-                    return false;
-            }
-
-            // check port
-            if (filter.hasPort()) {
-                if (packageInfo.getPort() != filter.getPort())
-                    return false;
-            }
-
-            return true;
-        }
-
-        @Override
-        public boolean appliesTo(Packages.TransportLayerPackage tlPackage) {
-            // Since the connection allows the passing of a connectin-package in BOTH directions, the role of the source- and destination-filter has to be tested in both directions for one package.
-            return ( filterMatches(getSourceFilter(), tlPackage.getSource()) && filterMatches(getDestinationFilter(), tlPackage.getDestination()) ) // package in direction intended for rule
-                    || ( filterMatches(getDestinationFilter(), tlPackage.getSource()) && filterMatches(getSourceFilter(), tlPackage.getDestination()) ); // returning package in opposite direction
-        }
-
-        @Override
         public boolean isPackageAccepted(Packages.TransportLayerPackage tlPackage) {
             if (!appliesTo(tlPackage))
                 throw new IllegalArgumentException("Rule does not apply to package.");

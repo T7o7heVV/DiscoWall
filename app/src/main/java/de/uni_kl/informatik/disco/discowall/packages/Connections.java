@@ -85,7 +85,7 @@ public class Connections {
                 return destinationID + "->" + sourceID;
         }
 
-        protected boolean update(Packages.TransportLayerPackage tlPackage) {
+        public boolean update(Packages.TransportLayerPackage tlPackage) {
             if (!isPackagePartOfConnection(tlPackage))
                 return false;
 
