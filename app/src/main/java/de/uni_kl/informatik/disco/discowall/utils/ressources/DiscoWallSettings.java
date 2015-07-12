@@ -54,15 +54,23 @@ public class DiscoWallSettings {
         setSettingStringSet(context, R.string.preference_id__watched_apps_packages, watchedAppPackages);
     }
 
-    private String getSetting(Context context, int preferenceKeyStringId, String defaultValue) {
-//        SharedPreferences sharedPref = context.getSharedPreferences(context.getString(R.string.preferences_file_main), Context.MODE_PRIVATE);
-        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(context);
-        return sharedPref.getString(context.getString(preferenceKeyStringId), defaultValue);
+    public boolean isHandleConnectionDialogDefaultCreateRule(Context context) {
+        return getSettingBool(context, R.string.preference_id__handle_connection_dialog__create_rule_default_checked, true);
+    }
+
+    public void setHandleConnectionDialogDefaultCreateRule(Context context, boolean value) {
+        setSettingBool(context, R.string.preference_id__handle_connection_dialog__create_rule_default_checked, value);
     }
 
     /****************************************************************************************************/
     // Methods to return preferences as native types, if they have been created by code using "setBool()" etc.
     /****************************************************************************************************/
+
+    private String getSetting(Context context, int preferenceKeyStringId, String defaultValue) {
+//        SharedPreferences sharedPref = context.getSharedPreferences(context.getString(R.string.preferences_file_main), Context.MODE_PRIVATE);
+        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(context);
+        return sharedPref.getString(context.getString(preferenceKeyStringId), defaultValue);
+    }
 
     private Set<String> getSettingStringSet(Context context, int preferenceKeyStringId, Set<String> defaultValue) {
         /* Important Note: Known String-Set Android-Bug
@@ -137,4 +145,5 @@ public class DiscoWallSettings {
         editor.putStringSet(context.getString(preferenceKeyStringId), new HashSet<>(value));
         editor.commit();
     }
+
 }

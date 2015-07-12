@@ -4,8 +4,6 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.DialogFragment;
-import android.content.DialogInterface;
-import android.content.pm.ActivityInfo;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
@@ -56,12 +54,12 @@ public class EditConnectionRuleDialog extends DialogFragment {
         }
 
         // App Information
-        ((TextView) layoutView.findViewById(R.id.dialog_edit_connection_app_name)).setText(appInfo.loadLabel(packageManager));
-        ((TextView) layoutView.findViewById(R.id.dialog_edit_connection_app_package)).setText(packageName);
-        ((ImageView) layoutView.findViewById(R.id.dialog_edit_connection_app_icon)).setImageDrawable(appInfo.loadIcon(packageManager));
+        ((TextView) layoutView.findViewById(R.id.textView_app_name)).setText(appInfo.loadLabel(packageManager));
+        ((TextView) layoutView.findViewById(R.id.textView_app_package)).setText(packageName);
+        ((ImageView) layoutView.findViewById(R.id.imageView_app_icon)).setImageDrawable(appInfo.loadIcon(packageManager));
 
         // Rule Information:
-        ((RadioButton) layoutView.findViewById(R.id.dialog_edit_connection_radio_button_rule_policy_accept)).setChecked(true);
+        ((RadioButton) layoutView.findViewById(R.id.radioButton_rule_policy_accept)).setChecked(true);
 
         return builder.create();
     }

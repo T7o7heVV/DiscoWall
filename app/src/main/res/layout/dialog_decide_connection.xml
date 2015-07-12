@@ -153,69 +153,7 @@
         </LinearLayout>
         -->
 
-        <LinearLayout
-            android:layout_width="fill_parent"
-            android:layout_height="15dp">
-        </LinearLayout>
 
-        <!-- ============================================================================== -->
-        <!--    Firewall Rule -->
-        <!-- ============================================================================== -->
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Firewall Rule"
-            android:textAppearance="?android:attr/textAppearanceMedium" />
-
-
-        <!--    Rule Devices -->
-        <LinearLayout
-            android:layout_width="fill_parent"
-            android:layout_height="45dp"
-            android:layout_weight="2"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            >
-
-            <TextView
-                android:id="@+id/textView_rule_devices"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight=".5"
-                android:text="Interfaces"
-                />
-
-            <RadioGroup
-                android:layout_width="0dp"
-                android:layout_weight="1.5"
-                android:layout_height="fill_parent"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                >
-
-                <CheckBox
-                    android:layout_width="fill_parent"
-                    android:layout_height="wrap_content"
-                    android:text="WLAN"
-                    android:id="@+id/checkBox_rule_device_wlan"
-                    android:layout_weight="1"
-                    />
-
-                <CheckBox
-                    android:layout_width="fill_parent"
-                    android:layout_height="wrap_content"
-                    android:text="3G / 4G"
-                    android:id="@+id/checkBox_rule_device_3g_4g"
-                    android:layout_weight="1"
-                    />
-
-            </RadioGroup>
-
-        </LinearLayout>
-
-
-        <!--    Rule Protocol -->
         <LinearLayout
             android:layout_width="fill_parent"
             android:layout_height="45dp"
@@ -229,7 +167,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight=".5"
-                android:text="Protocols"
+                android:text="Protocol"
                 />
 
             <RadioGroup
@@ -240,74 +178,20 @@
                 android:orientation="horizontal"
                 >
 
-                <CheckBox
+                <RadioButton
                     android:layout_width="fill_parent"
                     android:layout_height="wrap_content"
                     android:text="TCP"
-                    android:id="@+id/checkBox_rule_protocol_tcp"
+                    android:id="@+id/radioButton_protocol_tcp"
                     android:layout_weight="1"
                     />
 
-                <CheckBox
+                <RadioButton
                     android:layout_width="fill_parent"
                     android:layout_height="wrap_content"
                     android:text="UDP"
-                    android:id="@+id/checkBox_rule_protocol_udp"
+                    android:id="@+id/radioButton_protocol_udp"
                     android:layout_weight="1"
-                    />
-
-            </RadioGroup>
-
-        </LinearLayout>
-
-
-        <!--    Rule Policy -->
-        <LinearLayout
-            android:layout_width="fill_parent"
-            android:layout_height="45dp"
-            android:layout_weight="2"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            >
-
-            <TextView
-                android:id="@+id/textView_rule_policy"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight=".5"
-                android:text="Policy"
-                />
-
-            <RadioGroup
-                android:layout_width="0dp"
-                android:layout_weight="2.75"
-                android:layout_height="fill_parent"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                >
-
-                <RadioButton
-                    android:layout_width="fill_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Accept"
-                    android:id="@+id/radioButton_rule_policy_accept"
-                    android:layout_weight=".95"
-                    />
-
-                <RadioButton
-                    android:layout_width="fill_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Block"
-                    android:id="@+id/radioButton_rule_policy_block"
-                    android:layout_weight="1"
-                    />
-
-                <RadioButton
-                    android:layout_width="fill_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Interactive"
-                    android:id="@+id/radioButton_rule_policy_interactive"
-                    android:layout_weight=".8"
                     />
 
             </RadioGroup>
@@ -316,6 +200,21 @@
 
     </LinearLayout>
 
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="5dp"
+        android:background="#ff000000"
+        android:layout_marginBottom="10dp"
+        >
+    </LinearLayout>
+
+    <CheckBox
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="10dp"
+        android:id="@+id/checkBox_create_rule"
+        android:text="@string/action_create_rule"
+        />
 
     <LinearLayout
         android:orientation="horizontal"
@@ -325,15 +224,15 @@
         <Button
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
-            android:text="OK"
-            android:id="@+id/button_ok"
+            android:text="@string/action_accept"
+            android:id="@+id/button_accept"
             android:layout_weight="0.5" />
 
         <Button
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
-            android:text="Cancel"
-            android:id="@+id/button_cancel"
+            android:text="@string/action_block"
+            android:id="@+id/button_block"
             android:layout_weight="0.5" />
     </LinearLayout>
 

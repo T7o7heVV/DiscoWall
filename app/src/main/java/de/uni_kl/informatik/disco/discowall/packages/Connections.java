@@ -1,6 +1,8 @@
 package de.uni_kl.informatik.disco.discowall.packages;
 
 public class Connections {
+    public static enum TransportLayerProtocol { TCP, UDP }
+
     public static interface IConnectionSource {
         Packages.IpPortPair getSource();
         int getSourcePort();
