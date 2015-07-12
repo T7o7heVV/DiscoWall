@@ -160,6 +160,21 @@ public class NetfilterBridgeCommunicator implements Runnable {
             Packages.TransportLayerPackage tlPackage;
 
             try {
+                boolean hasInputDeviceInfo = messageContainsValue(message, NetfilterBridgeProtocol.QueryPackageAction.Physical.OPT_VALUE_INPUT_DEVICE);
+                boolean hasOutputDeviceInfo = messageContainsValue(message, NetfilterBridgeProtocol.QueryPackageAction.Physical.OPT_VALUE_OUTPUT_DEVICE);
+
+                // Input or Output-Device has to be specified. If not - the package-direction cannot be determined --> ERROR
+                if (!(hasInputDeviceInfo || hasOutputDeviceInfo))
+                    throw new NetfilterBridgeProtocol.ProtocolValueMissingException(NetfilterBridgeProtocol.QueryPackageAction.Physical.OPT_VALUE_INPUT_DEVICE + "/" +  NetfilterBridgeProtocol.QueryPackageAction.Physical.OPT_VALUE_OUTPUT_DEVICE, message);
+
+                int inputDeviceIndex = -1;
+                int outputDeviceIndex = -1;
+
+                if (hasInputDeviceInfo)
+                    inputDeviceIndex = extractIntValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.Physical.OPT_VALUE_INPUT_DEVICE);
+                if (hasOutputDeviceInfo)
+                    outputDeviceIndex = extractIntValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.Physical.OPT_VALUE_OUTPUT_DEVICE);
+
                 String srcIP = extractStringValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.IP.VALUE_SOURCE);
                 String dstIP = extractStringValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.IP.VALUE_DESTINATION);
 
@@ -179,7 +194,7 @@ public class NetfilterBridgeCommunicator implements Runnable {
                     boolean hasFlagReset = extractBitValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.TCP.VALUE_FLAG_RESET);
                     boolean hasFlagUrgent = extractBitValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.TCP.VALUE_FLAG_URGENT);
 
-                    tlPackage = new Packages.TcpPackage(srcIP, dstIP, srcPort, dstPort, length, checksum,
+                    tlPackage = new Packages.TcpPackage(inputDeviceIndex, outputDeviceIndex, srcIP, dstIP, srcPort, dstPort, length, checksum,
                             seqNumber, ackNumber,
                             hasFlagACK, hasFlagFIN, hasFlagSYN, hasFlagPush, hasFlagReset, hasFlagUrgent
                         );
@@ -190,7 +205,7 @@ public class NetfilterBridgeCommunicator implements Runnable {
                     int length = extractIntValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.UDP.VALUE_LENGTH);
                     int checksum = extractIntValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.UDP.VALUE_CHECKSUM);
 
-                    tlPackage = new Packages.UdpPackage(srcIP, dstIP, srcPort, dstPort, length, checksum);
+                    tlPackage = new Packages.UdpPackage(inputDeviceIndex, outputDeviceIndex, srcIP, dstIP, srcPort, dstPort, length, checksum);
                 } else {
                     Log.e(LOG_TAG, "Unknown message format (no transport-layer defined): " + message);
                     NetfilterBridgeProtocol.ProtocolFormatException formatException = new NetfilterBridgeProtocol.ProtocolFormatException("Unknown message format: no transport-layer defined", message);
@@ -202,13 +217,6 @@ public class NetfilterBridgeCommunicator implements Runnable {
 
                 // ------------------- Decode netfilter- information ---------------------
                 tlPackage.setMark(extractIntValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.Netfilter.VALUE_MARK));
-
-                // ---------------- Decode physical-layer- information -------------------
-                // add input- & output-device information, if package has any
-                if (messageContainsValue(message, NetfilterBridgeProtocol.QueryPackageAction.Physical.OPT_VALUE_INPUT_DEVICE))
-                    tlPackage.setInputDeviceIndex(extractIntValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.Physical.OPT_VALUE_INPUT_DEVICE));
-                if (messageContainsValue(message, NetfilterBridgeProtocol.QueryPackageAction.Physical.OPT_VALUE_OUTPUT_DEVICE))
-                    tlPackage.setOutputDeviceIndex(extractIntValueFromMessage(message, NetfilterBridgeProtocol.QueryPackageAction.Physical.OPT_VALUE_OUTPUT_DEVICE));
 
             } catch(NetfilterBridgeProtocol.ProtocolException e) {
                 Log.e(LOG_TAG, "Error while decoding message: " + message + "\n" + e.getMessage());

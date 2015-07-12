@@ -111,16 +111,6 @@ public class Packages {
         }
     }
 
-//    public static class PackageException extends Exception {
-//        private final TransportLayerPackage pkg;
-//        public TransportLayerPackage getPkg() { return pkg; }
-//
-//        public PackageException(String message, TransportLayerPackage pkg) {
-//            super(message);
-//            this.pkg = pkg;
-//        }
-//    }
-
     private static abstract class Package {
         private NetworkInterface networkInterface = null;
         private final long timestamp = System.nanoTime();
@@ -188,23 +178,20 @@ public class Packages {
     }
 
     private static abstract class PhysicalLayerPackage extends NetfilterPackage {
-        private int inputDeviceIndex = -1;
-        private int outputDeviceIndex = -1;
+        private final int inputDeviceIndex;
+        private final int outputDeviceIndex;
+
+        public PhysicalLayerPackage(int inputDeviceIndex, int outputDeviceIndex) {
+            this.inputDeviceIndex = inputDeviceIndex;
+            this.outputDeviceIndex = outputDeviceIndex;
+        }
 
         public int getOutputDeviceIndex() {
             return outputDeviceIndex;
         }
 
-        public void setOutputDeviceIndex(int outputDeviceIndex) {
-            this.outputDeviceIndex = outputDeviceIndex;
-        }
-
         public int getInputDeviceIndex() {
             return inputDeviceIndex;
-        }
-
-        public void setInputDeviceIndex(int inputDeviceIndex) {
-            this.inputDeviceIndex = inputDeviceIndex;
         }
 
         @Override
@@ -218,16 +205,17 @@ public class Packages {
     }
 
     private static abstract class IpPackage extends PhysicalLayerPackage {
+        public IpPackage(int inputDeviceIndex, int outputDeviceIndex) {
+            super(inputDeviceIndex, outputDeviceIndex);
+        }
+
         public abstract String getSourceIP();
         public abstract String getDestinationIP();
-
-        public IpPackage() {
-        }
     }
 
     public static abstract class TransportLayerPackage extends IpPackage implements Connections.IConnection {
         private final TransportLayerProtocol protocol;
-        private final IpPortPair source, destination;
+        private final IpPortPair source, destination, localAddress, remoteAddress;
         private final int checksum, length;
 
         public TransportLayerProtocol getProtocol() { return protocol; }
@@ -240,17 +228,37 @@ public class Packages {
         @Override public int getDestinationPort() { return destination.getPort(); }
         @Override public String getDestinationIP() { return destination.getIp(); }
 
+        public IpPortPair getLocalAddress() {
+            return localAddress;
+        }
+
+        public IpPortPair getRemoteAddress() {
+            return remoteAddress;
+        }
+
         public int getLength() { return length; }
         public int getChecksum() { return checksum; }
 
-        public TransportLayerPackage(TransportLayerProtocol protocol, String sourceIP, String destinationIP, int sourcePort, int destinationPort, int checksum, int length) {
-            super();
+        public TransportLayerPackage(int inputDeviceIndex, int outputDeviceIndex, TransportLayerProtocol protocol, String sourceIP, String destinationIP, int sourcePort, int destinationPort, int checksum, int length) {
+            super(inputDeviceIndex, outputDeviceIndex);
+
             this.protocol = protocol;
             this.checksum = checksum;
             this.length = length;
 
             source = new IpPortPair(sourceIP, sourcePort);
             destination = new IpPortPair(destinationIP, destinationPort);
+
+            if (getInputDeviceIndex() >= 0) {
+                // if input-device index specified, the package has been received by this device
+                localAddress = destination; // ==> The destination of this package is the device
+                remoteAddress = source; // ==> The source of this package is the remote-host
+            } else if (getOutputDeviceIndex() >= 0) {
+                localAddress = source;
+                remoteAddress = destination;
+            } else {
+                throw new RuntimeException("Invalid package definition! Neither input- nor output-device specified. Package: " + this.toString());
+            }
         }
 
         protected String transportLayerToString() {
@@ -272,11 +280,12 @@ public class Packages {
         public boolean hasFlagReset() { return hasFlagReset; }
         public boolean hasFlagUrgent() { return hasFlagUrgent; }
 
-        public TcpPackage(String sourceIP, String destinationIP, int sourcePort, int destinationPort, int checksum, int length,
+        public TcpPackage(int inputDeviceIndex, int outputDeviceIndex, String sourceIP, String destinationIP, int sourcePort, int destinationPort, int checksum, int length,
                           int seqNumber, int ackNumber,
                           boolean hasFlagACK, boolean hasFlagFIN, boolean hasFlagSYN, boolean hasFlagPush, boolean hasFlagReset, boolean hasFlagUrgent
         ) {
-            super(TransportLayerProtocol.TCP, sourceIP, destinationIP, sourcePort, destinationPort, checksum, length);
+            super(inputDeviceIndex, outputDeviceIndex, TransportLayerProtocol.TCP, sourceIP, destinationIP, sourcePort, destinationPort, checksum, length);
+
             this.seqNumber = seqNumber;
             this.ackNumber = ackNumber;
             this.hasFlagACK = hasFlagACK;
@@ -298,8 +307,8 @@ public class Packages {
     }
 
     public static  class UdpPackage extends TransportLayerPackage {
-        public UdpPackage(String sourceIP, String destinationIP, int sourcePort, int destinationPort, int checksum, int length) {
-            super(TransportLayerProtocol.UDP, sourceIP, destinationIP, sourcePort, destinationPort, checksum, length);
+        public UdpPackage(int inputDeviceIndex, int outputDeviceIndex, String sourceIP, String destinationIP, int sourcePort, int destinationPort, int checksum, int length) {
+            super(inputDeviceIndex, outputDeviceIndex, TransportLayerProtocol.UDP, sourceIP, destinationIP, sourcePort, destinationPort, checksum, length);
         }
 
         public String toString() { return "{ [UDP] "+transportLayerToString()+ " } " + super.toString(); }
