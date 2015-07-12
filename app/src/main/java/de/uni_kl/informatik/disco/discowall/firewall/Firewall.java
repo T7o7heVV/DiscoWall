@@ -338,20 +338,6 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
         return accepted;
     }
 
-    public String getIptableRules(boolean all) throws FirewallExceptions.FirewallException {
-        try {
-            if (all) {
-                return IptablesControl.getRuleInfoText(true, true);
-            } else {
-                if (!isFirewallRunning())
-                    return "< firewall has to be enabled in order to retrieve firewall rules >";
-                return iptableRulesManager.getFirewallRulesText();
-            }
-        } catch(ShellExecuteExceptions.ShellExecuteException e) {
-            throw new FirewallExceptions.FirewallException("Error fetching iptable rules: " + e.getMessage(), e);
-        }
-    }
-
     @Override
     public void onInternalERROR(String message, Exception e) {
         ErrorDialog.showError(firewallServiceContext, "DiscoWall Internal Error", "Error within package-filtering engine occurred: " + e.getMessage());
