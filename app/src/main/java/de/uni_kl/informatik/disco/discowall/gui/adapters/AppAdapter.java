@@ -20,16 +20,18 @@ import android.widget.TextView;
 
 public class AppAdapter extends ArrayAdapter<ApplicationInfo>{
     public interface AdapterHandler {
-        void onRowCreate(AppAdapter adapter, ApplicationInfo appInfo, TextView appNameWidget, TextView appPackageNameWidget, ImageView appIconImageWidget, CheckBox appWatchedCheckboxWidget);
+        void onRowCreate(AppAdapter adapter, ApplicationInfo appInfo, TextView appNameWidget, TextView appPackageNameWidget, TextView appRuleInfoTextView, ImageView appIconImageWidget, CheckBox appWatchedCheckboxWidget);
 
         // Clicks:
         void onAppNameClicked(AppAdapter appAdapter, ApplicationInfo appInfo, TextView appNameWidgetview);
         void onAppPackageClicked(AppAdapter appAdapter, ApplicationInfo appInfo, TextView appPackageNameWidget);
+        void onAppOptionalInfoClicked(AppAdapter appAdapter, ApplicationInfo appInfo, TextView appInfoWidget);
         void onAppIconClicked(AppAdapter appAdapter, ApplicationInfo appInfo, ImageView appIconImageWidget);
 
         // LongClicks:
         boolean onAppNameLongClicked(AppAdapter appAdapter, ApplicationInfo appInfo, TextView appNameWidgetview);
         boolean onAppPackageLongClicked(AppAdapter appAdapter, ApplicationInfo appInfo, TextView appPackageNameWidget);
+        boolean onAppOptionalInfoLongClicked(AppAdapter appAdapter, ApplicationInfo appInfo, TextView appPackageNameWidget);
         boolean onAppIconLongClicked(AppAdapter appAdapter, ApplicationInfo appInfo, ImageView appIconImageWidget);
 
         // Checkbox-Checks:
@@ -38,7 +40,7 @@ public class AppAdapter extends ArrayAdapter<ApplicationInfo>{
 
 
     private static final String LOG_TAG = AppAdapter.class.getSimpleName();
-    public final int listLayoutResourceId, app_name_viewID, app_package_viewID, app_icon_viewID, app_checkbox_viewID;
+    public final int listLayoutResourceId, app_name_viewID, app_package_viewID, app_optionalInfo_viewID, app_icon_viewID, app_checkbox_viewID;
 
     private List<ApplicationInfo> appList = null;
     private AdapterView.OnItemClickListener onItemClickListener;
@@ -48,11 +50,11 @@ public class AppAdapter extends ArrayAdapter<ApplicationInfo>{
     private Context context;
     private PackageManager packageManager;
 
-    public AppAdapter(Context context, int listLayoutResourceId, int app_name_viewID, int app_package_viewID, int app_icon_viewID, int app_checkbox_viewID) {
-        this(context, listLayoutResourceId, fetchAppsByLaunchIntent(context), app_name_viewID, app_package_viewID, app_icon_viewID, app_checkbox_viewID);
+    public AppAdapter(Context context, int listLayoutResourceId, int app_name_viewID, int app_package_viewID, int app_optionalInfo_viewID, int app_icon_viewID, int app_checkbox_viewID) {
+        this(context, listLayoutResourceId, fetchAppsByLaunchIntent(context), app_name_viewID, app_package_viewID, app_optionalInfo_viewID, app_icon_viewID, app_checkbox_viewID);
     }
 
-    public AppAdapter(Context context, int listLayoutResourceId, List<ApplicationInfo> appsToShow, int app_name_viewID, int app_package_viewID, int app_icon_viewID, int app_checkbox_viewID) {
+    public AppAdapter(Context context, int listLayoutResourceId, List<ApplicationInfo> appsToShow, int app_name_viewID, int app_package_viewID, int app_optionalInfo_viewID, int app_icon_viewID, int app_checkbox_viewID) {
         super(context, listLayoutResourceId, appsToShow);
 
         this.packageManager = context.getPackageManager();
@@ -62,6 +64,7 @@ public class AppAdapter extends ArrayAdapter<ApplicationInfo>{
         this.listLayoutResourceId = listLayoutResourceId;
         this.app_name_viewID = app_name_viewID;
         this.app_package_viewID = app_package_viewID;
+        this.app_optionalInfo_viewID = app_optionalInfo_viewID;
         this.app_icon_viewID = app_icon_viewID;
         this.app_checkbox_viewID = app_checkbox_viewID;
     }
@@ -182,6 +185,7 @@ public class AppAdapter extends ArrayAdapter<ApplicationInfo>{
 
         final TextView appNameTextView = (TextView) view.findViewById(app_name_viewID);
         TextView appPackageNameTextView = (TextView) view.findViewById(app_package_viewID);
+        TextView appOptionalInfosTextView = (TextView) view.findViewById(app_optionalInfo_viewID);
         ImageView appIconImageView = (ImageView) view.findViewById(app_icon_viewID);
         CheckBox appWatchedCheckBox = (CheckBox) view.findViewById(app_checkbox_viewID);
 
@@ -231,6 +235,17 @@ public class AppAdapter extends ArrayAdapter<ApplicationInfo>{
                     adapterHandler.onAppPackageClicked(AppAdapter.this, applicationInfo, (TextView) view.findViewById(app_package_viewID));
             }
         });
+        appOptionalInfosTextView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Log.v(LOG_TAG, "app '" + appNameTextView.getText() + "'; optionalInfo click");
+
+                onListItemClick(position, view, (AdapterView<?>) parent, (TextView) view.findViewById(app_optionalInfo_viewID));
+
+                if (adapterHandler != null)
+                    adapterHandler.onAppPackageClicked(AppAdapter.this, applicationInfo, (TextView) view.findViewById(app_optionalInfo_viewID));
+            }
+        });
         appIconImageView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -271,6 +286,18 @@ public class AppAdapter extends ArrayAdapter<ApplicationInfo>{
                     return false;
             }
         });
+        appOptionalInfosTextView.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View v) {
+                Log.v(LOG_TAG, "app '" + appNameTextView.getText() + "'; optionalInfo long-click");
+                onListItemLongClick((AdapterView<?>) parent, v, position);
+
+                if (adapterHandler != null)
+                    return adapterHandler.onAppOptionalInfoLongClicked(AppAdapter.this, applicationInfo, (TextView) v);
+                else
+                    return false;
+            }
+        });
         appIconImageView.setOnLongClickListener(new View.OnLongClickListener() {
             @Override
             public boolean onLongClick(View v) {
@@ -288,7 +315,7 @@ public class AppAdapter extends ArrayAdapter<ApplicationInfo>{
 
         // Call on-row-create event
         if (adapterHandler != null)
-            adapterHandler.onRowCreate(this, applicationInfo, appNameTextView, appPackageNameTextView, appIconImageView, appWatchedCheckBox);
+            adapterHandler.onRowCreate(this, applicationInfo, appNameTextView, appPackageNameTextView, appOptionalInfosTextView, appIconImageView, appWatchedCheckBox);
 
         return view;
     }

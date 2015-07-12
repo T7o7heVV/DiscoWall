@@ -22,12 +22,22 @@ import de.uni_kl.informatik.disco.discowall.firewall.rules.FirewallRules;
 import de.uni_kl.informatik.disco.discowall.gui.dialogs.ErrorDialog;
 import de.uni_kl.informatik.disco.discowall.packages.Connections;
 import de.uni_kl.informatik.disco.discowall.packages.Packages;
+import de.uni_kl.informatik.disco.discowall.utils.ressources.DiscoWallSettings;
 
 
 public class DecideConnectionDialog extends DialogFragment {
+    public static class AppConnectionDecision {
+        public final boolean allowConnection, createRule, applyForAllNewConnectionsOfThisApp;
+
+        public AppConnectionDecision(boolean allowConnection, boolean createRule, boolean applyForAllNewConnectionsOfThisApp) {
+            this.allowConnection = allowConnection;
+            this.createRule = createRule;
+            this.applyForAllNewConnectionsOfThisApp = applyForAllNewConnectionsOfThisApp;
+        }
+    }
+
     public static interface DecideConnectionDialogListener {
-        void onConnectionAccepted(ApplicationInfo appInfo, Packages.IpPortPair source, Packages.IpPortPair destination, boolean createRule);
-        void onConnectionBlocked(ApplicationInfo appInfo, Packages.IpPortPair source, Packages.IpPortPair destination, boolean createRule);
+        void onConnectionDecided(ApplicationInfo appInfo, Packages.IpPortPair source, Packages.IpPortPair destination, AppConnectionDecision decision);
     }
 
     private static final String LOG_TAG = DecideConnectionDialog.class.getSimpleName();
@@ -103,6 +113,9 @@ public class DecideConnectionDialog extends DialogFragment {
         final CheckBox checkBoxCreateRules = (CheckBox) layoutView.findViewById(R.id.checkBox_create_rule);
         checkBoxCreateRules.setChecked(bundle.getBoolean("action.createRule"));
 
+        // Checkbox: Apply decision for all new connections of this app:
+        final CheckBox checkBoxApplyForAllNewConnectionsOfThisApp = (CheckBox) layoutView.findViewById(R.id.checkBox_apply_for_all_new_connections_from_this_app);
+
         // IMPORTANT: Dialog has always to be called from an Activity which implements this Interface
         if (! (context instanceof DecideConnectionDialogListener))
             throw new ClassCastException("Starting-Activity must implement interface " + DecideConnectionDialogListener.class.getCanonicalName());
@@ -113,11 +126,13 @@ public class DecideConnectionDialog extends DialogFragment {
                 new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        dialogListener.onConnectionAccepted(
+                        DiscoWallSettings.getInstance().setHandleConnectionDialogDefaultCreateRule(context, checkBoxCreateRules.isChecked()); // store last checked-state of "create-rule checkbox"
+
+                        dialogListener.onConnectionDecided(
                                 appInfo,
                                 new Packages.IpPortPair(clientIp, clientPort),
                                 new Packages.IpPortPair(serverIp, serverPort),
-                                checkBoxCreateRules.isChecked()
+                                new AppConnectionDecision(true, checkBoxCreateRules.isChecked(), checkBoxApplyForAllNewConnectionsOfThisApp.isChecked())
                         );
 
                         DecideConnectionDialog.this.dismiss(); // close dialog
@@ -128,11 +143,13 @@ public class DecideConnectionDialog extends DialogFragment {
                 new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        dialogListener.onConnectionBlocked(
+                        DiscoWallSettings.getInstance().setHandleConnectionDialogDefaultCreateRule(context, checkBoxCreateRules.isChecked()); // store last checked-state of "create-rule checkbox"
+
+                        dialogListener.onConnectionDecided(
                                 appInfo,
                                 new Packages.IpPortPair(clientIp, clientPort),
                                 new Packages.IpPortPair(serverIp, serverPort),
-                                checkBoxCreateRules.isChecked()
+                                new AppConnectionDecision(false, checkBoxCreateRules.isChecked(), checkBoxApplyForAllNewConnectionsOfThisApp.isChecked())
                         );
 
                         DecideConnectionDialog.this.dismiss(); // close dialog
@@ -149,7 +166,15 @@ public class DecideConnectionDialog extends DialogFragment {
         outState.putAll(getArguments());
     }
 
-    public static DecideConnectionDialog show(Activity context, String dialogTag, ApplicationInfo appInfo, Packages.IpPortPair client, Packages.IpPortPair server, Connections.TransportLayerProtocol protocol, boolean createRuleChecked) {
+    public static DecideConnectionDialog show(Activity context, ApplicationInfo appInfo, Connections.Connection connection) {
+        return show(context, appInfo, connection.getSource(), connection.getDestination(), connection.getTransportLayerProtocol());
+    }
+
+    public static DecideConnectionDialog show(Activity context, ApplicationInfo appInfo, Packages.IpPortPair client, Packages.IpPortPair server, Connections.TransportLayerProtocol protocol) {
+        return show(context, appInfo, client, server, protocol);
+    }
+
+    public static DecideConnectionDialog show(Activity context, String dialogTag, ApplicationInfo appInfo, Packages.IpPortPair client, Packages.IpPortPair server, Connections.TransportLayerProtocol protocol) {
         if (! (context instanceof DecideConnectionDialogListener))
             throw new ClassCastException("Starting-Activity must implement interface " + DecideConnectionDialogListener.class.getCanonicalName());
 
@@ -164,7 +189,7 @@ public class DecideConnectionDialog extends DialogFragment {
         args.putString("connection.protocol", protocol.toString());
 
         // Dialog-Infos:
-        args.putBoolean("action.createRule", createRuleChecked);
+        args.putBoolean("action.createRule", DiscoWallSettings.getInstance().isHandleConnectionDialogDefaultCreateRule(context));
         args.putString("app.packageName", appInfo.packageName);
 
         DecideConnectionDialog dialog = new DecideConnectionDialog();

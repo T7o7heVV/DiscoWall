@@ -208,13 +208,29 @@
         >
     </LinearLayout>
 
-    <CheckBox
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginLeft="10dp"
-        android:id="@+id/checkBox_create_rule"
-        android:text="@string/action_create_rule"
-        />
+        android:orientation="horizontal"
+        >
+
+        <CheckBox
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="10dp"
+            android:id="@+id/checkBox_create_rule"
+            android:text="@string/action_create_rule"
+            />
+
+        <CheckBox
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="10dp"
+            android:id="@+id/checkBox_apply_for_all_new_connections_from_this_app"
+            android:text="@string/action_apply_for_all_connections_of_this_app"
+            />
+    </LinearLayout>
+
 
     <LinearLayout
         android:orientation="horizontal"

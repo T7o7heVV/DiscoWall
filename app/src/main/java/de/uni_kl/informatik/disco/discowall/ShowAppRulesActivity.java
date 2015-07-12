@@ -159,7 +159,7 @@ public class ShowAppRulesActivity extends AppCompatActivity {
         // Fill rules-list:
         {
             ListView rulesListView = (ListView) findViewById(R.id.activity_show_app_rules_listView_rules);
-            appsAdapter = new AppRulesAdapter(this, firewall.getAppRules(appInfo));
+            appsAdapter = new AppRulesAdapter(this, firewall.subsystem.rulesManager.getRules(appInfo));
             rulesListView.setAdapter(appsAdapter);
 
             if (appsAdapter.getRules().size() > 0)

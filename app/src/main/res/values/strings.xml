@@ -19,9 +19,11 @@
     <string name="preference_id__firewall_policy">firewall policy</string>
     <string name="preference_id__service_autostart">firewall service autostart</string>
     <string name="preference_id__watched_apps_packages">watched app packages</string>
+    <string name="preference_id__handle_connection_dialog__create_rule_default_checked">handle_connection_dialog__create_rule_default_checked</string>
 
     <string name="preference_summary__nfqueue_bridge_port">Port used by the native binary to communicate with the firewall.</string>
     <string name="preference_summary__service_autostart">Port used by the native binary to communicate with the firewall.</string>
+    <string name="preference_summary__handle_connection_dialog__create_rule_default_checked">When accepting/blocking a connect, create a new rule by default.</string>
 
     <!-- Actions -->
 
@@ -38,7 +40,16 @@
     <string name="action_menu_watched_apps_list_app_show_rules">Show Rules</string>
 
 
-    <!-- GUI texts -->
+    <string name="action_create_rule">Create Rule</string>
+    <string name="action_accept">Accept</string>
+    <string name="action_block">Block</string>
+    <string name="action_interactive">Interactive</string>
+    <string name="action_apply_for_all_connections_of_this_app">Apply For All New App-Connections</string>
+
+    <!-- GUI-specific texts -->
+
+    <string name="decide_connection_dialog__title">Allow Connection?</string>
+    <string name="decide_connection_dialog__message">Chose policy for new connection</string>
 
     <string name="settings_activity_title">DiscoWall Settings</string>
 

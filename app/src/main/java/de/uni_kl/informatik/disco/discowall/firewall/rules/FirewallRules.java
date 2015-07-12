@@ -168,8 +168,8 @@ public class FirewallRules {
     }
 
     public static class FirewallTransportRule extends AbstractFirewallPolicyRule  {
-        FirewallTransportRule(int userId, Packages.IpPortPair sourceFilter, Packages.IpPortPair destinationFilter, DeviceFilter deviceFilter, RulePolicy rulePolicy) {
-            super(userId, ProtocolFilter.TCP, sourceFilter, destinationFilter, deviceFilter, rulePolicy);
+        public FirewallTransportRule(int userId, Packages.IpPortPair sourceFilter, Packages.IpPortPair destinationFilter, DeviceFilter deviceFilter, ProtocolFilter protocolFilter, RulePolicy rulePolicy) {
+            super(userId, protocolFilter, sourceFilter, destinationFilter, deviceFilter, rulePolicy);
         }
     }
 
@@ -205,8 +205,8 @@ public class FirewallRules {
     }
 
     public static class FirewallTransportRedirectRule extends AbstractFirewallRedirectRule  {
-        FirewallTransportRedirectRule(int userId, Packages.IpPortPair sourceFilter, Packages.IpPortPair destinationFilter, DeviceFilter deviceFilter, Packages.IpPortPair redirectTo) throws FirewallRuleExceptions.InvalidRuleDefinitionException {
-            super(userId, ProtocolFilter.TCP, sourceFilter, destinationFilter, deviceFilter, redirectTo);
+        public FirewallTransportRedirectRule(int userId, Packages.IpPortPair sourceFilter, Packages.IpPortPair destinationFilter, DeviceFilter deviceFilter, ProtocolFilter protocolFilter, Packages.IpPortPair redirectTo) throws FirewallRuleExceptions.InvalidRuleDefinitionException {
+            super(userId, protocolFilter, sourceFilter, destinationFilter, deviceFilter, redirectTo);
         }
     }
  }

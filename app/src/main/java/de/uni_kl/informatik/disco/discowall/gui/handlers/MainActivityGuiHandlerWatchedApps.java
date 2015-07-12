@@ -61,7 +61,7 @@ public class MainActivityGuiHandlerWatchedApps extends MainActivityGuiHandler {
         // Adapter-Handler for manipulating list-view while it is being created etc.
         appsAdapter.setAdapterHandler(new AppAdapter.AdapterHandler() {
             @Override
-            public void onRowCreate(AppAdapter adapter, ApplicationInfo appInfo, TextView appNameWidget, TextView appPackageNameWidget, ImageView appIconImageWidget, CheckBox appWatchedCheckboxWidget) {
+            public void onRowCreate(AppAdapter adapter, ApplicationInfo appInfo, TextView appNameWidget, TextView appPackageNameWidget, TextView appRuleInfoTextView, ImageView appIconImageWidget, CheckBox appWatchedCheckboxWidget) {
                 /* This method is being called when...
                  * - the individual rows are being written when creating the list
                  * - the list is being scrolled and therefore updated
@@ -69,6 +69,10 @@ public class MainActivityGuiHandlerWatchedApps extends MainActivityGuiHandler {
 
                 // IMPORTANT: If I would buffer the "watched apps" at any point, scrolling the list will reset the value to the buffered state!
                 appWatchedCheckboxWidget.setChecked(mainActivity.firewall.subsystem.watchedApps.isAppWatched(appInfo));
+
+                int rulesCount = mainActivity.firewall.subsystem.rulesManager.getRules(appInfo).size();
+                String ruleInfo = rulesCount + (rulesCount != 1 ? " rules" : " rule");
+                appRuleInfoTextView.setText(ruleInfo);
             }
 
             @Override
@@ -78,6 +82,11 @@ public class MainActivityGuiHandlerWatchedApps extends MainActivityGuiHandler {
 
             @Override
             public void onAppPackageClicked(AppAdapter appAdapter, ApplicationInfo appInfo, TextView appPackageNameWidget) {
+                actionWatchedAppShowFirewallRules(appInfo);
+            }
+
+            @Override
+            public void onAppOptionalInfoClicked(AppAdapter appAdapter, ApplicationInfo appInfo, TextView appInfoWidget) {
                 actionWatchedAppShowFirewallRules(appInfo);
             }
 
@@ -93,6 +102,11 @@ public class MainActivityGuiHandlerWatchedApps extends MainActivityGuiHandler {
 
             @Override
             public boolean onAppPackageLongClicked(AppAdapter appAdapter, ApplicationInfo appInfo, TextView appPackageNameWidget) {
+                return false;
+            }
+
+            @Override
+            public boolean onAppOptionalInfoLongClicked(AppAdapter appAdapter, ApplicationInfo appInfo, TextView appPackageNameWidget) {
                 return false;
             }
 

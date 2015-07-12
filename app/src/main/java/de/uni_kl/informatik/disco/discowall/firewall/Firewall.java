@@ -8,9 +8,10 @@ import java.util.LinkedList;
 import java.util.List;
 
 import de.uni_kl.informatik.disco.discowall.firewall.helpers.FirewallPolicyManager;
+import de.uni_kl.informatik.disco.discowall.firewall.helpers.FirewallRulesManager;
 import de.uni_kl.informatik.disco.discowall.firewall.rules.FirewallIptableRulesHandler;
 import de.uni_kl.informatik.disco.discowall.firewall.rules.FirewallRules;
-import de.uni_kl.informatik.disco.discowall.firewall.rules.FirewallRulesManager;
+import de.uni_kl.informatik.disco.discowall.firewall.subsystems.SubsystemRulesManager;
 import de.uni_kl.informatik.disco.discowall.firewall.subsystems.SubsystemWatchedApps;
 import de.uni_kl.informatik.disco.discowall.gui.dialogs.ErrorDialog;
 import de.uni_kl.informatik.disco.discowall.netfilter.bridge.NetfilterBridgeCommunicator;
@@ -33,6 +34,7 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
     // ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     public class FirewallSubsystems {
         public final SubsystemWatchedApps watchedApps = Firewall.this.subsystemWatchedApps;
+        public final SubsystemRulesManager rulesManager = Firewall.this.subsystemRulesManager;
     }
 
     /**
@@ -71,9 +73,11 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
     private final ConnectionManager connectionManager = new ConnectionManager();
     private final NetworkInterfaceHelper networkInterfaceHelper = new NetworkInterfaceHelper();
     private final FirewallIptableRulesHandler iptableRulesManager = NetfilterFirewallRulesHandler.instance;
-    private final FirewallRulesManager rulesManager = new FirewallRulesManager(NetfilterFirewallRulesHandler.instance);
+    private final FirewallPackageFilter packageFilter = new FirewallPackageFilter(NetfilterFirewallRulesHandler.instance);
     private final FirewallPolicyManager policyManager = new FirewallPolicyManager(NetfilterFirewallRulesHandler.instance);
+    private final FirewallRulesManager firewallRulesManager = new FirewallRulesManager();
 
+    // Firewall-Service-Connection:
     private final Context firewallServiceContext;
     private FirewallStateListener firewallStateListener;
 
@@ -83,13 +87,17 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
     // Firewall Subsytems:
     public final FirewallSubsystems subsystem;
     private final SubsystemWatchedApps subsystemWatchedApps;
+    private final SubsystemRulesManager subsystemRulesManager;
 
     public Firewall(FirewallService firewallServiceContext) {
         Log.i(LOG_TAG, "initializing firewall service...");
 
         this.firewallServiceContext = firewallServiceContext;
         this.firewallState = FirewallState.STOPPED;
+
+        // Subsystems:
         this.subsystemWatchedApps = new SubsystemWatchedApps(this, firewallServiceContext, iptableRulesManager);
+        this.subsystemRulesManager = new SubsystemRulesManager(this, firewallServiceContext, firewallRulesManager);
         this.subsystem = new FirewallSubsystems();
 
         Log.i(LOG_TAG, "firewall service running.");
@@ -239,24 +247,10 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
 
     public boolean isFirewallRunning() {
         return firewallState == FirewallState.RUNNING;
-
-//        if (control == null)
-//            return false;
-//        else
-//            return control.isBridgeConnected();
     }
 
     public boolean isFirewallPaused() {
         return firewallState == FirewallState.PAUSED;
-
-//        if (!isFirewallRunning())
-//            return false;
-//
-//        try {
-//            return !iptableRulesManager.isMainChainJumpsEnabled(); // the firewall is paused, when the iptable jump-rules to the firewall chain are not set
-//        } catch(ShellExecuteExceptions.ShellExecuteException e) {
-//            throw new FirewallExceptions.FirewallException("Error fetching firewall state: " + e.getMessage(), e);
-//        }
     }
 
     public boolean isFirewallStopped() {
@@ -324,7 +318,7 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
             Packages.TcpPackage tcpPackage = (Packages.TcpPackage) tlPackage;
             Connections.TcpConnection tcpConnection = connectionManager.getTcpConnection(tcpPackage);
 
-            accepted = rulesManager.isPackageAccepted(tcpPackage, tcpConnection);
+            accepted = packageFilter.isPackageAccepted(tcpPackage, tcpConnection);
             if (accepted)
                 tcpConnection.update(tcpPackage);
 
@@ -333,7 +327,7 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
             Packages.UdpPackage udpPackage = (Packages.UdpPackage) tlPackage;
             Connections.UdpConnection udpConnection = connectionManager.getUdpConnection(udpPackage);
 
-            accepted = rulesManager.isPackageAccepted(udpPackage, udpConnection);
+            accepted = packageFilter.isPackageAccepted(udpPackage, udpConnection);
             if (accepted)
                 udpConnection.update(udpPackage);
         } else {
@@ -363,36 +357,14 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
         ErrorDialog.showError(firewallServiceContext, "DiscoWall Internal Error", "Error within package-filtering engine occurred: " + e.getMessage());
     }
 
-    public LinkedList<FirewallRules.IFirewallPolicyRule> getAppPolicyRules(ApplicationInfo appInfo) {
-        return rulesManager.getPolicyRules(appInfo.uid);
-    }
-
-    public LinkedList<FirewallRules.IFirewallRule> getAppRules(ApplicationInfo appInfo) {
-//        try {
-//            rulesManager.createTcpRule(
-//                    appInfo.uid,
-//                    new Packages.IpPortPair("localhost", 1337 + rulesManager.getRules().size()),
-//                    new Packages.IpPortPair("google.de", 80 + rulesManager.getRules().size()),
-//                    FirewallRules.DeviceFilter.WIFI,
-//                    FirewallRules.RulePolicy.ACCEPT
-//            );
-//        } catch (ShellExecuteExceptions.ShellExecuteException e) {
-//            throw new FirewallExceptions.FirewallException("Error creating firewall-rule: " + e.getMessage(), e);
-//        }
-
-        return rulesManager.getRules(appInfo.uid);
-    }
-
     public void DEBUG_TEST(ApplicationInfo appInfo) {
         try {
-//            iptableRulesManager.setUserPackagesForwardToFirewall(0, true);
-//            FirewallRules.FirewallTransportRule rule = rulesManager.createTcpRule(0, new Packages.IpPortPair("localhost", 0), new Packages.IpPortPair("chip.de", 80), FirewallRules.DeviceFilter.ANY,  FirewallRules.RulePolicy.ACCEPT);
-
-            FirewallRules.FirewallTransportRule rule = rulesManager.createTcpRule(
-                    appInfo.uid,
-                    new Packages.IpPortPair("localhost", 1337 + rulesManager.getRules().size()),
-                    new Packages.IpPortPair("google.de", 80 + rulesManager.getRules().size()),
+            FirewallRules.FirewallTransportRule rule = subsystemRulesManager.createTransportLayerRule(
+                    appInfo,
+                    new Packages.IpPortPair("localhost", 1337 + subsystemRulesManager.getAllRules().size()),
+                    new Packages.IpPortPair("google.de", 80 + subsystemRulesManager.getAllRules().size()),
                     FirewallRules.DeviceFilter.WIFI,
+                    FirewallRules.ProtocolFilter.TCP,
                     FirewallRules.RulePolicy.ACCEPT
             );
 

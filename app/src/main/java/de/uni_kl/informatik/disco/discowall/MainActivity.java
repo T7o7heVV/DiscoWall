@@ -4,6 +4,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.content.pm.ApplicationInfo;
 import android.os.IBinder;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
@@ -24,10 +25,11 @@ import de.uni_kl.informatik.disco.discowall.firewall.FirewallService;
 import de.uni_kl.informatik.disco.discowall.gui.handlers.MainActivityGuiHandlerFirewallControl;
 import de.uni_kl.informatik.disco.discowall.gui.dialogs.AboutDialog;
 import de.uni_kl.informatik.disco.discowall.gui.handlers.MainActivityGuiHandlerWatchedApps;
+import de.uni_kl.informatik.disco.discowall.packages.Packages;
 import de.uni_kl.informatik.disco.discowall.utils.ressources.DiscoWallSettings;
 
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements DecideConnectionDialog.DecideConnectionDialogListener {
     private static final String LOG_TAG = MainActivity.class.getSimpleName();
 
     private final MainActivityGuiHandlerFirewallControl guiHandlerFirewallControl = new MainActivityGuiHandlerFirewallControl(this);
@@ -47,6 +49,23 @@ public class MainActivity extends AppCompatActivity {
         registerForContextMenu(findViewById(R.id.listViewFirewallMonitoredApps)); // see http://developer.android.com/guide/topics/ui/menus.html#FloatingContextMenu
 
         // NOTE: All initialization of GUI-Elements etc. is being done onFirewallServiceBound
+
+
+//        // DEBUG!
+//        HandleConnectionDialog.show(
+//                this,
+//                new HandleConnectionDialog.HandleConnectionDialogListener() {
+//                    @Override
+//                    public void onConnectionAccepted(HandleConnectionDialog dialog, Connections.Connection connection, boolean createRule) {
+//                        Toast.makeText(MainActivity.this, "Accepted, rule: " + createRule, Toast.LENGTH_LONG).show();
+//                    }
+//                    @Override
+//                    public void onConnectionBlocked(HandleConnectionDialog dialog, Connections.Connection connection, boolean createRule) {
+//                        Toast.makeText(MainActivity.this, "Blocked, rule: " + createRule, Toast.LENGTH_LONG).show();
+//                    }
+//                },
+//                null
+//        );
     }
 
     @Override
@@ -220,5 +239,11 @@ public class MainActivity extends AppCompatActivity {
             firewallService = null;
         }
     };
+
+    @Override
+    public void onConnectionDecided(ApplicationInfo appInfo, Packages.IpPortPair source, Packages.IpPortPair destination, DecideConnectionDialog.AppConnectionDecision decision) {
+        // TODO
+        Toast.makeText(this, decision.allowConnection ? "Allowed" : "Blocked", Toast.LENGTH_LONG).show();
+    }
 
 }
