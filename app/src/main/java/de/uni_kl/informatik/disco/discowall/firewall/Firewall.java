@@ -377,6 +377,15 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
                     FirewallRules.RulePolicy.BLOCK
             );
 
+            subsystemRulesManager.createTransportLayerRule(
+                    appInfo,
+                    new Packages.IpPortPair("localhost", 100 + subsystemRulesManager.getAllRules().size()),
+                    new Packages.IpPortPair("google.de", 200 + subsystemRulesManager.getAllRules().size()),
+                    FirewallRules.DeviceFilter.WIFI,
+                    FirewallRules.ProtocolFilter.TCP,
+                    FirewallRules.RulePolicy.INTERACTIVE
+            );
+
             subsystemRulesManager.createTransportLayerRedirectionRule(
                     appInfo,
                     new Packages.IpPortPair("localhost", 1337 + subsystemRulesManager.getAllRules().size()),

@@ -20,7 +20,7 @@ public class AboutDialog {
         textView.setTextColor(defaultColor);
 
         AlertDialog.Builder builder = new AlertDialog.Builder(context);
-        builder.setIcon(R.drawable.firewall_launcher);
+        builder.setIcon(R.mipmap.uni_kl_ag_disco);
         builder.setTitle(R.string.app_name);
         builder.setView(messageView);
         builder.create();
