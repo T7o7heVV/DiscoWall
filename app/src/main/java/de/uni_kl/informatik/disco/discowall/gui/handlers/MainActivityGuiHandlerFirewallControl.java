@@ -18,7 +18,7 @@ import de.uni_kl.informatik.disco.discowall.MainActivity;
 import de.uni_kl.informatik.disco.discowall.R;
 import de.uni_kl.informatik.disco.discowall.firewall.Firewall;
 import de.uni_kl.informatik.disco.discowall.firewall.FirewallExceptions;
-import de.uni_kl.informatik.disco.discowall.firewall.rules.FirewallRulesManager;
+import de.uni_kl.informatik.disco.discowall.firewall.helpers.FirewallPolicyManager;
 import de.uni_kl.informatik.disco.discowall.gui.dialogs.ErrorDialog;
 
 public class MainActivityGuiHandlerFirewallControl {
@@ -77,7 +77,7 @@ public class MainActivityGuiHandlerFirewallControl {
                 int appIndex;
             }
             class FirewallPolicyUpdate {
-                FirewallRulesManager.FirewallPolicy policy;
+                FirewallPolicyManager.FirewallPolicy policy;
             }
 
             @Override
@@ -226,7 +226,7 @@ public class MainActivityGuiHandlerFirewallControl {
             }
 
             @Override
-            public void onFirewallPolicyBeforeApplyPolicy(FirewallRulesManager.FirewallPolicy policy) {
+            public void onFirewallPolicyBeforeApplyPolicy(FirewallPolicyManager.FirewallPolicy policy) {
                 FirewallPolicyUpdate firewallPolicyUpdate = new FirewallPolicyUpdate();
                 firewallPolicyUpdate.policy = policy;
 
@@ -312,12 +312,12 @@ public class MainActivityGuiHandlerFirewallControl {
 
     public void setupFirewallPolicyRadioButtons() {
         // Bind on-check events:
-        setupFirewallPolicyRadioButton((RadioButton) mainActivity.findViewById(R.id.radioButtonFirewallModeAllow), FirewallRulesManager.FirewallPolicy.ALLOW);
-        setupFirewallPolicyRadioButton((RadioButton) mainActivity.findViewById(R.id.radioButtonFirewallModeBlock), FirewallRulesManager.FirewallPolicy.BLOCK);
-        setupFirewallPolicyRadioButton((RadioButton) mainActivity.findViewById(R.id.radioButtonFirewallModeInteractive), FirewallRulesManager.FirewallPolicy.INTERACTIVE);
+        setupFirewallPolicyRadioButton((RadioButton) mainActivity.findViewById(R.id.radioButtonFirewallModeAllow), FirewallPolicyManager.FirewallPolicy.ALLOW);
+        setupFirewallPolicyRadioButton((RadioButton) mainActivity.findViewById(R.id.radioButtonFirewallModeBlock), FirewallPolicyManager.FirewallPolicy.BLOCK);
+        setupFirewallPolicyRadioButton((RadioButton) mainActivity.findViewById(R.id.radioButtonFirewallModeInteractive), FirewallPolicyManager.FirewallPolicy.INTERACTIVE);
     }
 
-    private void setupFirewallPolicyRadioButton(RadioButton button, final FirewallRulesManager.FirewallPolicy associatedFirewallPolicy) {
+    private void setupFirewallPolicyRadioButton(RadioButton button, final FirewallPolicyManager.FirewallPolicy associatedFirewallPolicy) {
         button.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {

@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 
 import de.uni_kl.informatik.disco.discowall.firewall.FirewallExceptions;
+import de.uni_kl.informatik.disco.discowall.firewall.helpers.FirewallPolicyManager;
 import de.uni_kl.informatik.disco.discowall.netfilter.bridge.NetfilterFirewallRulesHandler;
 import de.uni_kl.informatik.disco.discowall.packages.Connections;
 import de.uni_kl.informatik.disco.discowall.packages.Packages;
@@ -15,56 +16,15 @@ public class FirewallRulesManager {
     private static final String LOG_TAG = FirewallRulesManager.class.getSimpleName();
 
     public enum FirewallMode { FILTER_TCP, FILTER_UDP, FILTER_ALL, ALLOW_ALL, BLOCK_ALL }
-    public enum FirewallPolicy { ALLOW, BLOCK, INTERACTIVE }
 
     //    private final HashMap<String, Connections.Connection> connectionIdToConnectionMap = new HashMap<>();
     private final RulesHash rulesHash = new RulesHash();
     private final FirewallIptableRulesHandler firewallIptableRulesHandler;
     private FirewallMode firewallMode;
-    private FirewallPolicy firewallUnknownConnectionPolicy;
 
     public FirewallRulesManager(FirewallIptableRulesHandler firewallIptableRulesHandler) {
         this.firewallIptableRulesHandler = NetfilterFirewallRulesHandler.instance;
         this.firewallMode = FirewallMode.FILTER_TCP;
-        this.firewallUnknownConnectionPolicy = FirewallPolicy.INTERACTIVE; // Is default-policy as defined by NetfilterBridgeIptablesHandler
-    }
-
-    public FirewallPolicy getFirewallPolicy() {
-        return firewallUnknownConnectionPolicy;
-    }
-
-    public void setFirewallPolicy(FirewallPolicy policy) throws FirewallExceptions.FirewallException {
-        Log.i(LOG_TAG, "changing firewall policy: " + firewallUnknownConnectionPolicy + " --> " + policy);
-        // it is allowed to re-apply the same policy, so that it is possible to re-write the iptable rule
-
-        /* IMPORTANT NOTE:
-         * As usually only SYN/RST/FIN packages are of interest to the firewall,
-         * changing the firewall-policy will NOT effect already established  connections.
-         *    [ Theoretically only relevant, when current policy is INTERACTIVE/ALLOW (i.e. when there can be active connections)
-         *      BUT: Connections could have been established even before changing to BLOCK, so also in BLOCK there could be existing connections ]
-         *
-         * ==> When changing to BLOCKED policy,ANY package must be blocked, so that running connections are closed too.
-         *    BUT: If all packages were to be forwarded into the firewall, the interactive-
-         *    ==> Only filter flags within interactive-chain
-         */
-
-        try {
-            switch(policy) {
-                case ALLOW:
-                    firewallIptableRulesHandler.setDefaultPackageHandlingMode(FirewallIptableRulesHandler.PackageHandlingMode.ACCEPT_PACKAGE);
-                    break;
-                case BLOCK:
-                    firewallIptableRulesHandler.setDefaultPackageHandlingMode(FirewallIptableRulesHandler.PackageHandlingMode.REJECT_PACKAGE);
-                    break;
-                case INTERACTIVE:
-                    firewallIptableRulesHandler.setDefaultPackageHandlingMode(FirewallIptableRulesHandler.PackageHandlingMode.INTERACTIVE);
-                    break;
-            }
-        } catch (ShellExecuteExceptions.ShellExecuteException e) {
-            throw new FirewallExceptions.FirewallException("Unable to change firewall policy du to error: " + e.getMessage(), e);
-        }
-
-        firewallUnknownConnectionPolicy = policy;
     }
 
     public FirewallMode getFirewallMode() {

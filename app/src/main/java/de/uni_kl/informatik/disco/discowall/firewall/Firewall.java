@@ -4,15 +4,14 @@ import android.content.Context;
 import android.content.pm.ApplicationInfo;
 import android.util.Log;
 
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
 
-import de.uni_kl.informatik.disco.discowall.firewall.helpers.WatchedAppsPreferencesManager;
+import de.uni_kl.informatik.disco.discowall.firewall.helpers.FirewallPolicyManager;
 import de.uni_kl.informatik.disco.discowall.firewall.rules.FirewallIptableRulesHandler;
 import de.uni_kl.informatik.disco.discowall.firewall.rules.FirewallRules;
 import de.uni_kl.informatik.disco.discowall.firewall.rules.FirewallRulesManager;
+import de.uni_kl.informatik.disco.discowall.firewall.subsystems.SubsystemWatchedApps;
 import de.uni_kl.informatik.disco.discowall.gui.dialogs.ErrorDialog;
 import de.uni_kl.informatik.disco.discowall.netfilter.bridge.NetfilterBridgeCommunicator;
 import de.uni_kl.informatik.disco.discowall.netfilter.bridge.NetfilterBridgeControl;
@@ -27,8 +26,14 @@ import de.uni_kl.informatik.disco.discowall.utils.ressources.DiscoWallSettings;
 import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecuteExceptions;
 
 public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
-    public static enum FirewallState { RUNNING, PAUSED, STOPPED;}
-    private FirewallState firewallState;
+    private static final String LOG_TAG = Firewall.class.getSimpleName();
+
+    // ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    //   Types, Interfaces & Listeners
+    // ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    public class FirewallSubsystems {
+        public final SubsystemWatchedApps watchedApps = Firewall.this.subsystemWatchedApps;
+    }
 
     /**
      * Listener used so that the busy-dialog may show relevant data to the user, while the firewall is being enabled.
@@ -39,7 +44,7 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
         void onWatchedAppsBeforeRestore(List<ApplicationInfo> watchedApps);
         void onWatchedAppsRestoreApp(ApplicationInfo watchedApp, int appIndex);
 
-        void onFirewallPolicyBeforeApplyPolicy(FirewallRulesManager.FirewallPolicy policy);
+        void onFirewallPolicyBeforeApplyPolicy(FirewallPolicyManager.FirewallPolicy policy);
     }
 
     /**
@@ -55,17 +60,19 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
      * Listener implemented by the {@link FirewallService} in order to update the <b>notification-icon</b> as the firewall-state changes.
      */
     public static interface FirewallStateListener {
-        void onFirewallStateChanged(FirewallState state, FirewallRulesManager.FirewallPolicy policy);
-        void onFirewallPolicyChanged(FirewallRulesManager.FirewallPolicy policy);
+        void onFirewallStateChanged(FirewallState state, FirewallPolicyManager.FirewallPolicy policy);
+        void onFirewallPolicyChanged(FirewallPolicyManager.FirewallPolicy policy);
     }
 
-    private static final String LOG_TAG = Firewall.class.getSimpleName();
+    //---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    public static enum FirewallState { RUNNING, PAUSED, STOPPED;}
+    private FirewallState firewallState;
 
     private final ConnectionManager connectionManager = new ConnectionManager();
     private final NetworkInterfaceHelper networkInterfaceHelper = new NetworkInterfaceHelper();
     private final FirewallIptableRulesHandler iptableRulesManager = NetfilterFirewallRulesHandler.instance;
     private final FirewallRulesManager rulesManager = new FirewallRulesManager(NetfilterFirewallRulesHandler.instance);
-    private final WatchedAppsPreferencesManager watchedAppsManager;
+    private final FirewallPolicyManager policyManager = new FirewallPolicyManager(NetfilterFirewallRulesHandler.instance);
 
     private final Context firewallServiceContext;
     private FirewallStateListener firewallStateListener;
@@ -73,12 +80,17 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
     private NetfilterBridgeControl control;
 //    private DnsCacheControl dnsCacheControl;
 
+    // Firewall Subsytems:
+    public final FirewallSubsystems subsystem;
+    private final SubsystemWatchedApps subsystemWatchedApps;
+
     public Firewall(FirewallService firewallServiceContext) {
         Log.i(LOG_TAG, "initializing firewall service...");
 
         this.firewallServiceContext = firewallServiceContext;
         this.firewallState = FirewallState.STOPPED;
-        this.watchedAppsManager = new WatchedAppsPreferencesManager(firewallServiceContext);
+        this.subsystemWatchedApps = new SubsystemWatchedApps(this, firewallServiceContext, iptableRulesManager);
+        this.subsystem = new FirewallSubsystems();
 
         Log.i(LOG_TAG, "firewall service running.");
     }
@@ -142,7 +154,7 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
             // Start watching apps which have been watched before
             Log.d(LOG_TAG, "restoring forwarding-rules for watched apps...");
             {
-                List<ApplicationInfo> watchedApps = watchedAppsManager.getWatchedApps();
+                List<ApplicationInfo> watchedApps = subsystemWatchedApps.getWatchedApps();
 
                 // reporting progress to listener
                 if (progressListener != null)
@@ -153,19 +165,20 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
                     if (progressListener != null)
                         progressListener.onWatchedAppsRestoreApp(watchedApp, appIndex++); // reporting progress to listener
 
-                    setAppWatched(watchedApp, true);
+                    subsystemWatchedApps.setAppWatched(watchedApp, true);
                 }
             }
 
             Log.d(LOG_TAG, "restoring firewall-policy...");
             {
-                FirewallRulesManager.FirewallPolicy policy = DiscoWallSettings.getInstance().getFirewallPolicy(firewallServiceContext);
+                FirewallPolicyManager.FirewallPolicy policy = DiscoWallSettings.getInstance().getFirewallPolicy(firewallServiceContext);
 
                 // reporting progress to listener
                 if (progressListener != null)
                     progressListener.onFirewallPolicyBeforeApplyPolicy(policy);
 
-                rulesManager.setFirewallPolicy(policy);
+                // Apply policy:
+                policyManager.setFirewallPolicy(policy, true);
             }
 
             Log.i(LOG_TAG, "firewall started.");
@@ -276,18 +289,18 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
             onFirewallStateChanged(FirewallState.RUNNING);
         }
     }
-//
+
 //    private void assertFirewallRunning() {
 //        if (!isFirewallRunning())
 //            throw new FirewallExceptions.FirewallInvalidStateException("Firewall needs to be running to perform specified action.", FirewallState.STOPPED);
 //    }
 
-    public FirewallRulesManager.FirewallPolicy getFirewallPolicy() {
-        return rulesManager.getFirewallPolicy();
+    public FirewallPolicyManager.FirewallPolicy getFirewallPolicy() {
+        return policyManager.getFirewallPolicy();
     }
 
-    public void setFirewallPolicy(FirewallRulesManager.FirewallPolicy newRulesPolicy) throws FirewallExceptions.FirewallException {
-        rulesManager.setFirewallPolicy(newRulesPolicy);
+    public void setFirewallPolicy(FirewallPolicyManager.FirewallPolicy newRulesPolicy) throws FirewallExceptions.FirewallException {
+        policyManager.setFirewallPolicy(newRulesPolicy, !isFirewallStopped());
 
         if (firewallStateListener != null)
             firewallStateListener.onFirewallPolicyChanged(newRulesPolicy);
@@ -343,77 +356,6 @@ public class Firewall implements NetfilterBridgeCommunicator.EventsHandler {
         } catch(ShellExecuteExceptions.ShellExecuteException e) {
             throw new FirewallExceptions.FirewallException("Error fetching iptable rules: " + e.getMessage(), e);
         }
-    }
-
-    public List<ApplicationInfo> getWatchableApps() {
-        return watchedAppsManager.getWatchableApps();
-    }
-
-//    public HashMap<ApplicationInfo, Boolean> getAppsToWatchStateMap() throws FirewallExceptions.FirewallException {
-//        return watchedAppsManager.createAppsToWatchStateMap();
-//    }
-
-    /**
-     * Disables watching of all apps besides those who are specified within the list.
-     * @param appsToWatch
-     * @throws FirewallExceptions.FirewallException
-     */
-    public void setWatchedApps(List<ApplicationInfo> appsToWatch) throws FirewallExceptions.FirewallException {
-        HashMap<String, ApplicationInfo> packageNameToAppInfoMap = WatchedAppsPreferencesManager.packageNameToApplicationInfoMap(getWatchedApps());
-
-        Set<String> appsToWatchSet = WatchedAppsPreferencesManager.applicationListToPackageNameSet(appsToWatch);
-        Set<String> currentlyWatchedAppsSet = WatchedAppsPreferencesManager.applicationListToPackageNameSet(watchedAppsManager.getWatchedApps());
-
-        // Disable watching of those apps, which are not in the "watchedAppsSet"
-        for(String watchedApp : currentlyWatchedAppsSet) {
-            if (!appsToWatchSet.contains(watchedApp))
-                setAppWatched(packageNameToAppInfoMap.get(watchedApp), false);
-        }
-
-        // List has changed, updating list of currently watched apps:
-        currentlyWatchedAppsSet = WatchedAppsPreferencesManager.applicationListToPackageNameSet(watchedAppsManager.getWatchedApps());
-
-        // Enable watching of those apps, which are in the "appsToWatchSet" (and not currently watched)
-        for(ApplicationInfo appToWatch : appsToWatch) {
-            if (!currentlyWatchedAppsSet.contains(appToWatch.packageName)) // checking via Set.contains(), as this can be done within O(n), whereas isAppWatched() takes O(n²)
-                setAppWatched(appToWatch, true);
-        }
-    }
-
-    /**
-     * Makes sure the traffic of a specified application will be monitored by the firewall. The configuration is automatically stored persistently.
-     * <p></p>
-     * <b>Note: </b> If the firewall is not running, this call will have no effect. If the firewall is being started, all watched-states will be restored.
-     * @param appInfo
-     * @param watchTraffic
-     * @throws FirewallExceptions.FirewallException
-     */
-    public void setAppWatched(ApplicationInfo appInfo, boolean watchTraffic) throws FirewallExceptions.FirewallException {
-        String appName = appInfo.loadLabel(firewallServiceContext.getPackageManager()) + "";
-        Log.d(LOG_TAG, "enabling traffic-monitoring for app " + appName + " with uid " + appInfo.uid + ".");
-
-        if (!isFirewallStopped()) {
-            Log.v(LOG_TAG, "Firewall is running, iptable-rules will be created...");
-
-            try {
-                iptableRulesManager.setUserPackagesForwardToFirewall(appInfo.uid, watchTraffic);
-            } catch (ShellExecuteExceptions.ShellExecuteException e) {
-                throw new FirewallExceptions.FirewallException("Error changing watched-state for app(s) by user id " + appInfo.uid + ": " + e.getMessage(), e);
-            }
-        } else {
-            Log.v(LOG_TAG, "Firewall not running, iptable-rules will be created on next firewall-activation.");
-        }
-
-        // updating watched apps persistent preferences
-        watchedAppsManager.setAppWatched(appInfo, watchTraffic);
-    }
-
-    public boolean isAppWatched(ApplicationInfo appInfo) {
-        return watchedAppsManager.isAppWatched(appInfo);
-    }
-
-    public List<ApplicationInfo> getWatchedApps() {
-        return watchedAppsManager.getWatchedApps();
     }
 
     @Override

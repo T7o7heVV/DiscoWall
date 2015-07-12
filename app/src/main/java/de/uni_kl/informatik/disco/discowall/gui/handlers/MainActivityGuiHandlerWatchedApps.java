@@ -18,6 +18,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 
+import de.uni_kl.informatik.disco.discowall.DecideConnectionDialog;
 import de.uni_kl.informatik.disco.discowall.MainActivity;
 import de.uni_kl.informatik.disco.discowall.R;
 import de.uni_kl.informatik.disco.discowall.ShowAppRulesActivity;
@@ -25,6 +26,9 @@ import de.uni_kl.informatik.disco.discowall.firewall.FirewallExceptions;
 import de.uni_kl.informatik.disco.discowall.gui.adapters.DiscoWallAppAdapter;
 import de.uni_kl.informatik.disco.discowall.gui.dialogs.ErrorDialog;
 import de.uni_kl.informatik.disco.discowall.gui.adapters.AppAdapter;
+import de.uni_kl.informatik.disco.discowall.packages.Connections;
+import de.uni_kl.informatik.disco.discowall.packages.Packages;
+import de.uni_kl.informatik.disco.discowall.utils.ressources.DiscoWallSettings;
 
 public class MainActivityGuiHandlerWatchedApps extends MainActivityGuiHandler {
     private DiscoWallAppAdapter watchedAppsListAdapter;
@@ -64,7 +68,7 @@ public class MainActivityGuiHandlerWatchedApps extends MainActivityGuiHandler {
                  */
 
                 // IMPORTANT: If I would buffer the "watched apps" at any point, scrolling the list will reset the value to the buffered state!
-                appWatchedCheckboxWidget.setChecked(mainActivity.firewall.isAppWatched(appInfo));
+                appWatchedCheckboxWidget.setChecked(mainActivity.firewall.subsystem.watchedApps.isAppWatched(appInfo));
             }
 
             @Override
@@ -105,9 +109,10 @@ public class MainActivityGuiHandlerWatchedApps extends MainActivityGuiHandler {
     }
 
     private void actionWatchedAppShowFirewallRules(ApplicationInfo appInfo) {
-//        EditConnectionRuleDialog.show(mainActivity, "example tag", appInfo, new Packages.IpPortPair("192.168.178.100", 1337), new Packages.IpPortPair("192.168.178.200", 4200), FirewallRules.RulePolicy.ACCEPT);
-
+        boolean createRuleIsDefaultChecked = DiscoWallSettings.getInstance().isHandleConnectionDialogDefaultCreateRule(mainActivity);
         ShowAppRulesActivity.showAppRules(mainActivity, appInfo);
+
+//        DecideConnectionDialog.show(mainActivity, "example tag", appInfo, new Packages.IpPortPair("192.168.178.100", 1337), new Packages.IpPortPair("192.168.178.200", 4200), Connections.TransportLayerProtocol.TCP, createRuleIsDefaultChecked);
     }
 
     public void actionSetAllAppsWatched(boolean watched) {
@@ -115,7 +120,7 @@ public class MainActivityGuiHandlerWatchedApps extends MainActivityGuiHandler {
 
         HashMap<ApplicationInfo, Boolean> appsToWatchedStateMap = new HashMap<>();
 
-        for(ApplicationInfo appInfo : mainActivity.firewall.getWatchableApps())
+        for(ApplicationInfo appInfo : mainActivity.firewall.subsystem.watchedApps.getWatchableApps())
             appsToWatchedStateMap.put(appInfo, watched);
 
         setAppsWatched(appsToWatchedStateMap, watched ? R.string.action_main_menu_monitor_all_apps : R.string.action_main_menu_monitor_no_apps);
@@ -124,12 +129,12 @@ public class MainActivityGuiHandlerWatchedApps extends MainActivityGuiHandler {
     public void actionInvertAllAppsWatched() {
         Log.i(LOG_TAG, "invert apps to be watched by firewall...");
 
-        List<ApplicationInfo> watchedApps = mainActivity.firewall.getWatchedApps();
+        List<ApplicationInfo> watchedApps = mainActivity.firewall.subsystem.watchedApps.getWatchedApps();
 
         HashMap<ApplicationInfo, Boolean> appsToWatchedStateMap = new HashMap<>();
 
-        for(ApplicationInfo appInfo : mainActivity.firewall.getWatchableApps())
-            appsToWatchedStateMap.put(appInfo, !mainActivity.firewall.isAppWatched(appInfo));
+        for(ApplicationInfo appInfo : mainActivity.firewall.subsystem.watchedApps.getWatchableApps())
+            appsToWatchedStateMap.put(appInfo, !mainActivity.firewall.subsystem.watchedApps.isAppWatched(appInfo));
 
         setAppsWatched(appsToWatchedStateMap, R.string.action_main_menu_monitor_invert_monitored);
     }
@@ -150,8 +155,8 @@ public class MainActivityGuiHandlerWatchedApps extends MainActivityGuiHandler {
                     boolean watchApp = appsToWatchedStateMap.get(appInfo);
 
                     try {
-                        if (mainActivity.firewall.isAppWatched(appInfo) != watchApp)
-                            mainActivity.firewall.setAppWatched(appInfo, watchApp);
+                        if (mainActivity.firewall.subsystem.watchedApps.isAppWatched(appInfo) != watchApp)
+                            mainActivity.firewall.subsystem.watchedApps.setAppWatched(appInfo, watchApp);
                     } catch(FirewallExceptions.FirewallException e) {
                         if (!errorMessage.isEmpty())
                             errorMessage += "\n";
@@ -218,7 +223,7 @@ public class MainActivityGuiHandlerWatchedApps extends MainActivityGuiHandler {
 
     private void actionSetAppWatched(final ApplicationInfo appInfo, final boolean watched) {
         // Nothing to do, if the desired watched-state is already present. This happens when the GUI refreshes (as it does on scrolling).
-        if (watched == mainActivity.firewall.isAppWatched(appInfo)) {
+        if (watched == mainActivity.firewall.subsystem.watchedApps.isAppWatched(appInfo)) {
 //            Log.v(LOG_TAG, "App already " + (watched?"":"not ") + "watched. No change in sate required. This call happens when creating the list.");
             return;
         }
@@ -236,7 +241,7 @@ public class MainActivityGuiHandlerWatchedApps extends MainActivityGuiHandler {
             @Override
             protected Boolean doInBackground(Boolean... params) {
                 try {
-                    mainActivity.firewall.setAppWatched(appInfo, watched);
+                    mainActivity.firewall.subsystem.watchedApps.setAppWatched(appInfo, watched);
                 } catch (FirewallExceptions.FirewallException e) {
                     errorMessage = "Error changing watched-state for app '" + appInfo.packageName + "': " + e.getMessage();
                 }

@@ -1,7 +1,17 @@
 package de.uni_kl.informatik.disco.discowall.packages;
 
 public class Connections {
-    public static enum TransportLayerProtocol { TCP, UDP }
+    public static enum TransportLayerProtocol {
+        TCP, UDP;
+
+        public boolean isTcp() {
+            return this == TCP;
+        }
+
+        public boolean isUdp() {
+            return this == UDP;
+        }
+    }
 
     public static interface IConnectionSource {
         Packages.IpPortPair getSource();
@@ -101,6 +111,8 @@ public class Connections {
             return ( tlPackage.getSource().equals(getSource()) && tlPackage.getDestination().equals(getDestination()) )
                     || ( tlPackage.getSource().equals(getDestination()) && tlPackage.getDestination().equals(getSource()) );
         }
+
+        public abstract TransportLayerProtocol getTransportLayerProtocol();
     }
 
     public static class UdpConnection extends Connection {
@@ -114,6 +126,11 @@ public class Connections {
 
         UdpConnection(String sourceIP, int sourcePort, String destinationIP, int destinationPort) {
             super(sourceIP, sourcePort, destinationIP, destinationPort);
+        }
+
+        @Override
+        public TransportLayerProtocol getTransportLayerProtocol() {
+            return TransportLayerProtocol.TCP;
         }
 
         public boolean update(Packages.UdpPackage udpPackage) {
@@ -177,6 +194,11 @@ public class Connections {
                 state = TcpConnectionState.RESET;
 
             return true;
+        }
+
+        @Override
+        public TransportLayerProtocol getTransportLayerProtocol() {
+            return TransportLayerProtocol.UDP;
         }
 
         @Override

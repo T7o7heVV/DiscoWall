@@ -15,11 +15,15 @@
         android:defaultValue="true">
     </SwitchPreference>
 
+    <!--
+
     <SwitchPreference
-        android:title="On New Connection: Create Rule By Default"
+        android:title="Create Rule For New Connection By Default"
         android:key="@string/preference_id__handle_connection_dialog__create_rule_default_checked"
         android:summary="@string/preference_summary__handle_connection_dialog__create_rule_default_checked"
         android:defaultValue="true">
     </SwitchPreference>
+
+    -->
 
 </PreferenceScreen>

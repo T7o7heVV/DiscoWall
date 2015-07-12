@@ -8,7 +8,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import de.uni_kl.informatik.disco.discowall.R;
-import de.uni_kl.informatik.disco.discowall.firewall.rules.FirewallRulesManager;
+import de.uni_kl.informatik.disco.discowall.firewall.helpers.FirewallPolicyManager;
 
 public class DiscoWallSettings {
     private DiscoWallSettings() {}
@@ -37,12 +37,12 @@ public class DiscoWallSettings {
         setSettingBool(context, R.string.preference_id__firewall_enabled, enabled);
     }
 
-    public FirewallRulesManager.FirewallPolicy getFirewallPolicy(Context context) {
-        String policyAsString = getSetting(context, R.string.preference_id__firewall_policy, FirewallRulesManager.FirewallPolicy.INTERACTIVE.toString());
-        return FirewallRulesManager.FirewallPolicy.valueOf(policyAsString);
+    public FirewallPolicyManager.FirewallPolicy getFirewallPolicy(Context context) {
+        String policyAsString = getSetting(context, R.string.preference_id__firewall_policy, FirewallPolicyManager.FirewallPolicy.INTERACTIVE.toString());
+        return FirewallPolicyManager.FirewallPolicy.valueOf(policyAsString);
     }
 
-    public void setFirewallPolicy(Context context, FirewallRulesManager.FirewallPolicy policy) {
+    public void setFirewallPolicy(Context context, FirewallPolicyManager.FirewallPolicy policy) {
         setSetting(context, R.string.preference_id__firewall_policy, policy.toString());
     }
 
