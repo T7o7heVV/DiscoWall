@@ -3,8 +3,6 @@ package de.uni_kl.informatik.disco.discowall.firewall.helpers;
 import java.util.HashMap;
 import java.util.LinkedList;
 
-import de.uni_kl.informatik.disco.discowall.firewall.Firewall;
-import de.uni_kl.informatik.disco.discowall.firewall.FirewallService;
 import de.uni_kl.informatik.disco.discowall.firewall.rules.FirewallIptableRulesHandler;
 import de.uni_kl.informatik.disco.discowall.firewall.rules.FirewallRuleExceptions;
 import de.uni_kl.informatik.disco.discowall.firewall.rules.FirewallRules;
@@ -47,26 +45,40 @@ public class FirewallRulesManager {
         return redirectRules;
     }
 
-    public FirewallRules.FirewallTransportRule createTransportLayerRule(int userId, Packages.IpPortPair sourceFilter, Packages.IpPortPair destinationFilter, FirewallRules.DeviceFilter deviceFilter, FirewallRules.ProtocolFilter protocolFilter, FirewallRules.RulePolicy rulePolicy) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
-        FirewallRules.FirewallTransportRule rule = new FirewallRules.FirewallTransportRule(userId, sourceFilter, destinationFilter, deviceFilter, protocolFilter, rulePolicy);
+    public void writeRedirectionRuleToIptables(FirewallRules.FirewallTransportRule rule) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
+        // TODO
+    }
 
+    public void writePolicyRuleToIptables(FirewallRules.FirewallTransportRule rule) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
         try {
-            firewallIptableRulesHandler.addTcpConnectionRule(userId, new Packages.SourceDestinationPair(sourceFilter, destinationFilter), rulePolicy, deviceFilter);
+            // If TCP should be filtered:
+            if (rule.getProtocolFilter().isTcp())
+                firewallIptableRulesHandler.addTransportLayerRule(Packages.TransportLayerProtocol.TCP, rule.getUserId(), new Packages.SourceDestinationPair(rule.getSourceFilter(), rule.getDestinationFilter()), rule.getRulePolicy(), rule.getDeviceFilter());
+
+            // If UDP should be filtered:
+            if (rule.getProtocolFilter().isUdp())
+                firewallIptableRulesHandler.addTransportLayerRule(Packages.TransportLayerProtocol.UDP, rule.getUserId(), new Packages.SourceDestinationPair(rule.getSourceFilter(), rule.getDestinationFilter()), rule.getRulePolicy(), rule.getDeviceFilter());
+
         } catch (ShellExecuteExceptions.ShellExecuteException e) {
+
             // Remove created rule (if any), when an exception occurrs:
-            firewallIptableRulesHandler.deleteTcpConnectionRule(userId, new Packages.SourceDestinationPair(sourceFilter, destinationFilter), rulePolicy, deviceFilter);
+            if (rule.getProtocolFilter().isTcp())
+                firewallIptableRulesHandler.deleteTransportLayerRule(Packages.TransportLayerProtocol.TCP, rule.getUserId(), new Packages.SourceDestinationPair(rule.getSourceFilter(), rule.getDestinationFilter()), rule.getRulePolicy(), rule.getDeviceFilter());
+            if (rule.getProtocolFilter().isUdp())
+                firewallIptableRulesHandler.deleteTransportLayerRule(Packages.TransportLayerProtocol.UDP, rule.getUserId(), new Packages.SourceDestinationPair(rule.getSourceFilter(), rule.getDestinationFilter()), rule.getRulePolicy(), rule.getDeviceFilter());
+
             throw e;
         }
+    }
 
+    public FirewallRules.FirewallTransportRule createTransportLayerRule(int userId, Packages.IpPortPair sourceFilter, Packages.IpPortPair destinationFilter, FirewallRules.DeviceFilter deviceFilter, FirewallRules.ProtocolFilter protocolFilter, FirewallRules.RulePolicy rulePolicy) {
+        FirewallRules.FirewallTransportRule rule = new FirewallRules.FirewallTransportRule(userId, sourceFilter, destinationFilter, deviceFilter, protocolFilter, rulePolicy);
         rulesHash.addRule(rule);
         return rule;
     }
 
     public FirewallRules.FirewallTransportRedirectRule createTransportLayerRedirectionRule(int userId, Packages.IpPortPair sourceFilter, Packages.IpPortPair destinationFilter, FirewallRules.DeviceFilter deviceFilter, FirewallRules.ProtocolFilter protocolFilter, Packages.IpPortPair redirectTo) throws FirewallRuleExceptions.InvalidRuleDefinitionException {
         FirewallRules.FirewallTransportRedirectRule rule = new FirewallRules.FirewallTransportRedirectRule(userId, sourceFilter, destinationFilter, deviceFilter, protocolFilter, redirectTo);
-
-        // TODO
-
         rulesHash.addRule(rule);
         return rule;
     }

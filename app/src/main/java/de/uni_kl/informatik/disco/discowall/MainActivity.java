@@ -49,23 +49,6 @@ public class MainActivity extends AppCompatActivity implements DecideConnectionD
         registerForContextMenu(findViewById(R.id.listViewFirewallMonitoredApps)); // see http://developer.android.com/guide/topics/ui/menus.html#FloatingContextMenu
 
         // NOTE: All initialization of GUI-Elements etc. is being done onFirewallServiceBound
-
-
-//        // DEBUG!
-//        HandleConnectionDialog.show(
-//                this,
-//                new HandleConnectionDialog.HandleConnectionDialogListener() {
-//                    @Override
-//                    public void onConnectionAccepted(HandleConnectionDialog dialog, Connections.Connection connection, boolean createRule) {
-//                        Toast.makeText(MainActivity.this, "Accepted, rule: " + createRule, Toast.LENGTH_LONG).show();
-//                    }
-//                    @Override
-//                    public void onConnectionBlocked(HandleConnectionDialog dialog, Connections.Connection connection, boolean createRule) {
-//                        Toast.makeText(MainActivity.this, "Blocked, rule: " + createRule, Toast.LENGTH_LONG).show();
-//                    }
-//                },
-//                null
-//        );
     }
 
     @Override

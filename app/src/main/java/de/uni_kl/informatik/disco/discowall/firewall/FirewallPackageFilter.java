@@ -34,13 +34,13 @@ public class FirewallPackageFilter {
                 return false;
 
             case FILTER_TCP:    // MODE: filter tcp only, accept rest
-                if (tlPackage.getProtocol() != Packages.TransportProtocol.TCP)
+                if (tlPackage.getProtocol() != Packages.TransportLayerProtocol.TCP)
                     return true; // package is not tcp ==> will not be filtered
                 else
                     break;
 
             case FILTER_UDP:    // MODE: filter udp only, accept rest
-                if (tlPackage.getProtocol() != Packages.TransportProtocol.UDP)
+                if (tlPackage.getProtocol() != Packages.TransportLayerProtocol.UDP)
                     return true;
                 else
                     break;

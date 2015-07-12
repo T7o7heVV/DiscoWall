@@ -91,7 +91,7 @@ public class DecideConnectionDialog extends DialogFragment {
         ((EditText) layoutView.findViewById(R.id.editText_server_port)).setText(serverPort + ""); // ""
 
         // Connection Protocol:
-        Connections.TransportLayerProtocol protocol = Connections.TransportLayerProtocol.valueOf(bundle.getString("connection.protocol"));
+        Packages.TransportLayerProtocol protocol = Packages.TransportLayerProtocol.valueOf(bundle.getString("connection.protocol"));
         switch(protocol) {
             case TCP:
                 ((RadioButton) layoutView.findViewById(R.id.radioButton_protocol_tcp)).setChecked(true);
@@ -170,11 +170,11 @@ public class DecideConnectionDialog extends DialogFragment {
         return show(context, appInfo, connection.getSource(), connection.getDestination(), connection.getTransportLayerProtocol());
     }
 
-    public static DecideConnectionDialog show(Activity context, ApplicationInfo appInfo, Packages.IpPortPair client, Packages.IpPortPair server, Connections.TransportLayerProtocol protocol) {
+    public static DecideConnectionDialog show(Activity context, ApplicationInfo appInfo, Packages.IpPortPair client, Packages.IpPortPair server, Packages.TransportLayerProtocol protocol) {
         return show(context, appInfo, client, server, protocol);
     }
 
-    public static DecideConnectionDialog show(Activity context, String dialogTag, ApplicationInfo appInfo, Packages.IpPortPair client, Packages.IpPortPair server, Connections.TransportLayerProtocol protocol) {
+    public static DecideConnectionDialog show(Activity context, String dialogTag, ApplicationInfo appInfo, Packages.IpPortPair client, Packages.IpPortPair server, Packages.TransportLayerProtocol protocol) {
         if (! (context instanceof DecideConnectionDialogListener))
             throw new ClassCastException("Starting-Activity must implement interface " + DecideConnectionDialogListener.class.getCanonicalName());
 

@@ -18,6 +18,8 @@ import android.widget.CompoundButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import de.uni_kl.informatik.disco.discowall.R;
+
 public class AppAdapter extends ArrayAdapter<ApplicationInfo>{
     public interface AdapterHandler {
         void onRowCreate(AppAdapter adapter, ApplicationInfo appInfo, TextView appNameWidget, TextView appPackageNameWidget, TextView appRuleInfoTextView, ImageView appIconImageWidget, CheckBox appWatchedCheckboxWidget);
@@ -194,6 +196,7 @@ public class AppAdapter extends ArrayAdapter<ApplicationInfo>{
         appPackageNameTextView.setText(applicationInfo.packageName);
         appIconImageView.setImageDrawable(applicationInfo.loadIcon(packageManager));
 
+
         //--------------------------------------------------------------------------------------------------------------------------------------
         // Checkbox-Checks
         //--------------------------------------------------------------------------------------------------------------------------------------
@@ -311,7 +314,6 @@ public class AppAdapter extends ArrayAdapter<ApplicationInfo>{
             }
         });
         //--------------------------------------------------------------------------------------------------------------------------------------
-
 
         // Call on-row-create event
         if (adapterHandler != null)

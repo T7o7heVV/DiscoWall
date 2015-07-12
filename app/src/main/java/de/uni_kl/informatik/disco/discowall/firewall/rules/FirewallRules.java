@@ -8,13 +8,13 @@ public class FirewallRules {
     public enum RulePolicy { ACCEPT, BLOCK, INTERACTIVE }
 
     public enum ProtocolFilter { TCP, UDP, TCP_UDP;
-        public boolean allowsTcp() {
+        public boolean isTcp() {
             return this == TCP || this == TCP_UDP;
         }
-        public boolean allowsUdp() {
+        public boolean isUdp() {
             return this == UDP || this == TCP_UDP;
         }
-        public boolean allowsTcpAndUdp() {
+        public boolean isTcpAndUdp() {
             return this == TCP_UDP;
         }
     }
@@ -167,7 +167,7 @@ public class FirewallRules {
         }
     }
 
-    public static class FirewallTransportRule extends AbstractFirewallPolicyRule  {
+    public static class FirewallTransportRule extends AbstractFirewallPolicyRule implements IFirewallPolicyRule {
         public FirewallTransportRule(int userId, Packages.IpPortPair sourceFilter, Packages.IpPortPair destinationFilter, DeviceFilter deviceFilter, ProtocolFilter protocolFilter, RulePolicy rulePolicy) {
             super(userId, protocolFilter, sourceFilter, destinationFilter, deviceFilter, rulePolicy);
         }

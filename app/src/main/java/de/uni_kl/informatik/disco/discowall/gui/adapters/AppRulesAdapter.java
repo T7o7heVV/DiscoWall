@@ -106,8 +106,8 @@ public class AppRulesAdapter extends ArrayAdapter<FirewallRules.IFirewallRule> {
         // WiFi, UMTS, TCP, UDP
         checkBoxInterfaceUmts.setChecked(rule.getDeviceFilter().allowsUmts());
         checkBoxInterfaceWifi.setChecked(rule.getDeviceFilter().allowsWifi());
-        checkBoxProtocolTcp.setChecked(rule.getProtocolFilter().allowsTcp());
-        checkBoxProtocolUdp.setChecked(rule.getProtocolFilter().allowsUdp());
+        checkBoxProtocolTcp.setChecked(rule.getProtocolFilter().isTcp());
+        checkBoxProtocolUdp.setChecked(rule.getProtocolFilter().isUdp());
 
 
         // --------------------------------------------------------------------------------------------------------------

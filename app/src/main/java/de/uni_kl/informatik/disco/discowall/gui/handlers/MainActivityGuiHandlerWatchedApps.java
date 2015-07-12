@@ -8,6 +8,7 @@ import android.os.AsyncTask;
 import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.CheckBox;
 import android.widget.ImageView;
 import android.widget.ListView;
@@ -48,18 +49,12 @@ public class MainActivityGuiHandlerWatchedApps extends MainActivityGuiHandler {
         final DiscoWallAppAdapter appsAdapter = new DiscoWallAppAdapter(mainActivity);
         appsListView.setAdapter(appsAdapter);
 
-        appsAdapter.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
-            @Override
-            public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
-                return false;
-            }
-        });
-
         // Storing reference, so that the list can be updated when enabling/disabling the firewall
         watchedAppsListAdapter = appsAdapter;
 
-        // Adapter-Handler for manipulating list-view while it is being created etc.
+        // These click-handlers are being called, as widgets within the row are being clicked
         appsAdapter.setAdapterHandler(new AppAdapter.AdapterHandler() {
+            // Adapter-Handler for manipulating list-view while it is being created etc.
             @Override
             public void onRowCreate(AppAdapter adapter, ApplicationInfo appInfo, TextView appNameWidget, TextView appPackageNameWidget, TextView appRuleInfoTextView, ImageView appIconImageWidget, CheckBox appWatchedCheckboxWidget) {
                 /* This method is being called when...
@@ -70,8 +65,15 @@ public class MainActivityGuiHandlerWatchedApps extends MainActivityGuiHandler {
                 // IMPORTANT: If I would buffer the "watched apps" at any point, scrolling the list will reset the value to the buffered state!
                 appWatchedCheckboxWidget.setChecked(mainActivity.firewall.subsystem.watchedApps.isAppWatched(appInfo));
 
-                int rulesCount = mainActivity.firewall.subsystem.rulesManager.getRules(appInfo).size();
-                String ruleInfo = rulesCount + (rulesCount != 1 ? " rules" : " rule");
+                int totalRulesCount = mainActivity.firewall.subsystem.rulesManager.getRules(appInfo).size();
+                int policyRulesCount = mainActivity.firewall.subsystem.rulesManager.getPolicyRules(appInfo).size();
+                int redirectionRulesCount = mainActivity.firewall.subsystem.rulesManager.getRedirectionRules(appInfo).size();
+
+                // Creating String like: "3 rules:  2 policy, 1 redirection"
+                String ruleInfo = totalRulesCount + (totalRulesCount != 1 ? " rules" : " rule");
+                if (totalRulesCount > 0)
+                    ruleInfo += ":  " + policyRulesCount + " policy, " + redirectionRulesCount + " redirection";
+
                 appRuleInfoTextView.setText(ruleInfo);
             }
 

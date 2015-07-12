@@ -1,6 +1,7 @@
 package de.uni_kl.informatik.disco.discowall.firewall.rules;
 
 import de.uni_kl.informatik.disco.discowall.packages.Connections;
+import de.uni_kl.informatik.disco.discowall.packages.Packages;
 import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecuteExceptions;
 
 public interface FirewallIptableRulesHandler {
@@ -23,7 +24,7 @@ public interface FirewallIptableRulesHandler {
     boolean isUserPackagesForwardedToFirewall(int uid) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException;
 
     // Accept/Block a certain user-/app-connection
-    void addTcpConnectionRule(int userID, Connections.IConnection connection, FirewallRules.RulePolicy policy, FirewallRules.DeviceFilter deviceFilter) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException;
-    void deleteTcpConnectionRule(int userID, Connections.IConnection connection, FirewallRules.RulePolicy policy, FirewallRules.DeviceFilter deviceFilter) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException;
+    void addTransportLayerRule(Packages.TransportLayerProtocol protocol, int userID, Connections.IConnection connection, FirewallRules.RulePolicy policy, FirewallRules.DeviceFilter deviceFilter) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException;
+    void deleteTransportLayerRule(Packages.TransportLayerProtocol protocol, int userID, Connections.IConnection connection, FirewallRules.RulePolicy policy, FirewallRules.DeviceFilter deviceFilter) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException;
 
 }

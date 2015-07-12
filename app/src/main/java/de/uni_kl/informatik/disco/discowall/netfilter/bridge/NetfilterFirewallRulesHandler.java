@@ -40,23 +40,23 @@ public class NetfilterFirewallRulesHandler implements FirewallIptableRulesHandle
         addDeleteUserRule(userID, rule, deviceFilter, false);
     }
 
-    public void addTcpConnectionRule(int userID, Connections.IConnection connection, FirewallRules.RulePolicy policy, FirewallRules.DeviceFilter deviceFilter) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
-        addDeleteTcpConnectionRule(userID, connection, policy, deviceFilter, false);
+    public void addTransportLayerRule(Packages.TransportLayerProtocol protocol, int userID, Connections.IConnection connection, FirewallRules.RulePolicy policy, FirewallRules.DeviceFilter deviceFilter) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
+        addDeleteTransportLayerRule(protocol, userID, connection, policy, deviceFilter, false);
     }
 
-    public void deleteTcpConnectionRule(int userID, Connections.IConnection connection, FirewallRules.RulePolicy policy, FirewallRules.DeviceFilter deviceFilter) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
-        addDeleteTcpConnectionRule(userID, connection, policy, deviceFilter, true);
+    public void deleteTransportLayerRule(Packages.TransportLayerProtocol protocol, int userID, Connections.IConnection connection, FirewallRules.RulePolicy policy, FirewallRules.DeviceFilter deviceFilter) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
+        addDeleteTransportLayerRule(protocol, userID, connection, policy, deviceFilter, true);
     }
 
-    private void addDeleteTcpConnectionRule(int userID, Connections.IConnection connection, FirewallRules.RulePolicy policy, FirewallRules.DeviceFilter deviceFilter, boolean delete) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
+    private void addDeleteTransportLayerRule(Packages.TransportLayerProtocol protocol, int userID, Connections.IConnection connection, FirewallRules.RulePolicy policy, FirewallRules.DeviceFilter deviceFilter, boolean delete) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
         // Packages: Direction source => destination
-        addDeleteUserConnectionRuleTcp(userID, connection.getSource(), connection.getDestination(), policy, deviceFilter, delete);
+        addDeleteUserConnectionRule(protocol, userID, connection.getSource(), connection.getDestination(), policy, deviceFilter, delete);
 
         // Packages: Direction destination => source
-        addDeleteUserConnectionRuleTcp(userID, connection.getDestination(), connection.getSource(), policy, deviceFilter, delete);
+        addDeleteUserConnectionRule(protocol, userID, connection.getDestination(), connection.getSource(), policy, deviceFilter, delete);
     }
 
-    private void addDeleteUserConnectionRuleTcp(int userID, Packages.IpPortPair source, Packages.IpPortPair destination, FirewallRules.RulePolicy policy, FirewallRules.DeviceFilter deviceFilter, boolean delete) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
+    private void addDeleteUserConnectionRule(Packages.TransportLayerProtocol protocol, int userID, Packages.IpPortPair source, Packages.IpPortPair destination, FirewallRules.RulePolicy policy, FirewallRules.DeviceFilter deviceFilter, boolean delete) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
         String target;
 
         switch (policy) {
@@ -73,7 +73,18 @@ public class NetfilterFirewallRulesHandler implements FirewallIptableRulesHandle
                 throw new RuntimeException("Unknown policy: " + policy);
         }
 
-        String rule = "-p tcp";
+        String rule;
+        switch(protocol) {
+            case TCP:
+                rule = "-p tcp";
+                break;
+            case UDP:
+                rule = "-p udp";
+                break;
+            default:
+                throw new RuntimeException("Unknown protocol-type: " + protocol);
+        }
+
 
         /*
            !!! IMPORTANT !!!

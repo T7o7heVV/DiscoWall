@@ -7,7 +7,18 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 public class Packages {
-    public enum TransportProtocol { TCP, UDP }
+    public enum TransportLayerProtocol {
+        TCP, UDP;
+
+        public boolean isTcp() {
+            return this == TCP;
+        }
+
+        public boolean isUdp() {
+            return this == UDP;
+        }
+    }
+
     public enum NetworkInterface { Loopback, WiFi, Umts }
 
     public static class IpPortPair {
@@ -215,11 +226,11 @@ public class Packages {
     }
 
     public static abstract class TransportLayerPackage extends IpPackage implements Connections.IConnection {
-        private final TransportProtocol protocol;
+        private final TransportLayerProtocol protocol;
         private final IpPortPair source, destination;
         private final int checksum, length;
 
-        public TransportProtocol getProtocol() { return protocol; }
+        public TransportLayerProtocol getProtocol() { return protocol; }
 
         @Override public IpPortPair getSource() { return source; }
         @Override public int getSourcePort() { return source.getPort(); }
@@ -232,7 +243,7 @@ public class Packages {
         public int getLength() { return length; }
         public int getChecksum() { return checksum; }
 
-        public TransportLayerPackage(TransportProtocol protocol, String sourceIP, String destinationIP, int sourcePort, int destinationPort, int checksum, int length) {
+        public TransportLayerPackage(TransportLayerProtocol protocol, String sourceIP, String destinationIP, int sourcePort, int destinationPort, int checksum, int length) {
             super();
             this.protocol = protocol;
             this.checksum = checksum;
@@ -265,7 +276,7 @@ public class Packages {
                           int seqNumber, int ackNumber,
                           boolean hasFlagACK, boolean hasFlagFIN, boolean hasFlagSYN, boolean hasFlagPush, boolean hasFlagReset, boolean hasFlagUrgent
         ) {
-            super(TransportProtocol.TCP, sourceIP, destinationIP, sourcePort, destinationPort, checksum, length);
+            super(TransportLayerProtocol.TCP, sourceIP, destinationIP, sourcePort, destinationPort, checksum, length);
             this.seqNumber = seqNumber;
             this.ackNumber = ackNumber;
             this.hasFlagACK = hasFlagACK;
@@ -288,7 +299,7 @@ public class Packages {
 
     public static  class UdpPackage extends TransportLayerPackage {
         public UdpPackage(String sourceIP, String destinationIP, int sourcePort, int destinationPort, int checksum, int length) {
-            super(TransportProtocol.UDP, sourceIP, destinationIP, sourcePort, destinationPort, checksum, length);
+            super(TransportLayerProtocol.UDP, sourceIP, destinationIP, sourcePort, destinationPort, checksum, length);
         }
 
         public String toString() { return "{ [UDP] "+transportLayerToString()+ " } " + super.toString(); }
