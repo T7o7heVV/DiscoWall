@@ -262,7 +262,7 @@ public class Packages {
         }
 
         protected String transportLayerToString() {
-            return source + " -> " + destination + " length="+ length +", checksum=" + checksum;
+            return source + " -> " + destination + ", local=" + localAddress + ", remote=" + remoteAddress + ", length="+ length +", checksum=" + checksum;
         }
 
     }

@@ -53,19 +53,19 @@ public class FirewallRulesManager {
         try {
             // If TCP should be filtered:
             if (rule.getProtocolFilter().isTcp())
-                firewallIptableRulesHandler.addTransportLayerRule(Packages.TransportLayerProtocol.TCP, rule.getUserId(), new Packages.SourceDestinationPair(rule.getSourceFilter(), rule.getDestinationFilter()), rule.getRulePolicy(), rule.getDeviceFilter());
+                firewallIptableRulesHandler.addTransportLayerRule(Packages.TransportLayerProtocol.TCP, rule.getUserId(), new Packages.SourceDestinationPair(rule.getLocalFilter(), rule.getRemoteFilter()), rule.getRulePolicy(), rule.getDeviceFilter());
 
             // If UDP should be filtered:
             if (rule.getProtocolFilter().isUdp())
-                firewallIptableRulesHandler.addTransportLayerRule(Packages.TransportLayerProtocol.UDP, rule.getUserId(), new Packages.SourceDestinationPair(rule.getSourceFilter(), rule.getDestinationFilter()), rule.getRulePolicy(), rule.getDeviceFilter());
+                firewallIptableRulesHandler.addTransportLayerRule(Packages.TransportLayerProtocol.UDP, rule.getUserId(), new Packages.SourceDestinationPair(rule.getLocalFilter(), rule.getRemoteFilter()), rule.getRulePolicy(), rule.getDeviceFilter());
 
         } catch (ShellExecuteExceptions.ShellExecuteException e) {
 
             // Remove created rule (if any), when an exception occurrs:
             if (rule.getProtocolFilter().isTcp())
-                firewallIptableRulesHandler.deleteTransportLayerRule(Packages.TransportLayerProtocol.TCP, rule.getUserId(), new Packages.SourceDestinationPair(rule.getSourceFilter(), rule.getDestinationFilter()), rule.getRulePolicy(), rule.getDeviceFilter());
+                firewallIptableRulesHandler.deleteTransportLayerRule(Packages.TransportLayerProtocol.TCP, rule.getUserId(), new Packages.SourceDestinationPair(rule.getLocalFilter(), rule.getRemoteFilter()), rule.getRulePolicy(), rule.getDeviceFilter());
             if (rule.getProtocolFilter().isUdp())
-                firewallIptableRulesHandler.deleteTransportLayerRule(Packages.TransportLayerProtocol.UDP, rule.getUserId(), new Packages.SourceDestinationPair(rule.getSourceFilter(), rule.getDestinationFilter()), rule.getRulePolicy(), rule.getDeviceFilter());
+                firewallIptableRulesHandler.deleteTransportLayerRule(Packages.TransportLayerProtocol.UDP, rule.getUserId(), new Packages.SourceDestinationPair(rule.getLocalFilter(), rule.getRemoteFilter()), rule.getRulePolicy(), rule.getDeviceFilter());
 
             throw e;
         }

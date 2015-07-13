@@ -100,8 +100,8 @@ public class AppRulesAdapter extends ArrayAdapter<FirewallRules.IFirewallRule> {
         writeRuleActionToGui(rule, imageViewActionIcon);
 
         // Client/Server
-        writeIpPortInfoToGui(rule.getSourceFilter(), textViewClient);
-        writeIpPortInfoToGui(rule.getDestinationFilter(), textViewServer);
+        writeIpPortInfoToGui(rule.getLocalFilter(), textViewClient);
+        writeIpPortInfoToGui(rule.getRemoteFilter(), textViewServer);
 
         // WiFi, UMTS, TCP, UDP
         checkBoxInterfaceUmts.setChecked(rule.getDeviceFilter().allowsUmts());

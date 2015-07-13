@@ -34,19 +34,24 @@ public class FirewallRules {
         }
     }
 
+//    public enum DirectionFilter {
+//        INCOMING, OUTGOING, ANY
+//    }
+
     /*************************** ARCHITECTURE ******************************************************/
     public interface IFirewallRule {
         int getUserId();
 
         DeviceFilter getDeviceFilter();
         ProtocolFilter getProtocolFilter();
-        Packages.IpPortPair getSourceFilter();
-        Packages.IpPortPair getDestinationFilter();
+        Packages.IpPortPair getLocalFilter();
+        Packages.IpPortPair getRemoteFilter();
         boolean appliesTo(Packages.TransportLayerPackage tlPackage);
     }
 
     public interface IFirewallPolicyRule extends IFirewallRule {
         RulePolicy getRulePolicy();
+//        DirectionFilter getDirectionFilter();
         boolean isPackageAccepted(Packages.TransportLayerPackage tlPackage);
     }
 
@@ -60,19 +65,19 @@ public class FirewallRules {
         private final int userId;
         private final DeviceFilter deviceFilter;
         private final ProtocolFilter protocolFilter;
-        private final Packages.IpPortPair sourceFilter, destinationFilter;
+        private final Packages.IpPortPair localFilter, remoteFilter;
 
-        protected AbstractFirewallRule(int userId, ProtocolFilter protocolFilter, Packages.IpPortPair sourceFilter, Packages.IpPortPair destinationFilter, DeviceFilter deviceFilter) {
-            if (sourceFilter == null)
+        protected AbstractFirewallRule(int userId, ProtocolFilter protocolFilter, Packages.IpPortPair localFilter, Packages.IpPortPair remoteFilter, DeviceFilter deviceFilter) {
+            if (localFilter == null)
                 throw new IllegalArgumentException("Source-Filter cannot be null!");
-            if (destinationFilter == null)
+            if (remoteFilter == null)
                 throw new IllegalArgumentException("Source-Filter cannot be null!");
 
             this.userId = userId;
             this.deviceFilter = deviceFilter;
             this.protocolFilter = protocolFilter;
-            this.sourceFilter = sourceFilter;
-            this.destinationFilter = destinationFilter;
+            this.localFilter = localFilter;
+            this.remoteFilter = remoteFilter;
         }
 
         @Override
@@ -91,18 +96,18 @@ public class FirewallRules {
         }
 
         @Override
-        public Packages.IpPortPair getSourceFilter() {
-            return sourceFilter;
+        public Packages.IpPortPair getLocalFilter() {
+            return localFilter;
         }
 
         @Override
-        public Packages.IpPortPair getDestinationFilter() {
-            return destinationFilter;
+        public Packages.IpPortPair getRemoteFilter() {
+            return remoteFilter;
         }
 
-        private boolean filterMatches(Packages.IpPortPair filter, Packages.IpPortPair packageInfo) {
+        private boolean filterMatches(Packages.IpPortPair filter, Packages.IpPortPair packageInfo, boolean ignoreIP) {
             // check ip
-            if (filter.hasIp()) {
+            if (!ignoreIP && filter.hasIp()) {
                 if (!packageInfo.getIp().equals(filter.getIp()))
                     return false;
             }
@@ -118,9 +123,9 @@ public class FirewallRules {
 
         @Override
         public boolean appliesTo(Packages.TransportLayerPackage tlPackage) {
-            // Since the connection allows the passing of a connectin-package in BOTH directions, the role of the source- and destination-filter has to be tested in both directions for one package.
-            return ( filterMatches(getSourceFilter(), tlPackage.getSource()) && filterMatches(getDestinationFilter(), tlPackage.getDestination()) ) // package in direction intended for rule
-                    || ( filterMatches(getDestinationFilter(), tlPackage.getSource()) && filterMatches(getSourceFilter(), tlPackage.getDestination()) ); // returning package in opposite direction
+            // The local-address has a irrelevant host-ip, which is sometimes "localhost" or "127.0.0.1" or even the hostname.
+            // But as it specifies the localhost, only the port is relevant anyway.
+            return filterMatches(localFilter, tlPackage.getLocalAddress(), true) && filterMatches(remoteFilter, tlPackage.getRemoteAddress(), false);
         }
 
         @Override
@@ -128,13 +133,13 @@ public class FirewallRules {
             String sourceFilterStr;
             String destinationFilterStr;
 
-            if (sourceFilter != null)
-                sourceFilterStr = sourceFilter.toString();
+            if (localFilter != null)
+                sourceFilterStr = localFilter.toString();
             else
                 sourceFilterStr = "*:*";
 
-            if (destinationFilter != null)
-                destinationFilterStr = destinationFilter.toString();
+            if (remoteFilter != null)
+                destinationFilterStr = remoteFilter.toString();
             else
                 destinationFilterStr = "*:*";
 
@@ -144,6 +149,7 @@ public class FirewallRules {
 
     private static abstract class AbstractFirewallPolicyRule extends AbstractFirewallRule implements IFirewallPolicyRule {
         private final RulePolicy rulePolicy;
+//        private final DirectionFilter directionFilter = DirectionFilter.ANY;
 
         protected AbstractFirewallPolicyRule(int userId, ProtocolFilter protocolFilter, Packages.IpPortPair sourceFilter, Packages.IpPortPair destinationFilter, DeviceFilter deviceFilter, RulePolicy rulePolicy) {
             super(userId, protocolFilter, sourceFilter, destinationFilter, deviceFilter);
@@ -160,6 +166,11 @@ public class FirewallRules {
                 throw new IllegalArgumentException("Rule does not apply to package.");
             return false;
         }
+
+//        @Override
+//        public DirectionFilter getDirectionFilter() {
+//            return directionFilter;
+//        }
 
         @Override
         public String toString() {

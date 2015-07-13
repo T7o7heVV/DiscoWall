@@ -64,21 +64,24 @@ public class FirewallPackageFilter {
                 default:
                     throw new RuntimeException("Rule-Policy filter-behavior not implemented: " + packagePolicyRule.getRulePolicy());
             }
-        }
 
-        // Apply firewall-policy:
-        switch (policyManager.getFirewallPolicy()) {
-            case ALLOW:
-                actionCallback.acceptPackage(tlPackage);
-                break;
-            case BLOCK:
-                actionCallback.blockPackage(tlPackage);
-                break;
-            case INTERACTIVE:
-                decidePackageAcceptedInteractively(tlPackage, connection, actionCallback);
-                break;
-            default:
-                throw new RuntimeException("Firewall-Policy filter-behavior not implemented: " + policyManager.getFirewallPolicy());
+        } else {
+
+            // Apply firewall-policy:
+            switch (policyManager.getFirewallPolicy()) {
+                case ALLOW:
+                    actionCallback.acceptPackage(tlPackage);
+                    break;
+                case BLOCK:
+                    actionCallback.blockPackage(tlPackage);
+                    break;
+                case INTERACTIVE:
+                    decidePackageAcceptedInteractively(tlPackage, connection, actionCallback);
+                    break;
+                default:
+                    throw new RuntimeException("Firewall-Policy filter-behavior not implemented: " + policyManager.getFirewallPolicy());
+            }
+
         }
     }
 

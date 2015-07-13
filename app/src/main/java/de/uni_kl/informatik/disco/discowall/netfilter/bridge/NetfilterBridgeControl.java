@@ -10,7 +10,7 @@ import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecuteExceptions;
 
 public class NetfilterBridgeControl {
     private static final String LOG_TAG = NetfilterBridgeControl.class.getSimpleName();
-    public static final boolean DEBUG_USE_EXTERNAL_BINARY = false;
+    public static final boolean DEBUG_USE_EXTERNAL_BINARY = true;
 
     private final Context firewallServiceContext;
 
