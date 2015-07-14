@@ -1,14 +1,10 @@
 package de.uni_kl.informatik.disco.discowall;
 
-import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
-import android.content.pm.ApplicationInfo;
-import android.content.pm.PackageManager;
 import android.os.IBinder;
-import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
@@ -19,15 +15,9 @@ import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
 
-import java.util.LinkedList;
-import java.util.List;
-
 import de.uni_kl.informatik.disco.discowall.firewall.Firewall;
 import de.uni_kl.informatik.disco.discowall.firewall.FirewallService;
-import de.uni_kl.informatik.disco.discowall.firewall.rules.FirewallRules;
 import de.uni_kl.informatik.disco.discowall.gui.adapters.AppRulesAdapter;
-import de.uni_kl.informatik.disco.discowall.gui.adapters.DiscoWallAppAdapter;
-import de.uni_kl.informatik.disco.discowall.gui.dialogs.ErrorDialog;
 import de.uni_kl.informatik.disco.discowall.utils.apps.AppUidGroup;
 
 
@@ -122,7 +112,7 @@ public class ShowAppRulesActivity extends AppCompatActivity {
     private void onFirewallServiceBound() {
         Log.d(LOG_TAG, "Firewall-Service connected. Loading rules...");
 
-        AppUidGroup appUidGroup = firewall.subsystem.watchedApps.getWatchableAppByUid(groupUid);
+        AppUidGroup appUidGroup = firewall.subsystem.watchedApps.getInstalledAppGroupByUid(groupUid);
 
         // Activity Title:
         setTitle("Rules: " + appUidGroup.getName());

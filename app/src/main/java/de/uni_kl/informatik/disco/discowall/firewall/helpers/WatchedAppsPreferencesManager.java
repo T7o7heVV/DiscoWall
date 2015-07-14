@@ -10,30 +10,29 @@ import java.util.List;
 import java.util.Set;
 
 import de.uni_kl.informatik.disco.discowall.firewall.FirewallService;
-import de.uni_kl.informatik.disco.discowall.gui.adapters.AppAdapter;
 import de.uni_kl.informatik.disco.discowall.utils.apps.App;
 import de.uni_kl.informatik.disco.discowall.utils.apps.AppUidGroup;
 import de.uni_kl.informatik.disco.discowall.utils.ressources.DiscoWallSettings;
 
 public class WatchedAppsPreferencesManager {
     private final Context firewallServiceContext;
-    private final HashMap<Integer, AppUidGroup> uidToExistingAppGroupsMap = new HashMap<>();
+    private final HashMap<Integer, AppUidGroup> uidToInstalledAppGroupsMap = new HashMap<>();
     private final HashMap<Integer, AppUidGroup> uidToWatchedAppGroupMap = new HashMap<>();
 
     public WatchedAppsPreferencesManager(FirewallService firewallServiceContext) {
         this.firewallServiceContext = firewallServiceContext;
 
-        updateWatchableAppsList();
+        updateInstalledAppsList();
         uidToWatchedAppGroupMap.putAll(AppUidGroup.createUidToGroupMap(loadWatchedAppGroups()));
     }
 
-    public void updateWatchableAppsList() {
+    public void updateInstalledAppsList() {
         List<ApplicationInfo> appInfos = App.fetchAppInfosByLaunchIntent(firewallServiceContext, false);
-        LinkedList<AppUidGroup> updatedListOfWatchableApps = AppUidGroup.createGroupsFromAppInfoList(appInfos, firewallServiceContext);
-        HashMap<Integer, AppUidGroup> updatedMapOfWatchableApps = AppUidGroup.createUidToGroupMap(updatedListOfWatchableApps);
+        LinkedList<AppUidGroup> updatedListOfInstalledApps = AppUidGroup.createGroupsFromAppInfoList(appInfos, firewallServiceContext);
+        HashMap<Integer, AppUidGroup> updatedMapOfInstalledApps = AppUidGroup.createUidToGroupMap(updatedListOfInstalledApps);
 
-        uidToExistingAppGroupsMap.clear();
-        uidToExistingAppGroupsMap.putAll(updatedMapOfWatchableApps);
+        uidToInstalledAppGroupsMap.clear();
+        uidToInstalledAppGroupsMap.putAll(updatedMapOfInstalledApps);
     }
 
     private void storeWatchedAppsUIDs(Set<Integer> uidSet) {
@@ -44,7 +43,7 @@ public class WatchedAppsPreferencesManager {
         return new HashSet<>(DiscoWallSettings.getInstance().getWatchedAppsUIDs(firewallServiceContext));
     }
 
-    public void setWatchedApps(List<AppUidGroup> groups) {
+    public void setWatchedAppGroups(List<AppUidGroup> groups) {
         Set<Integer> watchedAppUIDs = new HashSet<>();
 
         for(AppUidGroup group : groups)
@@ -56,11 +55,11 @@ public class WatchedAppsPreferencesManager {
         uidToWatchedAppGroupMap.putAll(AppUidGroup.createUidToGroupMap(groups));
     }
 
-    public LinkedList<AppUidGroup> getExistingApps() {
-        return new LinkedList<>(uidToExistingAppGroupsMap.values());
+    public LinkedList<AppUidGroup> getInstalledAppGroups() {
+        return new LinkedList<>(uidToInstalledAppGroupsMap.values());
     }
 
-    public LinkedList<AppUidGroup> getWatchedApps() {
+    public LinkedList<AppUidGroup> getWatchedAppGroups() {
         return new LinkedList<>(uidToWatchedAppGroupMap.values());
     }
 
@@ -68,7 +67,7 @@ public class WatchedAppsPreferencesManager {
         Set<Integer> appsUIDs = loadWatchedAppsUIDs();
         LinkedList<AppUidGroup> watchedGroups = new LinkedList<>();
 
-        for(AppUidGroup group : uidToExistingAppGroupsMap.values()) {
+        for(AppUidGroup group : uidToInstalledAppGroupsMap.values()) {
             if (appsUIDs.contains(group.getUid()))
                 watchedGroups.add(group);
         }
@@ -76,7 +75,7 @@ public class WatchedAppsPreferencesManager {
         return watchedGroups;
     }
 
-    public void setAppWatched(AppUidGroup group, boolean watched) {
+    public void setAppGroupWatched(AppUidGroup group, boolean watched) {
         HashSet<Integer> uidSet = new HashSet<>();
 
         for(AppUidGroup aGroup : uidToWatchedAppGroupMap.values())
@@ -93,19 +92,19 @@ public class WatchedAppsPreferencesManager {
         storeWatchedAppsUIDs(uidSet);
     }
 
-    public boolean isAppWatched(int appUID) {
+    public boolean isAppGroupWatched(int appUID) {
         return uidToWatchedAppGroupMap.get(appUID) != null;
     }
 
-    public boolean isAppWatched(AppUidGroup group) {
-        return isAppWatched(group.getUid());
+    public boolean isAppGroupWatched(AppUidGroup group) {
+        return isAppGroupWatched(group.getUid());
     }
 
-    public AppUidGroup getExistingAppByUid(int uid) {
-        return uidToExistingAppGroupsMap.get(uid);
+    public AppUidGroup getInstalledAppGroupByUid(int uid) {
+        return uidToInstalledAppGroupsMap.get(uid);
     }
 
-    public AppUidGroup getWatchedAppByUid(int uid) {
+    public AppUidGroup getWatchedAppGroupByUid(int uid) {
         return uidToWatchedAppGroupMap.get(uid);
     }
 

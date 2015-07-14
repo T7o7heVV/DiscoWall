@@ -39,15 +39,15 @@ public class AppUidGroup extends AppGroup {
     }
 
     public static LinkedList<AppUidGroup> createGroupsFromAppList(List<App> apps, Context context) {
-        HashMap<Integer, List<App>> uidToWatchableAppMap = new HashMap<>();
+        HashMap<Integer, List<App>> uidToInstalledAppMap = new HashMap<>();
 
         // group apps by uid
         for(App app : apps) {
-            List<App> appsWithSameUid = uidToWatchableAppMap.get(app.getUid());
+            List<App> appsWithSameUid = uidToInstalledAppMap.get(app.getUid());
 
             if (appsWithSameUid == null) {
                 appsWithSameUid = new LinkedList<>();
-                uidToWatchableAppMap.put(app.getUid(), appsWithSameUid);
+                uidToInstalledAppMap.put(app.getUid(), appsWithSameUid);
             }
 
             appsWithSameUid.add(app);
@@ -55,7 +55,7 @@ public class AppUidGroup extends AppGroup {
 
         LinkedList<AppUidGroup> groups = new LinkedList<>();
 
-        for(List<App> appsWithSameUid : uidToWatchableAppMap.values())
+        for(List<App> appsWithSameUid : uidToInstalledAppMap.values())
             groups.add(new AppUidGroup(appsWithSameUid));
 
         return groups;

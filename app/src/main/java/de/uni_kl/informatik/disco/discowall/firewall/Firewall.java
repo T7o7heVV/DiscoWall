@@ -165,7 +165,7 @@ public class Firewall implements NetfilterBridgeCommunicator.BridgeEventsHandler
             // Start watching apps which have been watched before
             Log.d(LOG_TAG, "restoring forwarding-rules for watched apps...");
             {
-                LinkedList<AppUidGroup> watchedApps = subsystemWatchedApps.getWatchedApps();
+                LinkedList<AppUidGroup> watchedApps = subsystemWatchedApps.getWatchedAppGroups();
 
                 // reporting progress to listener
                 if (progressListener != null)
@@ -176,7 +176,7 @@ public class Firewall implements NetfilterBridgeCommunicator.BridgeEventsHandler
                     if (progressListener != null)
                         progressListener.onWatchedAppsRestoreApp(watchedApp, appIndex++); // reporting progress to listener
 
-                    subsystemWatchedApps.setAppWatched(watchedApp, true);
+                    subsystemWatchedApps.setAppGroupWatched(watchedApp, true);
                 }
             }
 

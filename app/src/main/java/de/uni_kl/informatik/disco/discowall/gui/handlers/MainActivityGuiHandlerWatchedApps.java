@@ -5,9 +5,6 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.AsyncTask;
 import android.util.Log;
-import android.view.View;
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
 import android.widget.CheckBox;
 import android.widget.ImageView;
 import android.widget.ListView;
@@ -18,7 +15,6 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 
-import de.uni_kl.informatik.disco.discowall.DecideConnectionDialog;
 import de.uni_kl.informatik.disco.discowall.MainActivity;
 import de.uni_kl.informatik.disco.discowall.R;
 import de.uni_kl.informatik.disco.discowall.ShowAppRulesActivity;
@@ -26,8 +22,6 @@ import de.uni_kl.informatik.disco.discowall.firewall.FirewallExceptions;
 import de.uni_kl.informatik.disco.discowall.gui.adapters.DiscoWallAppAdapter;
 import de.uni_kl.informatik.disco.discowall.gui.dialogs.ErrorDialog;
 import de.uni_kl.informatik.disco.discowall.gui.adapters.AppAdapter;
-import de.uni_kl.informatik.disco.discowall.packages.Connections;
-import de.uni_kl.informatik.disco.discowall.packages.Packages;
 import de.uni_kl.informatik.disco.discowall.utils.apps.AppUidGroup;
 import de.uni_kl.informatik.disco.discowall.utils.ressources.DiscoWallSettings;
 
@@ -136,7 +130,7 @@ public class MainActivityGuiHandlerWatchedApps extends MainActivityGuiHandler {
 
         HashMap<AppUidGroup, Boolean> appsToWatchedStateMap = new HashMap<>();
 
-        for(AppUidGroup appGroup : mainActivity.firewall.subsystem.watchedApps.getWatchableApps())
+        for(AppUidGroup appGroup : mainActivity.firewall.subsystem.watchedApps.getInstalledAppGroups())
             appsToWatchedStateMap.put(appGroup, watched);
 
         setAppsWatched(appsToWatchedStateMap, watched ? R.string.action_main_menu_monitor_all_apps : R.string.action_main_menu_monitor_no_apps);
@@ -145,11 +139,11 @@ public class MainActivityGuiHandlerWatchedApps extends MainActivityGuiHandler {
     public void actionInvertAllAppsWatched() {
         Log.i(LOG_TAG, "invert apps to be watched by firewall...");
 
-        List<AppUidGroup> watchedApps = mainActivity.firewall.subsystem.watchedApps.getWatchedApps();
+        List<AppUidGroup> watchedApps = mainActivity.firewall.subsystem.watchedApps.getWatchedAppGroups();
 
         HashMap<AppUidGroup, Boolean> appsToWatchedStateMap = new HashMap<>();
 
-        for(AppUidGroup appGroup : mainActivity.firewall.subsystem.watchedApps.getWatchableApps())
+        for(AppUidGroup appGroup : mainActivity.firewall.subsystem.watchedApps.getInstalledAppGroups())
             appsToWatchedStateMap.put(appGroup, !mainActivity.firewall.subsystem.watchedApps.isAppWatched(appGroup));
 
         setAppsWatched(appsToWatchedStateMap, R.string.action_main_menu_monitor_invert_monitored);
@@ -172,7 +166,7 @@ public class MainActivityGuiHandlerWatchedApps extends MainActivityGuiHandler {
 
                     try {
                         if (mainActivity.firewall.subsystem.watchedApps.isAppWatched(appGroup) != watchApp)
-                            mainActivity.firewall.subsystem.watchedApps.setAppWatched(appGroup, watchApp);
+                            mainActivity.firewall.subsystem.watchedApps.setAppGroupWatched(appGroup, watchApp);
                     } catch(FirewallExceptions.FirewallException e) {
                         if (!errorMessage.isEmpty())
                             errorMessage += "\n";
@@ -257,7 +251,7 @@ public class MainActivityGuiHandlerWatchedApps extends MainActivityGuiHandler {
             @Override
             protected Boolean doInBackground(Boolean... params) {
                 try {
-                    mainActivity.firewall.subsystem.watchedApps.setAppWatched(appGroup, watched);
+                    mainActivity.firewall.subsystem.watchedApps.setAppGroupWatched(appGroup, watched);
                 } catch (FirewallExceptions.FirewallException e) {
                     errorMessage = "Error changing watched-state for app '" + appGroup.getPackageName() + "': " + e.getMessage();
                 }
