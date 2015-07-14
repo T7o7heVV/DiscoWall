@@ -3,12 +3,17 @@ package de.uni_kl.informatik.disco.discowall.utils.apps;
 import android.content.Context;
 import android.content.pm.ApplicationInfo;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 
 public class AppUidGroup extends AppGroup {
     private final int uid;
+
+    public AppUidGroup(App... appsWithSameUid) {
+        this(Arrays.asList(appsWithSameUid));
+    }
 
     public AppUidGroup(List<App> appsWithSameUid) {
         super(appsWithSameUid);

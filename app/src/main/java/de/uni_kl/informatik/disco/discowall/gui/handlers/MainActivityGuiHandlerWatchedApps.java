@@ -3,6 +3,7 @@ package de.uni_kl.informatik.disco.discowall.gui.handlers;
 import android.app.ProgressDialog;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Typeface;
 import android.os.AsyncTask;
 import android.util.Log;
 import android.widget.CheckBox;
@@ -19,6 +20,7 @@ import de.uni_kl.informatik.disco.discowall.MainActivity;
 import de.uni_kl.informatik.disco.discowall.R;
 import de.uni_kl.informatik.disco.discowall.ShowAppRulesActivity;
 import de.uni_kl.informatik.disco.discowall.firewall.FirewallExceptions;
+import de.uni_kl.informatik.disco.discowall.firewall.helpers.WatchedAppsManager;
 import de.uni_kl.informatik.disco.discowall.gui.adapters.DiscoWallAppAdapter;
 import de.uni_kl.informatik.disco.discowall.gui.dialogs.ErrorDialog;
 import de.uni_kl.informatik.disco.discowall.gui.adapters.AppAdapter;
@@ -40,7 +42,7 @@ public class MainActivityGuiHandlerWatchedApps extends MainActivityGuiHandler {
     public void setupWatchedAppsList() {
         // Fetch ListView for watchedApps and create adapter
         ListView appsListView = (ListView) mainActivity.findViewById(R.id.listViewFirewallMonitoredApps);
-        final DiscoWallAppAdapter appsAdapter = new DiscoWallAppAdapter(mainActivity);
+        final DiscoWallAppAdapter appsAdapter = new DiscoWallAppAdapter(mainActivity, mainActivity.firewall.subsystem.watchedApps.getInstalledAppGroups());
         appsListView.setAdapter(appsAdapter);
 
         // Storing reference, so that the list can be updated when enabling/disabling the firewall
@@ -67,6 +69,12 @@ public class MainActivityGuiHandlerWatchedApps extends MainActivityGuiHandler {
                 String ruleInfo = totalRulesCount + (totalRulesCount != 1 ? " rules" : " rule");
                 if (totalRulesCount > 0)
                     ruleInfo += ":  " + policyRulesCount + " policy, " + redirectionRulesCount + " redirection";
+
+                // Layout for symbolic root-app:
+                if (appGroup.getUid() == WatchedAppsManager.UID_ROOT) { // yeah, obviously "0", but a constant won't hurt anyone ;-)
+                    // Making appname bold+italic
+                    appNameWidget.setTypeface(null, Typeface.BOLD_ITALIC);
+                }
 
                 appRuleInfoTextView.setText(ruleInfo);
             }

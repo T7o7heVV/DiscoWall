@@ -13,11 +13,11 @@ import de.uni_kl.informatik.disco.discowall.utils.apps.App;
 import de.uni_kl.informatik.disco.discowall.utils.apps.AppUidGroup;
 
 public class DiscoWallAppAdapter extends AppAdapter {
-    public DiscoWallAppAdapter(Context context) {
+    public DiscoWallAppAdapter(Context context, List<AppUidGroup> uidGroups) {
         super(
                 context,
                 R.layout.list_item_app_infos,
-                getInstalledApps(context),
+                getInstalledApps(uidGroups),
                 R.id.list_item_app_infos__app_name,
                 R.id.list_item_app_infos__app_package,
                 R.id.list_item_app_infos__rules_infos,
@@ -26,8 +26,8 @@ public class DiscoWallAppAdapter extends AppAdapter {
         );
     }
 
-    private static List<AppUidGroup> getInstalledApps(Context context) {
-        LinkedList<AppUidGroup> uidGroups = AppUidGroup.createGroupsFromAppList(App.fetchAppsByLaunchIntent(context, false), context);
+    private static List<AppUidGroup> getInstalledApps(List<AppUidGroup> uidGroups) {
+//        LinkedList<AppUidGroup> uidGroups = AppUidGroup.createGroupsFromAppList(App.fetchAppsByLaunchIntent(context, false), context);
 
         // sort groups by name
         Collections.sort(uidGroups, new Comparator<AppUidGroup>() {

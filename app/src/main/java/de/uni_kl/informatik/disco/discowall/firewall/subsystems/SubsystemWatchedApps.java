@@ -7,7 +7,7 @@ import java.util.LinkedList;
 import de.uni_kl.informatik.disco.discowall.firewall.Firewall;
 import de.uni_kl.informatik.disco.discowall.firewall.FirewallExceptions;
 import de.uni_kl.informatik.disco.discowall.firewall.FirewallService;
-import de.uni_kl.informatik.disco.discowall.firewall.helpers.WatchedAppsPreferencesManager;
+import de.uni_kl.informatik.disco.discowall.firewall.helpers.WatchedAppsManager;
 import de.uni_kl.informatik.disco.discowall.firewall.rules.FirewallIptableRulesHandler;
 import de.uni_kl.informatik.disco.discowall.utils.apps.AppUidGroup;
 import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecuteExceptions;
@@ -15,13 +15,13 @@ import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecuteExceptions;
 public class SubsystemWatchedApps extends FirewallSubsystem {
     private static final String LOG_TAG = FirewallSubsystem.class.getSimpleName();
 
-    private final WatchedAppsPreferencesManager watchedAppsManager;
+    private final WatchedAppsManager watchedAppsManager;
     private final FirewallIptableRulesHandler iptableRulesManager;
 
     public SubsystemWatchedApps(Firewall firewall, FirewallService firewallServiceContext, FirewallIptableRulesHandler iptableRulesManager) {
         super(firewall, firewallServiceContext);
         this.iptableRulesManager = iptableRulesManager;
-        this.watchedAppsManager = new WatchedAppsPreferencesManager(firewallServiceContext);
+        this.watchedAppsManager = new WatchedAppsManager(firewallServiceContext);
     }
 
     /**

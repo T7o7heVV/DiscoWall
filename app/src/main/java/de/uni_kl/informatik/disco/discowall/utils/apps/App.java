@@ -13,15 +13,21 @@ import java.util.List;
 public class App {
     private final Context context;
 
-    private final ApplicationInfo appInfo;
     private final String name;
     private final String packageName;
     private final int uid;
     private final Drawable icon;
 
+    public App(Context context, String name, String packageName, int uid, Drawable icon) {
+        this.context = context;
+        this.name = name;
+        this.packageName = packageName;
+        this.uid = uid;
+        this.icon = icon;
+    }
+
     public App(ApplicationInfo appInfo, Context context) {
         this.context = context;
-        this.appInfo = appInfo;
 
         PackageManager packageManager = context.getPackageManager();
         this.name = appInfo.loadLabel(packageManager) + "";
@@ -68,10 +74,6 @@ public class App {
 
     public Context getContext() {
         return context;
-    }
-
-    public ApplicationInfo getAppInfo() {
-        return appInfo;
     }
 
     public String getName() {

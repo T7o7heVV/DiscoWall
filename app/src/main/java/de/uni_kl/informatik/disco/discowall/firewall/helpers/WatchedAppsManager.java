@@ -9,26 +9,38 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
+import de.uni_kl.informatik.disco.discowall.R;
 import de.uni_kl.informatik.disco.discowall.firewall.FirewallService;
 import de.uni_kl.informatik.disco.discowall.utils.apps.App;
 import de.uni_kl.informatik.disco.discowall.utils.apps.AppUidGroup;
 import de.uni_kl.informatik.disco.discowall.utils.ressources.DiscoWallSettings;
 
-public class WatchedAppsPreferencesManager {
+public class WatchedAppsManager {
     private final Context firewallServiceContext;
     private final HashMap<Integer, AppUidGroup> uidToInstalledAppGroupsMap = new HashMap<>();
     private final HashMap<Integer, AppUidGroup> uidToWatchedAppGroupMap = new HashMap<>();
 
-    public WatchedAppsPreferencesManager(FirewallService firewallServiceContext) {
+    public static final int UID_ROOT = 0;
+
+    public WatchedAppsManager(FirewallService firewallServiceContext) {
         this.firewallServiceContext = firewallServiceContext;
 
         updateInstalledAppsList();
         uidToWatchedAppGroupMap.putAll(AppUidGroup.createUidToGroupMap(loadWatchedAppGroups()));
     }
 
+    private static AppUidGroup createRootAppUidGroup(Context context) {
+        App rootApp = new App(context, "= Root Apps =", "[any root executable]", UID_ROOT, context.getResources().getDrawable(R.mipmap.symbol_root));
+        return new AppUidGroup(rootApp);
+    }
+
     public void updateInstalledAppsList() {
         List<ApplicationInfo> appInfos = App.fetchAppInfosByLaunchIntent(firewallServiceContext, false);
         LinkedList<AppUidGroup> updatedListOfInstalledApps = AppUidGroup.createGroupsFromAppInfoList(appInfos, firewallServiceContext);
+
+        // Adding a "symbolic app" which handles all root-operations on the system.
+        updatedListOfInstalledApps.add(createRootAppUidGroup(firewallServiceContext));
+
         HashMap<Integer, AppUidGroup> updatedMapOfInstalledApps = AppUidGroup.createUidToGroupMap(updatedListOfInstalledApps);
 
         uidToInstalledAppGroupsMap.clear();
