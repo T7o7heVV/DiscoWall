@@ -5,7 +5,6 @@ import java.util.LinkedList;
 import java.util.List;
 
 import android.content.Context;
-import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -19,47 +18,42 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import de.uni_kl.informatik.disco.discowall.R;
+import de.uni_kl.informatik.disco.discowall.utils.apps.AppUidGroup;
 
-public class AppAdapter extends ArrayAdapter<ApplicationInfo>{
+public class AppAdapter extends ArrayAdapter<AppUidGroup>{
     public interface AdapterHandler {
-        void onRowCreate(AppAdapter adapter, ApplicationInfo appInfo, TextView appNameWidget, TextView appPackageNameWidget, TextView appRuleInfoTextView, ImageView appIconImageWidget, CheckBox appWatchedCheckboxWidget);
+        void onRowCreate(AppAdapter adapter, AppUidGroup appGroup, TextView appNameWidget, TextView appPackageNameWidget, TextView appRuleInfoTextView, ImageView appIconImageWidget, CheckBox appWatchedCheckboxWidget);
 
         // Clicks:
-        void onAppNameClicked(AppAdapter appAdapter, ApplicationInfo appInfo, TextView appNameWidgetview);
-        void onAppPackageClicked(AppAdapter appAdapter, ApplicationInfo appInfo, TextView appPackageNameWidget);
-        void onAppOptionalInfoClicked(AppAdapter appAdapter, ApplicationInfo appInfo, TextView appInfoWidget);
-        void onAppIconClicked(AppAdapter appAdapter, ApplicationInfo appInfo, ImageView appIconImageWidget);
+        void onAppNameClicked(AppAdapter appAdapter, AppUidGroup appGroup, TextView appNameWidgetview);
+        void onAppPackageClicked(AppAdapter appAdapter, AppUidGroup appGroup, TextView appPackageNameWidget);
+        void onAppOptionalInfoClicked(AppAdapter appAdapter, AppUidGroup appGroup, TextView appInfoWidget);
+        void onAppIconClicked(AppAdapter appAdapter, AppUidGroup appGroup, ImageView appIconImageWidget);
 
         // LongClicks:
-        boolean onAppNameLongClicked(AppAdapter appAdapter, ApplicationInfo appInfo, TextView appNameWidgetview);
-        boolean onAppPackageLongClicked(AppAdapter appAdapter, ApplicationInfo appInfo, TextView appPackageNameWidget);
-        boolean onAppOptionalInfoLongClicked(AppAdapter appAdapter, ApplicationInfo appInfo, TextView appPackageNameWidget);
-        boolean onAppIconLongClicked(AppAdapter appAdapter, ApplicationInfo appInfo, ImageView appIconImageWidget);
+        boolean onAppNameLongClicked(AppAdapter appAdapter, AppUidGroup appGroup, TextView appNameWidgetview);
+        boolean onAppPackageLongClicked(AppAdapter appAdapter, AppUidGroup appGroup, TextView appPackageNameWidget);
+        boolean onAppOptionalInfoLongClicked(AppAdapter appAdapter, AppUidGroup appGroup, TextView appPackageNameWidget);
+        boolean onAppIconLongClicked(AppAdapter appAdapter, AppUidGroup appGroup, ImageView appIconImageWidget);
 
         // Checkbox-Checks:
-        void onAppWatchedStateCheckboxCheckedChanged(AppAdapter adapter, ApplicationInfo appInfo, CheckBox appWatchedCheckboxWidget, boolean isChecked);
+        void onAppWatchedStateCheckboxCheckedChanged(AppAdapter adapter, AppUidGroup appGroup, CheckBox appWatchedCheckboxWidget, boolean isChecked);
     }
 
 
     private static final String LOG_TAG = AppAdapter.class.getSimpleName();
     public final int listLayoutResourceId, app_name_viewID, app_package_viewID, app_optionalInfo_viewID, app_icon_viewID, app_checkbox_viewID;
 
-    private List<ApplicationInfo> appList = null;
+    private final List<AppUidGroup> appList;
     private AdapterView.OnItemClickListener onItemClickListener;
     private AdapterView.OnItemLongClickListener onItemLongClickListener;
     private AdapterHandler adapterHandler;
 
     private Context context;
-    private PackageManager packageManager;
 
-    public AppAdapter(Context context, int listLayoutResourceId, int app_name_viewID, int app_package_viewID, int app_optionalInfo_viewID, int app_icon_viewID, int app_checkbox_viewID) {
-        this(context, listLayoutResourceId, fetchAppsByLaunchIntent(context), app_name_viewID, app_package_viewID, app_optionalInfo_viewID, app_icon_viewID, app_checkbox_viewID);
-    }
-
-    public AppAdapter(Context context, int listLayoutResourceId, List<ApplicationInfo> appsToShow, int app_name_viewID, int app_package_viewID, int app_optionalInfo_viewID, int app_icon_viewID, int app_checkbox_viewID) {
+    public AppAdapter(Context context, int listLayoutResourceId, List<AppUidGroup> appsToShow, int app_name_viewID, int app_package_viewID, int app_optionalInfo_viewID, int app_icon_viewID, int app_checkbox_viewID) {
         super(context, listLayoutResourceId, appsToShow);
 
-        this.packageManager = context.getPackageManager();
         this.context = context;
         this.appList = appsToShow;
 
@@ -69,50 +63,6 @@ public class AppAdapter extends ArrayAdapter<ApplicationInfo>{
         this.app_optionalInfo_viewID = app_optionalInfo_viewID;
         this.app_icon_viewID = app_icon_viewID;
         this.app_checkbox_viewID = app_checkbox_viewID;
-    }
-
-    public static List<ApplicationInfo> fetchAppsByLaunchIntent(Context context, boolean includeAppItself) {
-        if (includeAppItself)
-            return fetchAppsByLaunchIntent(context);
-        else
-            return fetchAppsByLaunchIntentWithoutAppItself(context);
-    }
-
-    private static List<ApplicationInfo> fetchAppsByLaunchIntentWithoutAppItself(Context context) {
-        LinkedList<ApplicationInfo> apps = new LinkedList<>();
-        ApplicationInfo appItself = context.getApplicationInfo();
-
-        for(ApplicationInfo appInfo : fetchAppsByLaunchIntent(context)) {
-            // skip app itself
-            if (appItself.packageName.equals(appInfo.packageName)) {
-                Log.v(LOG_TAG, "Found host-app itself: " + appInfo.packageName + " --> skipping as requested.");
-                continue;
-            }
-
-            apps.add(appInfo);
-        }
-
-        return apps;
-    }
-
-    public static List<ApplicationInfo> fetchAppsByLaunchIntent(Context context) {
-        final PackageManager pm = context.getPackageManager();
-
-        List<ApplicationInfo> infos = pm.getInstalledApplications(PackageManager.GET_META_DATA);
-        ArrayList<ApplicationInfo> appList = new ArrayList<ApplicationInfo>();
-
-        Log.v(LOG_TAG, "Fetching list of installed launchable apps...");
-
-        for(ApplicationInfo info : infos) {
-            try{
-                if(pm.getLaunchIntentForPackage(info.packageName) != null)
-                    appList.add(info);
-            } catch(Exception e) {
-                e.printStackTrace();
-            }
-        }
-
-        return appList;
     }
 
     public AdapterHandler getAdapterHandler() {
@@ -139,7 +89,7 @@ public class AppAdapter extends ArrayAdapter<ApplicationInfo>{
         this.onItemLongClickListener = onItemLongClickListener;
     }
 
-    public LinkedList<ApplicationInfo> getAppList() {
+    public LinkedList<AppUidGroup> getAppList() {
         return new LinkedList<>(appList);
     }
 
@@ -149,8 +99,8 @@ public class AppAdapter extends ArrayAdapter<ApplicationInfo>{
     }
 
     @Override
-    public ApplicationInfo getItem(int position) {
-        return ((null != appList) ? appList.get(position) : null);
+    public AppUidGroup getItem(int position) {
+        return appList.get(position);
     }
 
     @Override
@@ -181,8 +131,8 @@ public class AppAdapter extends ArrayAdapter<ApplicationInfo>{
             view = convertView;
         }
 
-        final ApplicationInfo applicationInfo = appList.get(position);
-        if (applicationInfo == null)
+        final AppUidGroup appUidGroup = appList.get(position);
+        if (appUidGroup == null)
             return view;
 
         final TextView appNameTextView = (TextView) view.findViewById(app_name_viewID);
@@ -192,9 +142,9 @@ public class AppAdapter extends ArrayAdapter<ApplicationInfo>{
         CheckBox appWatchedCheckBox = (CheckBox) view.findViewById(app_checkbox_viewID);
 
         // Write App-Info to gui:
-        appNameTextView.setText(applicationInfo.loadLabel(packageManager));
-        appPackageNameTextView.setText(applicationInfo.packageName);
-        appIconImageView.setImageDrawable(applicationInfo.loadIcon(packageManager));
+        appNameTextView.setText(appUidGroup.getName());
+        appPackageNameTextView.setText(appUidGroup.getPackageName());
+        appIconImageView.setImageDrawable(appUidGroup.getIcon());
 
 
         //--------------------------------------------------------------------------------------------------------------------------------------
@@ -208,7 +158,7 @@ public class AppAdapter extends ArrayAdapter<ApplicationInfo>{
                 onListItemClick(position, view, (AdapterView<?>) parent, buttonView);
 
                 if (adapterHandler != null)
-                    adapterHandler.onAppWatchedStateCheckboxCheckedChanged(AppAdapter.this, applicationInfo, (CheckBox) buttonView, isChecked);
+                    adapterHandler.onAppWatchedStateCheckboxCheckedChanged(AppAdapter.this, appUidGroup, (CheckBox) buttonView, isChecked);
             }
         });
 
@@ -224,7 +174,7 @@ public class AppAdapter extends ArrayAdapter<ApplicationInfo>{
                 onListItemClick(position, view, (AdapterView<?>) parent, (TextView) view.findViewById(app_name_viewID));
 
                 if (adapterHandler != null)
-                    adapterHandler.onAppNameClicked(AppAdapter.this, applicationInfo, (TextView) view.findViewById(app_name_viewID));
+                    adapterHandler.onAppNameClicked(AppAdapter.this, appUidGroup, (TextView) view.findViewById(app_name_viewID));
             }
         });
         appPackageNameTextView.setOnClickListener(new View.OnClickListener() {
@@ -235,7 +185,7 @@ public class AppAdapter extends ArrayAdapter<ApplicationInfo>{
                 onListItemClick(position, view, (AdapterView<?>) parent, (TextView) view.findViewById(app_package_viewID));
 
                 if (adapterHandler != null)
-                    adapterHandler.onAppPackageClicked(AppAdapter.this, applicationInfo, (TextView) view.findViewById(app_package_viewID));
+                    adapterHandler.onAppPackageClicked(AppAdapter.this, appUidGroup, (TextView) view.findViewById(app_package_viewID));
             }
         });
         appOptionalInfosTextView.setOnClickListener(new View.OnClickListener() {
@@ -246,7 +196,7 @@ public class AppAdapter extends ArrayAdapter<ApplicationInfo>{
                 onListItemClick(position, view, (AdapterView<?>) parent, (TextView) view.findViewById(app_optionalInfo_viewID));
 
                 if (adapterHandler != null)
-                    adapterHandler.onAppPackageClicked(AppAdapter.this, applicationInfo, (TextView) view.findViewById(app_optionalInfo_viewID));
+                    adapterHandler.onAppPackageClicked(AppAdapter.this, appUidGroup, (TextView) view.findViewById(app_optionalInfo_viewID));
             }
         });
         appIconImageView.setOnClickListener(new View.OnClickListener() {
@@ -257,7 +207,7 @@ public class AppAdapter extends ArrayAdapter<ApplicationInfo>{
                 onListItemClick(position, view, (AdapterView<?>) parent, (ImageView) view.findViewById(app_icon_viewID));
 
                 if (adapterHandler != null)
-                    adapterHandler.onAppIconClicked(AppAdapter.this, applicationInfo, (ImageView) view.findViewById(app_icon_viewID));
+                    adapterHandler.onAppIconClicked(AppAdapter.this, appUidGroup, (ImageView) view.findViewById(app_icon_viewID));
             }
         });
 
@@ -272,7 +222,7 @@ public class AppAdapter extends ArrayAdapter<ApplicationInfo>{
                 onListItemLongClick((AdapterView<?>) parent, v, position);
 
                 if (adapterHandler != null)
-                    return adapterHandler.onAppNameLongClicked(AppAdapter.this, applicationInfo, (TextView) v);
+                    return adapterHandler.onAppNameLongClicked(AppAdapter.this, appUidGroup, (TextView) v);
                 else
                     return false;
             }
@@ -284,7 +234,7 @@ public class AppAdapter extends ArrayAdapter<ApplicationInfo>{
                 onListItemLongClick((AdapterView<?>) parent, v, position);
 
                 if (adapterHandler != null)
-                    return adapterHandler.onAppPackageLongClicked(AppAdapter.this, applicationInfo, (TextView) v);
+                    return adapterHandler.onAppPackageLongClicked(AppAdapter.this, appUidGroup, (TextView) v);
                 else
                     return false;
             }
@@ -296,7 +246,7 @@ public class AppAdapter extends ArrayAdapter<ApplicationInfo>{
                 onListItemLongClick((AdapterView<?>) parent, v, position);
 
                 if (adapterHandler != null)
-                    return adapterHandler.onAppOptionalInfoLongClicked(AppAdapter.this, applicationInfo, (TextView) v);
+                    return adapterHandler.onAppOptionalInfoLongClicked(AppAdapter.this, appUidGroup, (TextView) v);
                 else
                     return false;
             }
@@ -308,7 +258,7 @@ public class AppAdapter extends ArrayAdapter<ApplicationInfo>{
                 onListItemLongClick((AdapterView<?>) parent, v, position);
 
                 if (adapterHandler != null)
-                    return adapterHandler.onAppIconLongClicked(AppAdapter.this, applicationInfo, (ImageView) v);
+                    return adapterHandler.onAppIconLongClicked(AppAdapter.this, appUidGroup, (ImageView) v);
                 else
                     return false;
             }
@@ -317,7 +267,7 @@ public class AppAdapter extends ArrayAdapter<ApplicationInfo>{
 
         // Call on-row-create event
         if (adapterHandler != null)
-            adapterHandler.onRowCreate(this, applicationInfo, appNameTextView, appPackageNameTextView, appOptionalInfosTextView, appIconImageView, appWatchedCheckBox);
+            adapterHandler.onRowCreate(this, appUidGroup, appNameTextView, appPackageNameTextView, appOptionalInfosTextView, appIconImageView, appWatchedCheckBox);
 
         return view;
     }

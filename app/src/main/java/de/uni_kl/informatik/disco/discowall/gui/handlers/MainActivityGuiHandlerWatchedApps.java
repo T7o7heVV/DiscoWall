@@ -2,7 +2,6 @@ package de.uni_kl.informatik.disco.discowall.gui.handlers;
 
 import android.app.ProgressDialog;
 import android.content.Intent;
-import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.os.AsyncTask;
 import android.util.Log;
@@ -29,6 +28,7 @@ import de.uni_kl.informatik.disco.discowall.gui.dialogs.ErrorDialog;
 import de.uni_kl.informatik.disco.discowall.gui.adapters.AppAdapter;
 import de.uni_kl.informatik.disco.discowall.packages.Connections;
 import de.uni_kl.informatik.disco.discowall.packages.Packages;
+import de.uni_kl.informatik.disco.discowall.utils.apps.AppUidGroup;
 import de.uni_kl.informatik.disco.discowall.utils.ressources.DiscoWallSettings;
 
 public class MainActivityGuiHandlerWatchedApps extends MainActivityGuiHandler {
@@ -56,18 +56,18 @@ public class MainActivityGuiHandlerWatchedApps extends MainActivityGuiHandler {
         appsAdapter.setAdapterHandler(new AppAdapter.AdapterHandler() {
             // Adapter-Handler for manipulating list-view while it is being created etc.
             @Override
-            public void onRowCreate(AppAdapter adapter, ApplicationInfo appInfo, TextView appNameWidget, TextView appPackageNameWidget, TextView appRuleInfoTextView, ImageView appIconImageWidget, CheckBox appWatchedCheckboxWidget) {
+            public void onRowCreate(AppAdapter adapter, AppUidGroup appGroup, TextView appNameWidget, TextView appPackageNameWidget, TextView appRuleInfoTextView, ImageView appIconImageWidget, CheckBox appWatchedCheckboxWidget) {
                 /* This method is being called when...
                  * - the individual rows are being written when creating the list
                  * - the list is being scrolled and therefore updated
                  */
 
                 // IMPORTANT: If I would buffer the "watched apps" at any point, scrolling the list will reset the value to the buffered state!
-                appWatchedCheckboxWidget.setChecked(mainActivity.firewall.subsystem.watchedApps.isAppWatched(appInfo));
+                appWatchedCheckboxWidget.setChecked(mainActivity.firewall.subsystem.watchedApps.isAppWatched(appGroup));
 
-                int totalRulesCount = mainActivity.firewall.subsystem.rulesManager.getRules(appInfo).size();
-                int policyRulesCount = mainActivity.firewall.subsystem.rulesManager.getPolicyRules(appInfo).size();
-                int redirectionRulesCount = mainActivity.firewall.subsystem.rulesManager.getRedirectionRules(appInfo).size();
+                int totalRulesCount = mainActivity.firewall.subsystem.rulesManager.getRules(appGroup).size();
+                int policyRulesCount = mainActivity.firewall.subsystem.rulesManager.getPolicyRules(appGroup).size();
+                int redirectionRulesCount = mainActivity.firewall.subsystem.rulesManager.getRedirectionRules(appGroup).size();
 
                 // Creating String like: "3 rules:  2 policy, 1 redirection"
                 String ruleInfo = totalRulesCount + (totalRulesCount != 1 ? " rules" : " rule");
@@ -78,66 +78,66 @@ public class MainActivityGuiHandlerWatchedApps extends MainActivityGuiHandler {
             }
 
             @Override
-            public void onAppNameClicked(AppAdapter appAdapter, ApplicationInfo appInfo, TextView appNameWidgetview) {
-                actionWatchedAppShowFirewallRules(appInfo);
+            public void onAppNameClicked(AppAdapter appAdapter, AppUidGroup appGroup, TextView appNameWidgetview) {
+                actionWatchedAppShowFirewallRules(appGroup);
             }
 
             @Override
-            public void onAppPackageClicked(AppAdapter appAdapter, ApplicationInfo appInfo, TextView appPackageNameWidget) {
-                actionWatchedAppShowFirewallRules(appInfo);
+            public void onAppPackageClicked(AppAdapter appAdapter, AppUidGroup appGroup, TextView appPackageNameWidget) {
+                actionWatchedAppShowFirewallRules(appGroup);
             }
 
             @Override
-            public void onAppOptionalInfoClicked(AppAdapter appAdapter, ApplicationInfo appInfo, TextView appInfoWidget) {
-                actionWatchedAppShowFirewallRules(appInfo);
+            public void onAppOptionalInfoClicked(AppAdapter appAdapter, AppUidGroup appGroup, TextView appInfoWidget) {
+                actionWatchedAppShowFirewallRules(appGroup);
             }
 
             @Override
-            public void onAppIconClicked(AppAdapter appAdapter, ApplicationInfo appInfo, ImageView appIconImageWidget) {
-                actionWatchedAppShowFirewallRules(appInfo);
+            public void onAppIconClicked(AppAdapter appAdapter, AppUidGroup appGroup, ImageView appIconImageWidget) {
+                actionWatchedAppShowFirewallRules(appGroup);
             }
 
             @Override
-            public boolean onAppNameLongClicked(AppAdapter appAdapter, ApplicationInfo appInfo, TextView appNameWidgetview) {
+            public boolean onAppNameLongClicked(AppAdapter appAdapter, AppUidGroup appGroup, TextView appNameWidgetview) {
                 return false;
             }
 
             @Override
-            public boolean onAppPackageLongClicked(AppAdapter appAdapter, ApplicationInfo appInfo, TextView appPackageNameWidget) {
+            public boolean onAppPackageLongClicked(AppAdapter appAdapter, AppUidGroup appGroup, TextView appPackageNameWidget) {
                 return false;
             }
 
             @Override
-            public boolean onAppOptionalInfoLongClicked(AppAdapter appAdapter, ApplicationInfo appInfo, TextView appPackageNameWidget) {
+            public boolean onAppOptionalInfoLongClicked(AppAdapter appAdapter, AppUidGroup appGroup, TextView appPackageNameWidget) {
                 return false;
             }
 
             @Override
-            public boolean onAppIconLongClicked(AppAdapter appAdapter, ApplicationInfo appInfo, ImageView appIconImageWidget) {
+            public boolean onAppIconLongClicked(AppAdapter appAdapter, AppUidGroup appGroup, ImageView appIconImageWidget) {
                 return false;
             }
 
             @Override
-            public void onAppWatchedStateCheckboxCheckedChanged(AppAdapter adapter, ApplicationInfo appInfo, CheckBox appWatchedCheckboxWidget, boolean isChecked) {
-                actionSetAppWatched(appInfo, appWatchedCheckboxWidget.isChecked());
+            public void onAppWatchedStateCheckboxCheckedChanged(AppAdapter adapter, AppUidGroup appGroup, CheckBox appWatchedCheckboxWidget, boolean isChecked) {
+                actionSetAppWatched(appGroup, appWatchedCheckboxWidget.isChecked());
             }
         });
     }
 
-    private void actionWatchedAppShowFirewallRules(ApplicationInfo appInfo) {
+    private void actionWatchedAppShowFirewallRules(AppUidGroup appGroup) {
         boolean createRuleIsDefaultChecked = DiscoWallSettings.getInstance().isHandleConnectionDialogDefaultCreateRule(mainActivity);
-        ShowAppRulesActivity.showAppRules(mainActivity, appInfo);
+        ShowAppRulesActivity.showAppRules(mainActivity, appGroup);
 
-//        DecideConnectionDialog.show(mainActivity, "example tag", appInfo, new Packages.IpPortPair("192.168.178.100", 1337), new Packages.IpPortPair("192.168.178.200", 4200), Connections.TransportLayerProtocol.TCP, createRuleIsDefaultChecked);
+//        DecideConnectionDialog.show(mainActivity, "example tag", appGroup, new Packages.IpPortPair("192.168.178.100", 1337), new Packages.IpPortPair("192.168.178.200", 4200), Connections.TransportLayerProtocol.TCP, createRuleIsDefaultChecked);
     }
 
     public void actionSetAllAppsWatched(boolean watched) {
         Log.i(LOG_TAG, "set " + (watched ? "all" : "no") + " apps to be watched by firewall...");
 
-        HashMap<ApplicationInfo, Boolean> appsToWatchedStateMap = new HashMap<>();
+        HashMap<AppUidGroup, Boolean> appsToWatchedStateMap = new HashMap<>();
 
-        for(ApplicationInfo appInfo : mainActivity.firewall.subsystem.watchedApps.getWatchableApps())
-            appsToWatchedStateMap.put(appInfo, watched);
+        for(AppUidGroup appGroup : mainActivity.firewall.subsystem.watchedApps.getWatchableApps())
+            appsToWatchedStateMap.put(appGroup, watched);
 
         setAppsWatched(appsToWatchedStateMap, watched ? R.string.action_main_menu_monitor_all_apps : R.string.action_main_menu_monitor_no_apps);
     }
@@ -145,40 +145,40 @@ public class MainActivityGuiHandlerWatchedApps extends MainActivityGuiHandler {
     public void actionInvertAllAppsWatched() {
         Log.i(LOG_TAG, "invert apps to be watched by firewall...");
 
-        List<ApplicationInfo> watchedApps = mainActivity.firewall.subsystem.watchedApps.getWatchedApps();
+        List<AppUidGroup> watchedApps = mainActivity.firewall.subsystem.watchedApps.getWatchedApps();
 
-        HashMap<ApplicationInfo, Boolean> appsToWatchedStateMap = new HashMap<>();
+        HashMap<AppUidGroup, Boolean> appsToWatchedStateMap = new HashMap<>();
 
-        for(ApplicationInfo appInfo : mainActivity.firewall.subsystem.watchedApps.getWatchableApps())
-            appsToWatchedStateMap.put(appInfo, !mainActivity.firewall.subsystem.watchedApps.isAppWatched(appInfo));
+        for(AppUidGroup appGroup : mainActivity.firewall.subsystem.watchedApps.getWatchableApps())
+            appsToWatchedStateMap.put(appGroup, !mainActivity.firewall.subsystem.watchedApps.isAppWatched(appGroup));
 
         setAppsWatched(appsToWatchedStateMap, R.string.action_main_menu_monitor_invert_monitored);
     }
 
-    private void setAppsWatched(final HashMap<ApplicationInfo, Boolean> appsToWatchedStateMap, final int updateDialogTitleStringRessourceId) {
+    private void setAppsWatched(final HashMap<AppUidGroup, Boolean> appsToWatchedStateMap, final int updateDialogTitleStringRessourceId) {
         // Since this operation might take up to a minute on slow devides ==> run with progress-bar etc..
-        new AsyncTask<List<ApplicationInfo>, Integer, Boolean>() {
+        new AsyncTask<List<AppUidGroup>, Integer, Boolean>() {
             private String errorMessage;
             private ProgressDialog progressDialog;
-            private LinkedList<ApplicationInfo> apps = new LinkedList<ApplicationInfo>(appsToWatchedStateMap.keySet()); // a list, so that I can iterate over it and use integers to show progress
+            private LinkedList<AppUidGroup> apps = new LinkedList<AppUidGroup>(appsToWatchedStateMap.keySet()); // a list, so that I can iterate over it and use integers to show progress
 
             @Override
-            protected Boolean doInBackground(List<ApplicationInfo>... params) {
+            protected Boolean doInBackground(List<AppUidGroup>... params) {
                 int i=0;
 
-                for(ApplicationInfo appInfo : apps) {
+                for(AppUidGroup appGroup : apps) {
                     publishProgress(i++);
-                    boolean watchApp = appsToWatchedStateMap.get(appInfo);
+                    boolean watchApp = appsToWatchedStateMap.get(appGroup);
 
                     try {
-                        if (mainActivity.firewall.subsystem.watchedApps.isAppWatched(appInfo) != watchApp)
-                            mainActivity.firewall.subsystem.watchedApps.setAppWatched(appInfo, watchApp);
+                        if (mainActivity.firewall.subsystem.watchedApps.isAppWatched(appGroup) != watchApp)
+                            mainActivity.firewall.subsystem.watchedApps.setAppWatched(appGroup, watchApp);
                     } catch(FirewallExceptions.FirewallException e) {
                         if (!errorMessage.isEmpty())
                             errorMessage += "\n";
-                        errorMessage += "Error changing watched-state for app '" + appInfo.packageName + "': " + e.getMessage();
+                        errorMessage += "Error changing watched-state for app '" + appGroup.getPackageName() + "': " + e.getMessage();
 
-                        Log.e(LOG_TAG, "Error changing watched-state for app '" + appInfo.packageName + "': " + e.getMessage(), e);
+                        Log.e(LOG_TAG, "Error changing watched-state for app '" + appGroup.getPackageName() + "': " + e.getMessage(), e);
                     }
                 }
 
@@ -200,7 +200,7 @@ public class MainActivityGuiHandlerWatchedApps extends MainActivityGuiHandler {
                 progressDialog.setTitle(updateDialogTitleStringRessourceId);
                 progressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
                 progressDialog.setMessage("");
-                progressDialog.setIcon(apps.get(0).loadIcon(mainActivity.getPackageManager()));
+                progressDialog.setIcon(apps.get(0).getIcon());
                 progressDialog.setMax(appsToWatchedStateMap.size());
                 progressDialog.setProgress(0);
                 progressDialog.setCancelable(false);
@@ -227,28 +227,28 @@ public class MainActivityGuiHandlerWatchedApps extends MainActivityGuiHandler {
                 final PackageManager packageManager = mainActivity.getPackageManager();
                 final int appIndex = values[0];
 
-                ApplicationInfo appInfo = apps.get(appIndex);
-                String appName = appInfo.loadLabel(packageManager) + "";
+                AppUidGroup appGroup = apps.get(appIndex);
+                String appName = appGroup.getIcon() + "";
 
-                progressDialog.setMessage(appName + "\n" + appInfo.packageName);
-                progressDialog.setIcon(appInfo.loadIcon(packageManager));
+                progressDialog.setMessage(appName + "\n" + appGroup.getPackageName());
+                progressDialog.setIcon(appGroup.getIcon());
                 progressDialog.setProgress(appIndex);
             }
         }.execute();
     }
 
-    private void actionSetAppWatched(final ApplicationInfo appInfo, final boolean watched) {
+    private void actionSetAppWatched(final AppUidGroup appGroup, final boolean watched) {
         // Nothing to do, if the desired watched-state is already present. This happens when the GUI refreshes (as it does on scrolling).
-        if (watched == mainActivity.firewall.subsystem.watchedApps.isAppWatched(appInfo)) {
+        if (watched == mainActivity.firewall.subsystem.watchedApps.isAppWatched(appGroup)) {
 //            Log.v(LOG_TAG, "App already " + (watched?"":"not ") + "watched. No change in sate required. This call happens when creating the list.");
             return;
         }
 
         // Show toast as this operation takes a few seconds
         if (watched)
-            Toast.makeText(mainActivity, "monitor app traffic: " + appInfo.loadLabel(mainActivity.getPackageManager()), Toast.LENGTH_SHORT).show();
+            Toast.makeText(mainActivity, "monitor app traffic: " + appGroup.getName(), Toast.LENGTH_SHORT).show();
         else
-            Toast.makeText(mainActivity, "ignore app traffic: " + appInfo.loadLabel(mainActivity.getPackageManager()), Toast.LENGTH_SHORT).show();
+            Toast.makeText(mainActivity, "ignore app traffic: " + appGroup.getName(), Toast.LENGTH_SHORT).show();
 
         // Since this operation takes around a second, it is anoying that the GUI freezes for this amount of time ==> parallel task
         new AsyncTask<Boolean, Boolean, Boolean>() {
@@ -257,9 +257,9 @@ public class MainActivityGuiHandlerWatchedApps extends MainActivityGuiHandler {
             @Override
             protected Boolean doInBackground(Boolean... params) {
                 try {
-                    mainActivity.firewall.subsystem.watchedApps.setAppWatched(appInfo, watched);
+                    mainActivity.firewall.subsystem.watchedApps.setAppWatched(appGroup, watched);
                 } catch (FirewallExceptions.FirewallException e) {
-                    errorMessage = "Error changing watched-state for app '" + appInfo.packageName + "': " + e.getMessage();
+                    errorMessage = "Error changing watched-state for app '" + appGroup.getPackageName() + "': " + e.getMessage();
                 }
 
                 return true;
@@ -281,11 +281,11 @@ public class MainActivityGuiHandlerWatchedApps extends MainActivityGuiHandler {
         final PackageManager packageManager = mainActivity.getPackageManager();
 
         // Cannot be null, index has to be within bounds. Otherwise something has SERIOUSLY gone wrong within the GUI framework.
-        ApplicationInfo appInfo = watchedAppsListAdapter.getItem(listViewItemPosition);
-        Log.i(LOG_TAG, "Application: Run " + appInfo.loadLabel(packageManager) + " (" + appInfo.packageName + ")");
+        AppUidGroup appGroup = watchedAppsListAdapter.getItem(listViewItemPosition);
+        Log.i(LOG_TAG, "Application: Run " + appGroup.getIcon() + " (" + appGroup.getPackageName() + ")");
 
-        Toast.makeText(mainActivity, "starting app: " + appInfo.loadLabel(packageManager) + "\n" + appInfo.packageName, Toast.LENGTH_SHORT).show();
-        Intent startIntent = packageManager.getLaunchIntentForPackage(appInfo.packageName);
+        Toast.makeText(mainActivity, "starting app: " + appGroup.getIcon() + "\n" + appGroup.getPackageName(), Toast.LENGTH_SHORT).show();
+        Intent startIntent = packageManager.getLaunchIntentForPackage(appGroup.getPackageName());
         mainActivity.startActivity(startIntent);
     }
 
@@ -293,10 +293,10 @@ public class MainActivityGuiHandlerWatchedApps extends MainActivityGuiHandler {
         Log.v(LOG_TAG, "show application rules at list-position: " + listViewItemPosition + ")");
 
         // Cannot be null, index has to be within bounds. Otherwise something has SERIOUSLY gone wrong within the GUI framework.
-        ApplicationInfo appInfo = watchedAppsListAdapter.getItem(listViewItemPosition);
-        Log.i(LOG_TAG, "Application: Show Rules: " + appInfo.packageName);
+        AppUidGroup appGroup = watchedAppsListAdapter.getItem(listViewItemPosition);
+        Log.i(LOG_TAG, "Application: Show Rules: " + appGroup.getPackageName());
 
-        actionWatchedAppShowFirewallRules(appInfo);
+        actionWatchedAppShowFirewallRules(appGroup);
     }
 
 }

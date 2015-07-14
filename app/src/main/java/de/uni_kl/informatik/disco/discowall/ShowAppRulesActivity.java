@@ -28,6 +28,7 @@ import de.uni_kl.informatik.disco.discowall.firewall.rules.FirewallRules;
 import de.uni_kl.informatik.disco.discowall.gui.adapters.AppRulesAdapter;
 import de.uni_kl.informatik.disco.discowall.gui.adapters.DiscoWallAppAdapter;
 import de.uni_kl.informatik.disco.discowall.gui.dialogs.ErrorDialog;
+import de.uni_kl.informatik.disco.discowall.utils.apps.AppUidGroup;
 
 
 public class ShowAppRulesActivity extends AppCompatActivity {
@@ -37,7 +38,7 @@ public class ShowAppRulesActivity extends AppCompatActivity {
     public Firewall firewall;
 
     private AppRulesAdapter appsAdapter;
-    private ApplicationInfo appInfo;
+    private int groupUid;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -51,40 +52,7 @@ public class ShowAppRulesActivity extends AppCompatActivity {
         else
             args = getIntent().getExtras();
 
-        // Fetching ApplicationInfo:
-        final Activity context = this;
-        PackageManager packageManager = context.getPackageManager();
-        String packageName = args.getString("app.packageName");
-
-        try {
-            appInfo = packageManager.getApplicationInfo(packageName, PackageManager.GET_META_DATA);
-        } catch (PackageManager.NameNotFoundException e) {
-            Log.e(LOG_TAG, "Error fetching ApplicationInfo for app with packageName: " + packageName, e);
-            ErrorDialog.showError(context, "Error fetching ApplicationInfo for app with packageName: " + packageName, e);
-
-            finish();
-            return;
-        }
-
-        // Activity Title:
-        setTitle("Rules: " + appInfo.loadLabel(packageManager));
-
-        // Rules ListView:
-        {
-            // The rule-listview is being filles as the firewall-service connects.
-            // The firewall-service-connection is required in order to fetch the app-rules
-
-//            ListView rulesListView = (ListView) findViewById(R.id.activity_show_app_rules_listView_rules);
-//
-//            List<FirewallRules.IFirewallRule> appRules = new LinkedList<>();
-//            final AppRulesAdapter appsAdapter = new AppRulesAdapter(this, appRules);
-//            rulesListView.setAdapter(appsAdapter);
-        }
-
-        // App Information
-        ((TextView) findViewById(R.id.activity_show_app_rules_app_name)).setText(appInfo.loadLabel(packageManager));
-        ((TextView) findViewById(R.id.activity_show_app_rules_app_package)).setText(packageName);
-        ((ImageView) findViewById(R.id.activity_show_app_rules_app_icon)).setImageDrawable(appInfo.loadIcon(packageManager));
+        groupUid = args.getInt("app.uid");
     }
 
     @Override
@@ -154,12 +122,22 @@ public class ShowAppRulesActivity extends AppCompatActivity {
     private void onFirewallServiceBound() {
         Log.d(LOG_TAG, "Firewall-Service connected. Loading rules...");
 
-        firewall.DEBUG_TEST(appInfo);
+        AppUidGroup appUidGroup = firewall.subsystem.watchedApps.getWatchableAppByUid(groupUid);
+
+        // Activity Title:
+        setTitle("Rules: " + appUidGroup.getName());
+
+        // App Information
+        ((TextView) findViewById(R.id.activity_show_app_rules_app_name)).setText(appUidGroup.getName());
+        ((TextView) findViewById(R.id.activity_show_app_rules_app_package)).setText(appUidGroup.getPackageName());
+        ((ImageView) findViewById(R.id.activity_show_app_rules_app_icon)).setImageDrawable(appUidGroup.getIcon());
+
+        firewall.DEBUG_TEST(appUidGroup);
 
         // Fill rules-list:
         {
             ListView rulesListView = (ListView) findViewById(R.id.activity_show_app_rules_listView_rules);
-            appsAdapter = new AppRulesAdapter(this, firewall.subsystem.rulesManager.getRules(appInfo));
+            appsAdapter = new AppRulesAdapter(this, firewall.subsystem.rulesManager.getRules(appUidGroup));
             rulesListView.setAdapter(appsAdapter);
 
             if (appsAdapter.getRules().size() > 0)
@@ -167,11 +145,11 @@ public class ShowAppRulesActivity extends AppCompatActivity {
         }
     }
 
-    public static void showAppRules(Context context, ApplicationInfo appInfo) {
+    public static void showAppRules(Context context, AppUidGroup appUidGroup) {
         Bundle args = new Bundle();
 
         // Dialog-Infos:
-        args.putString("app.packageName", appInfo.packageName);
+        args.putInt("app.uid", appUidGroup.getUid());
 
         Intent showAppRulesIntent = new Intent(context, ShowAppRulesActivity.class);
         showAppRulesIntent.putExtras(args);

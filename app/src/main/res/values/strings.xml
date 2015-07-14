@@ -17,7 +17,7 @@
     <string name="preference_id__firewall_enabled">firewall enabled</string>
     <string name="preference_id__firewall_policy">firewall policy</string>
     <string name="preference_id__service_autostart">firewall service autostart</string>
-    <string name="preference_id__watched_apps_packages">watched app packages</string>
+    <string name="preference_id__watched_apps_uids">watched app uids</string>
     <string name="preference_id__handle_connection_dialog__create_rule_default_checked">handle_connection_dialog__create_rule_default_checked</string>
     <string name="preference_id__firewall_connection_decision_timeoutMS">preference_id__firewall_connection_decision_timeout</string>
     <string name="preference_id__firewall_connection_decision_default_action">preference_id__firewall_connection_decision</string>

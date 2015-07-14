@@ -50,12 +50,12 @@ public class DiscoWallSettings {
         setSetting(context, R.string.preference_id__firewall_policy, policy.toString());
     }
 
-    public Set<String> getWatchedAppsPackages(Context context) {
-        return getSettingStringSet(context, R.string.preference_id__watched_apps_packages, new HashSet<String>());
+    public Set<Integer> getWatchedAppsUIDs(Context context) {
+        return getSettingIntegerSet(context, R.string.preference_id__watched_apps_uids, new HashSet<Integer>());
     }
 
-    public void setWatchedAppsPackages(Context context, Set<String> watchedAppPackages) {
-        setSettingStringSet(context, R.string.preference_id__watched_apps_packages, watchedAppPackages);
+    public void setWatchedAppsUIDs(Context context, Set<Integer> watchedAppPackages) {
+        setSettingIntegerSet(context, R.string.preference_id__watched_apps_uids, watchedAppPackages);
     }
 
     public boolean isNewConnectionDefaultDecisionAccept(Context context) {
@@ -78,6 +78,16 @@ public class DiscoWallSettings {
 //        SharedPreferences sharedPref = context.getSharedPreferences(context.getString(R.string.preferences_file_main), Context.MODE_PRIVATE);
         SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(context);
         return sharedPref.getString(context.getString(preferenceKeyStringId), defaultValue);
+    }
+
+    private HashSet<Integer> getSettingIntegerSet(Context context, int preferenceKeyStringId, Set<Integer> defaultValue) {
+        Set<String> set = getSettingStringSet(context, preferenceKeyStringId, intSetToStringSet(defaultValue));
+        HashSet<Integer> intSet = new HashSet<>();
+
+        for(String str : set)
+            intSet.add(Integer.parseInt(str));
+
+        return intSet;
     }
 
     private Set<String> getSettingStringSet(Context context, int preferenceKeyStringId, Set<String> defaultValue) {
@@ -154,4 +164,16 @@ public class DiscoWallSettings {
         editor.commit();
     }
 
+    private static HashSet<String> intSetToStringSet(Set<Integer> intSet) {
+        HashSet<String> intSetAsStringSet = new HashSet<>();
+
+        for(Integer intValue : intSet)
+            intSetAsStringSet.add(intValue + "");
+
+        return intSetAsStringSet;
+    }
+
+    private void setSettingIntegerSet(Context context, int preferenceKeyStringId, Set<Integer> value) {
+        setSettingStringSet(context, preferenceKeyStringId, intSetToStringSet(value));
+    }
 }

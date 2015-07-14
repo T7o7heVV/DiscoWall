@@ -2,7 +2,6 @@ package de.uni_kl.informatik.disco.discowall.gui.handlers;
 
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
-import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.os.AsyncTask;
 import android.util.Log;
@@ -20,6 +19,7 @@ import de.uni_kl.informatik.disco.discowall.firewall.Firewall;
 import de.uni_kl.informatik.disco.discowall.firewall.FirewallExceptions;
 import de.uni_kl.informatik.disco.discowall.firewall.helpers.FirewallPolicyManager;
 import de.uni_kl.informatik.disco.discowall.gui.dialogs.ErrorDialog;
+import de.uni_kl.informatik.disco.discowall.utils.apps.AppUidGroup;
 
 public class MainActivityGuiHandlerFirewallControl {
     private static final String LOG_TAG = MainActivity.class.getSimpleName();
@@ -70,10 +70,10 @@ public class MainActivityGuiHandlerFirewallControl {
                 String command;
             }
             class WatchedAppsUpdateBeforeRestore {
-                List<ApplicationInfo> watchedApps;
+                List<AppUidGroup> watchedApps;
             }
             class WatchedAppsUpdateRestoreApp {
-                ApplicationInfo watchedApp;
+                AppUidGroup watchedApp;
                 int appIndex;
             }
             class FirewallPolicyUpdate {
@@ -179,13 +179,13 @@ public class MainActivityGuiHandlerFirewallControl {
                     } else if (value instanceof WatchedAppsUpdateRestoreApp) {
                         WatchedAppsUpdateRestoreApp updateRestoreApp = (WatchedAppsUpdateRestoreApp) value;
 
-                        ApplicationInfo appInfo = updateRestoreApp.watchedApp;
-                        String appName = appInfo.loadLabel(packageManager) + "";
+                        AppUidGroup appInfo = updateRestoreApp.watchedApp;
+                        String appName = appInfo.getName();
 
-                        progressDialog.setMessage("monitoring apps...\n\n" + appName + "\n" + appInfo.packageName);
+                        progressDialog.setMessage("monitoring apps...\n\n" + appName + "\n" + appInfo.getPackageName());
                         progressDialog.setIndeterminate(false);
                         progressDialog.setProgress(updateRestoreApp.appIndex + 1);
-                        progressDialog.setIcon(appInfo.loadIcon(packageManager));
+                        progressDialog.setIcon(appInfo.getIcon());
                     } else if (value instanceof FirewallPolicyUpdate) {
                         FirewallPolicyUpdate firewallPolicyUpdate = (FirewallPolicyUpdate) value;
 
@@ -209,7 +209,7 @@ public class MainActivityGuiHandlerFirewallControl {
             }
 
             @Override
-            public void onWatchedAppsBeforeRestore(List<ApplicationInfo> watchedApps) {
+            public void onWatchedAppsBeforeRestore(List<AppUidGroup> watchedApps) {
                 WatchedAppsUpdateBeforeRestore watchedAppsUpdateBeforeRestore = new WatchedAppsUpdateBeforeRestore();
                 watchedAppsUpdateBeforeRestore.watchedApps = new LinkedList<>(watchedApps);
 
@@ -217,7 +217,7 @@ public class MainActivityGuiHandlerFirewallControl {
             }
 
             @Override
-            public void onWatchedAppsRestoreApp(ApplicationInfo watchedApp, int appIndex) {
+            public void onWatchedAppsRestoreApp(AppUidGroup watchedApp, int appIndex) {
                 WatchedAppsUpdateRestoreApp updateRestoreApp = new WatchedAppsUpdateRestoreApp();
                 updateRestoreApp.watchedApp = watchedApp;
                 updateRestoreApp.appIndex = appIndex;

@@ -15,6 +15,7 @@ import de.uni_kl.informatik.disco.discowall.firewall.rules.FirewallRules;
 import de.uni_kl.informatik.disco.discowall.netfilter.bridge.NetfilterFirewallRulesHandler;
 import de.uni_kl.informatik.disco.discowall.netfilter.iptables.IptablesControl;
 import de.uni_kl.informatik.disco.discowall.packages.Packages;
+import de.uni_kl.informatik.disco.discowall.utils.apps.AppUidGroup;
 import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecuteExceptions;
 
 public class SubsystemRulesManager extends FirewallSubsystem{
@@ -44,23 +45,23 @@ public class SubsystemRulesManager extends FirewallSubsystem{
         return new LinkedList<>(rulesManager.getRules());
     }
 
-    public LinkedList<FirewallRules.IFirewallRule> getRules(ApplicationInfo appInfo) {
-        return new LinkedList<>(rulesManager.getRules(appInfo.uid));
+    public LinkedList<FirewallRules.IFirewallRule> getRules(AppUidGroup appGroup) {
+        return new LinkedList<>(rulesManager.getRules(appGroup.getUid()));
     }
 
-    public LinkedList<FirewallRules.IFirewallPolicyRule> getPolicyRules(ApplicationInfo appInfo) {
-        return rulesManager.getPolicyRules(appInfo.uid);
+    public LinkedList<FirewallRules.IFirewallPolicyRule> getPolicyRules(AppUidGroup appGroup) {
+        return rulesManager.getPolicyRules(appGroup.getUid());
     }
 
-    public LinkedList<FirewallRules.IFirewallRedirectRule> getRedirectionRules(ApplicationInfo appInfo) {
-        return rulesManager.getRedirectionRules(appInfo.uid);
+    public LinkedList<FirewallRules.IFirewallRedirectRule> getRedirectionRules(AppUidGroup appGroup) {
+        return rulesManager.getRedirectionRules(appGroup.getUid());
     }
 
-    public FirewallRules.FirewallTransportRule createTransportLayerRule(ApplicationInfo appInfo, Packages.IpPortPair sourceFilter, Packages.IpPortPair destinationFilter, FirewallRules.DeviceFilter deviceFilter, FirewallRules.ProtocolFilter protocolFilter, FirewallRules.RulePolicy rulePolicy) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
-        return rulesManager.createTransportLayerRule(appInfo.uid, sourceFilter, destinationFilter, deviceFilter, protocolFilter, rulePolicy);
+    public FirewallRules.FirewallTransportRule createTransportLayerRule(AppUidGroup appGroup, Packages.IpPortPair sourceFilter, Packages.IpPortPair destinationFilter, FirewallRules.DeviceFilter deviceFilter, FirewallRules.ProtocolFilter protocolFilter, FirewallRules.RulePolicy rulePolicy) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
+        return rulesManager.createTransportLayerRule(appGroup.getUid(), sourceFilter, destinationFilter, deviceFilter, protocolFilter, rulePolicy);
     }
 
-    public FirewallRules.FirewallTransportRedirectRule createTransportLayerRedirectionRule(ApplicationInfo appInfo, Packages.IpPortPair sourceFilter, Packages.IpPortPair destinationFilter, FirewallRules.DeviceFilter deviceFilter, FirewallRules.ProtocolFilter protocolFilter, Packages.IpPortPair redirectTo) throws FirewallRuleExceptions.InvalidRuleDefinitionException {
-        return rulesManager.createTransportLayerRedirectionRule(appInfo.uid, sourceFilter, destinationFilter, deviceFilter, protocolFilter, redirectTo);
+    public FirewallRules.FirewallTransportRedirectRule createTransportLayerRedirectionRule(AppUidGroup appGroup, Packages.IpPortPair sourceFilter, Packages.IpPortPair destinationFilter, FirewallRules.DeviceFilter deviceFilter, FirewallRules.ProtocolFilter protocolFilter, Packages.IpPortPair redirectTo) throws FirewallRuleExceptions.InvalidRuleDefinitionException {
+        return rulesManager.createTransportLayerRedirectionRule(appGroup.getUid(), sourceFilter, destinationFilter, deviceFilter, protocolFilter, redirectTo);
     }
 }

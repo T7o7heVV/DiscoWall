@@ -1,9 +1,9 @@
 package de.uni_kl.informatik.disco.discowall.firewall;
 
 import android.content.Context;
-import android.content.pm.ApplicationInfo;
 import android.util.Log;
 
+import java.util.LinkedList;
 import java.util.List;
 
 import de.uni_kl.informatik.disco.discowall.firewall.helpers.FirewallPolicyManager;
@@ -22,6 +22,7 @@ import de.uni_kl.informatik.disco.discowall.packages.ConnectionManager;
 import de.uni_kl.informatik.disco.discowall.packages.Connections;
 import de.uni_kl.informatik.disco.discowall.packages.Packages;
 import de.uni_kl.informatik.disco.discowall.utils.NetworkInterfaceHelper;
+import de.uni_kl.informatik.disco.discowall.utils.apps.AppUidGroup;
 import de.uni_kl.informatik.disco.discowall.utils.ressources.DiscoWallSettings;
 import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecuteExceptions;
 
@@ -42,8 +43,8 @@ public class Firewall implements NetfilterBridgeCommunicator.BridgeEventsHandler
      * @see de.uni_kl.informatik.disco.discowall.firewall.Firewall.FirewallDisableProgressListener
      */
     public static interface FirewallEnableProgressListener extends IptablesControl.IptablesCommandListener {
-        void onWatchedAppsBeforeRestore(List<ApplicationInfo> watchedApps);
-        void onWatchedAppsRestoreApp(ApplicationInfo watchedApp, int appIndex);
+        void onWatchedAppsBeforeRestore(List<AppUidGroup> watchedApps);
+        void onWatchedAppsRestoreApp(AppUidGroup watchedApp, int appIndex);
 
         void onFirewallPolicyBeforeApplyPolicy(FirewallPolicyManager.FirewallPolicy policy);
     }
@@ -164,14 +165,14 @@ public class Firewall implements NetfilterBridgeCommunicator.BridgeEventsHandler
             // Start watching apps which have been watched before
             Log.d(LOG_TAG, "restoring forwarding-rules for watched apps...");
             {
-                List<ApplicationInfo> watchedApps = subsystemWatchedApps.getWatchedApps();
+                LinkedList<AppUidGroup> watchedApps = subsystemWatchedApps.getWatchedApps();
 
                 // reporting progress to listener
                 if (progressListener != null)
                     progressListener.onWatchedAppsBeforeRestore(watchedApps);
 
                 int appIndex = 0;
-                for (ApplicationInfo watchedApp : watchedApps) {
+                for (AppUidGroup watchedApp : watchedApps) {
                     if (progressListener != null)
                         progressListener.onWatchedAppsRestoreApp(watchedApp, appIndex++); // reporting progress to listener
 
@@ -338,10 +339,10 @@ public class Firewall implements NetfilterBridgeCommunicator.BridgeEventsHandler
         ErrorDialog.showError(firewallServiceContext, "DiscoWall Internal Error", "Error within package-filtering engine occurred: " + e.getMessage());
     }
 
-    public void DEBUG_TEST(ApplicationInfo appInfo) {
+    public void DEBUG_TEST(AppUidGroup appUidGroup) {
         try {
             subsystemRulesManager.createTransportLayerRule(
-                    appInfo,
+                    appUidGroup,
                     new Packages.IpPortPair("localhost", 0),
                     new Packages.IpPortPair("*", 80),
                     FirewallRules.DeviceFilter.ANY,
@@ -350,7 +351,7 @@ public class Firewall implements NetfilterBridgeCommunicator.BridgeEventsHandler
             );
 
             subsystemRulesManager.createTransportLayerRule(
-                    appInfo,
+                    appUidGroup,
                     new Packages.IpPortPair("localhost", 13370 + subsystemRulesManager.getAllRules().size()),
                     new Packages.IpPortPair("google.de", 800 + subsystemRulesManager.getAllRules().size()),
                     FirewallRules.DeviceFilter.WIFI,
@@ -359,7 +360,7 @@ public class Firewall implements NetfilterBridgeCommunicator.BridgeEventsHandler
             );
 
             subsystemRulesManager.createTransportLayerRule(
-                    appInfo,
+                    appUidGroup,
                     new Packages.IpPortPair("localhost", 100 + subsystemRulesManager.getAllRules().size()),
                     new Packages.IpPortPair("google.de", 200 + subsystemRulesManager.getAllRules().size()),
                     FirewallRules.DeviceFilter.WIFI,
@@ -368,7 +369,7 @@ public class Firewall implements NetfilterBridgeCommunicator.BridgeEventsHandler
             );
 
             subsystemRulesManager.createTransportLayerRedirectionRule(
-                    appInfo,
+                    appUidGroup,
                     new Packages.IpPortPair("localhost", 1337 + subsystemRulesManager.getAllRules().size()),
                     new Packages.IpPortPair("google.de", 80 + subsystemRulesManager.getAllRules().size()),
                     FirewallRules.DeviceFilter.WIFI,

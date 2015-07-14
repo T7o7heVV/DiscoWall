@@ -11,107 +11,138 @@ import java.util.Set;
 
 import de.uni_kl.informatik.disco.discowall.firewall.FirewallService;
 import de.uni_kl.informatik.disco.discowall.gui.adapters.AppAdapter;
+import de.uni_kl.informatik.disco.discowall.utils.apps.App;
+import de.uni_kl.informatik.disco.discowall.utils.apps.AppUidGroup;
 import de.uni_kl.informatik.disco.discowall.utils.ressources.DiscoWallSettings;
 
 public class WatchedAppsPreferencesManager {
     private final Context firewallServiceContext;
+    private final HashMap<Integer, AppUidGroup> uidToExistingAppGroupsMap = new HashMap<>();
+    private final HashMap<Integer, AppUidGroup> uidToWatchedAppGroupMap = new HashMap<>();
 
     public WatchedAppsPreferencesManager(FirewallService firewallServiceContext) {
         this.firewallServiceContext = firewallServiceContext;
+
+        updateWatchableAppsList();
+        uidToWatchedAppGroupMap.putAll(AppUidGroup.createUidToGroupMap(loadWatchedAppGroups()));
     }
 
-    private void storeWatchedAppsPackages(Set<String> packageNames) {
-        DiscoWallSettings.getInstance().setWatchedAppsPackages(firewallServiceContext, packageNames);
+    public void updateWatchableAppsList() {
+        List<ApplicationInfo> appInfos = App.fetchAppInfosByLaunchIntent(firewallServiceContext, false);
+        LinkedList<AppUidGroup> updatedListOfWatchableApps = AppUidGroup.createGroupsFromAppInfoList(appInfos, firewallServiceContext);
+        HashMap<Integer, AppUidGroup> updatedMapOfWatchableApps = AppUidGroup.createUidToGroupMap(updatedListOfWatchableApps);
+
+        uidToExistingAppGroupsMap.clear();
+        uidToExistingAppGroupsMap.putAll(updatedMapOfWatchableApps);
     }
 
-    private Set<String> loadWatchedAppsPackages() {
-        Set<String> appPackagesSet = DiscoWallSettings.getInstance().getWatchedAppsPackages(firewallServiceContext);
-        return appPackagesSet;
+    private void storeWatchedAppsUIDs(Set<Integer> uidSet) {
+        DiscoWallSettings.getInstance().setWatchedAppsUIDs(firewallServiceContext, uidSet);
     }
 
-    public void setWatchedApps(List<ApplicationInfo> watchedApps) {
-        Set<String> watchedAppsPackageNames = new HashSet<>();
-
-        for(ApplicationInfo info : watchedApps)
-            watchedAppsPackageNames.add(info.packageName);
-
-        storeWatchedAppsPackages(watchedAppsPackageNames);
+    private Set<Integer> loadWatchedAppsUIDs() {
+        return new HashSet<>(DiscoWallSettings.getInstance().getWatchedAppsUIDs(firewallServiceContext));
     }
 
-    public List<ApplicationInfo> getWatchableApps() {
-        return AppAdapter.fetchAppsByLaunchIntent(firewallServiceContext, false); // not buffering so that the apps-list is always up-to-date;
+    public void setWatchedApps(List<AppUidGroup> groups) {
+        Set<Integer> watchedAppUIDs = new HashSet<>();
+
+        for(AppUidGroup group : groups)
+            watchedAppUIDs.add(group.getUid());
+
+        storeWatchedAppsUIDs(watchedAppUIDs);
+
+        uidToWatchedAppGroupMap.clear();
+        uidToWatchedAppGroupMap.putAll(AppUidGroup.createUidToGroupMap(groups));
     }
 
-    public List<ApplicationInfo> getWatchedApps() {
-        List<ApplicationInfo> installedApps = getWatchableApps();
-        Set<String> watchedAppsPackages = loadWatchedAppsPackages();
+    public LinkedList<AppUidGroup> getExistingApps() {
+        return new LinkedList<>(uidToExistingAppGroupsMap.values());
+    }
 
-        LinkedList<ApplicationInfo> watchedApps = new LinkedList<>();
+    public LinkedList<AppUidGroup> getWatchedApps() {
+        return new LinkedList<>(uidToWatchedAppGroupMap.values());
+    }
 
-        for(ApplicationInfo app : installedApps) {
-            if (watchedAppsPackages.contains(app.packageName))
-                watchedApps.add(app);
+    private List<AppUidGroup> loadWatchedAppGroups() {
+        Set<Integer> appsUIDs = loadWatchedAppsUIDs();
+        LinkedList<AppUidGroup> watchedGroups = new LinkedList<>();
+
+        for(AppUidGroup group : uidToExistingAppGroupsMap.values()) {
+            if (appsUIDs.contains(group.getUid()))
+                watchedGroups.add(group);
         }
 
-        return watchedApps;
+        return watchedGroups;
     }
 
-    public void setAppWatched(ApplicationInfo applicationInfo, boolean watched) {
-        // Get Watched-State from discowall settings:
-        Set<String> watchedAppsPackages = loadWatchedAppsPackages();
+    public void setAppWatched(AppUidGroup group, boolean watched) {
+        HashSet<Integer> uidSet = new HashSet<>();
 
-        // Update Watched-State setting
-        if (watched)
-            watchedAppsPackages.add(applicationInfo.packageName);
-        else
-            watchedAppsPackages.remove(applicationInfo.packageName);
+        for(AppUidGroup aGroup : uidToWatchedAppGroupMap.values())
+            uidSet.add(aGroup.getUid());
 
-        // Write-back watched-back setting
-        storeWatchedAppsPackages(watchedAppsPackages);
+        if (watched) {
+            uidSet.add(group.getUid());
+            uidToWatchedAppGroupMap.put(group.getUid(), group);
+        } else {
+            uidSet.remove(group.getUid());
+            uidToWatchedAppGroupMap.remove(group.getUid());
+        }
+
+        storeWatchedAppsUIDs(uidSet);
     }
 
-    public boolean isAppWatched(String appPackageName) {
-        return loadWatchedAppsPackages().contains(appPackageName);
+    public boolean isAppWatched(int appUID) {
+        return uidToWatchedAppGroupMap.get(appUID) != null;
     }
 
-    public boolean isAppWatched(ApplicationInfo applicationInfo) {
-        return isAppWatched(applicationInfo.packageName);
+    public boolean isAppWatched(AppUidGroup group) {
+        return isAppWatched(group.getUid());
     }
 
-    public static boolean applicationListContainsApp(List<ApplicationInfo> applicationInfoList, ApplicationInfo searchedAppInfo) {
-        for(ApplicationInfo info : applicationInfoList)
-            if (info.packageName.equals(searchedAppInfo.packageName))
-                return true;
-
-        return false;
+    public AppUidGroup getExistingAppByUid(int uid) {
+        return uidToExistingAppGroupsMap.get(uid);
     }
 
-    public static Set<String> applicationListToPackageNameSet(List<ApplicationInfo> watchedApps) {
-        Set<String> watchedAppsPackageNames = new HashSet<>();
-
-        for(ApplicationInfo info : watchedApps)
-            watchedAppsPackageNames.add(info.packageName);
-
-        return watchedAppsPackageNames;
+    public AppUidGroup getWatchedAppByUid(int uid) {
+        return uidToWatchedAppGroupMap.get(uid);
     }
 
-    public static HashMap<ApplicationInfo, String> applicationInfoToPackageNameMap(List<ApplicationInfo> apps) {
-        HashMap<ApplicationInfo, String> appInfoToPackageNameHash = new HashMap<>();
-
-        for(ApplicationInfo info : apps)
-            appInfoToPackageNameHash.put(info, info.packageName);
-
-        return appInfoToPackageNameHash;
-    }
-
-    public static HashMap<String, ApplicationInfo> packageNameToApplicationInfoMap(List<ApplicationInfo> apps) {
-        HashMap<String, ApplicationInfo> packageNameToAppMap = new HashMap<>();
-
-        for(ApplicationInfo info : apps)
-            packageNameToAppMap.put(info.packageName, info);
-
-        return packageNameToAppMap;
-    }
+//    public static boolean applicationListContainsApp(List<ApplicationInfo> applicationInfoList, ApplicationInfo searchedAppInfo) {
+//        for(ApplicationInfo info : applicationInfoList)
+//            if (info.packageName.equals(searchedAppInfo.packageName))
+//                return true;
+//
+//        return false;
+//    }
+//
+//    public static Set<String> applicationListToPackageNameSet(List<ApplicationInfo> watchedApps) {
+//        Set<String> watchedAppsPackageNames = new HashSet<>();
+//
+//        for(ApplicationInfo info : watchedApps)
+//            watchedAppsPackageNames.add(info.packageName);
+//
+//        return watchedAppsPackageNames;
+//    }
+//
+//    public static HashMap<ApplicationInfo, String> applicationInfoToPackageNameMap(List<ApplicationInfo> apps) {
+//        HashMap<ApplicationInfo, String> appInfoToPackageNameHash = new HashMap<>();
+//
+//        for(ApplicationInfo info : apps)
+//            appInfoToPackageNameHash.put(info, info.packageName);
+//
+//        return appInfoToPackageNameHash;
+//    }
+//
+//    public static HashMap<String, ApplicationInfo> packageNameToApplicationInfoMap(List<ApplicationInfo> apps) {
+//        HashMap<String, ApplicationInfo> packageNameToAppMap = new HashMap<>();
+//
+//        for(ApplicationInfo info : apps)
+//            packageNameToAppMap.put(info.packageName, info);
+//
+//        return packageNameToAppMap;
+//    }
 
 
 }
