@@ -123,12 +123,12 @@ public class NetfilterFirewallRulesHandler implements FirewallIptableRulesHandle
             case WIFI:
                 chain = NetfilterBridgeIptablesHandler.CHAIN_FIREWALL_INTERFACE_WIFI;
                 break;
-            case UMTS_3G_4G:
+            case UMTS:
                 chain = NetfilterBridgeIptablesHandler.CHAIN_FIREWALL_INTERFACE_3G;
                 break;
             case WiFi_UMTS:
                 addDeleteUserRule(userID, rule, FirewallRules.DeviceFilter.WIFI, delete);
-                addDeleteUserRule(userID, rule, FirewallRules.DeviceFilter.UMTS_3G_4G, delete);
+                addDeleteUserRule(userID, rule, FirewallRules.DeviceFilter.UMTS, delete);
                 return;
             default:
                 throw new RuntimeException("Unknown device: " + deviceFilter);

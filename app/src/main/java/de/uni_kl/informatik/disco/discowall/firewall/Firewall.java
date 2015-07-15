@@ -347,7 +347,7 @@ public class Firewall implements NetfilterBridgeCommunicator.BridgeEventsHandler
                     new Packages.IpPortPair("*", 80),
                     FirewallRules.DeviceFilter.WiFi_UMTS,
                     FirewallRules.ProtocolFilter.TCP_UDP,
-                    FirewallRules.RulePolicy.BLOCK
+                    FirewallRules.RulePolicy.ALLOW
             );
 
             subsystemRulesManager.createTransportLayerRule(

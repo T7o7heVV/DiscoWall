@@ -38,13 +38,13 @@ public class FirewallRules {
     }
 
     public enum DeviceFilter {
-        WIFI, UMTS_3G_4G, WiFi_UMTS;
+        WIFI, UMTS, WiFi_UMTS;
 
         public boolean allowsWifi() {
             return this == WIFI || this == WiFi_UMTS;
         }
         public boolean allowsUmts() {
-            return this == UMTS_3G_4G || this == WiFi_UMTS;
+            return this == UMTS || this == WiFi_UMTS;
         }
         public boolean allowsAny() {
             return this == WiFi_UMTS;
@@ -56,7 +56,7 @@ public class FirewallRules {
             else if (wifi)
                 return WIFI;
             else if (umts)
-                return UMTS_3G_4G;
+                return UMTS;
             else
                 throw new DeviceFilterException("Invalid DeviceFilter! At least one device has to be specified.");
         }
@@ -67,10 +67,6 @@ public class FirewallRules {
             }
         }
     }
-
-//    public enum DirectionFilter {
-//        INCOMING, OUTGOING, ANY
-//    }
 
     /*************************** ARCHITECTURE ******************************************************/
     public interface IFirewallRule {
