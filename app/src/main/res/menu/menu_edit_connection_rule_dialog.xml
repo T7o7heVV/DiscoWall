@@ -1,7 +1,7 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    tools:context="de.uni_kl.informatik.disco.discowall.EditConnectionRuleDialog">
+    tools:context="de.uni_kl.informatik.disco.discowall.EditRuleDialog">
     <item android:id="@+id/action_main_menu_settings" android:title="@string/action_main_menu_settings"
         android:orderInCategory="100" app:showAsAction="never" />
 </menu>

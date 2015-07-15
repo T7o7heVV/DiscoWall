@@ -28,6 +28,12 @@
     <string name="preference_summary__service_autostart">Port used by the native binary to communicate with the firewall.</string>
     <string name="preference_summary__handle_connection_dialog__create_rule_default_checked">When accepting/blocking a connect, create a new rule by default.</string>
 
+
+    <!-- Generic Messages -->
+
+    <string name="message_interfaces_at_least_one_required">At least one interface is required.</string>
+    <string name="message_protocol_at_least_one_required">At least one protocol is required.</string>
+
     <!-- Actions -->
 
     <string name="action_main_menu_iptables_show_all">Show Iptable Rules (All)</string>
@@ -48,6 +54,7 @@
     <string name="action_block">Block</string>
     <string name="action_interactive">Interactive</string>
     <string name="action_apply_for_all_connections_of_this_app">Apply For All New App-Connections</string>
+
 
     <!-- GUI-specific texts -->
 

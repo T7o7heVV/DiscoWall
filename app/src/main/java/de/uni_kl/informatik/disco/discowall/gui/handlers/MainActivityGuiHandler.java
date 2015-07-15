@@ -1,6 +1,7 @@
 package de.uni_kl.informatik.disco.discowall.gui.handlers;
 
 import de.uni_kl.informatik.disco.discowall.MainActivity;
+import de.uni_kl.informatik.disco.discowall.utils.GuiUtils;
 
 abstract class MainActivityGuiHandler {
     protected static final String LOG_TAG = MainActivity.class.getSimpleName();
@@ -20,10 +21,6 @@ abstract class MainActivityGuiHandler {
 
     protected void refreshMainActivity() {
         // == refreshing the MainActivity be closing and reopening the activity ==
-
-        mainActivity.finish();
-        mainActivity.overridePendingTransition(0, 0); // disabling slide-animation on Activity-finish
-
-        mainActivity.startActivity(mainActivity.getIntent());
-    }
+        GuiUtils.restartActivity(mainActivity);
+   }
 }

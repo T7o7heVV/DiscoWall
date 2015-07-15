@@ -4,8 +4,10 @@
     <!--
  minSdkVersion=3 is required for NDK to work
          [https://developer.android.com/tools/sdk/ndk/index.html#Reqs]
+
+        // This value is always overwritten by the gradle-script's value, specified in the gradle-config-file
+        <uses-sdk android:minSdkVersion="3" />
     -->
-    <uses-sdk android:minSdkVersion="3" />
 
     <!-- Permissions: -->
     <uses-permission android:name="android.permission.INTERNET" />

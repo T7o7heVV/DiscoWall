@@ -22,6 +22,10 @@ public class Packages {
     public enum NetworkInterface { Loopback, WiFi, Umts }
 
     public static class IpPortPair {
+        public static final int PORT_ANY = 0;
+        public static final int PORT_MAX = 65535;
+        public static final String IP_ANY = "";
+
         private final String ip;
         private final int port;
 
@@ -31,6 +35,10 @@ public class Packages {
         public IpPortPair(String ip, int port) {
             if (ip == null)
                 throw new IllegalArgumentException("IP address cannot be null.");
+            if (port < 0)
+                throw new IllegalArgumentException("Port-numbers cannot be negative.");
+            else if (port > PORT_MAX)
+                throw new IllegalArgumentException("Port " + port + " exceeds maximum " + PORT_MAX + ".");
 
             this.ip = ip.trim();
             this.port = port;

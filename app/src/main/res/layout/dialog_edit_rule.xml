@@ -272,58 +272,30 @@
         </LinearLayout>
 
 
-        <!--    Rule Policy -->
-        <LinearLayout
+        <!-- In the following I declare two ViewStubs, which will be inflated according to the rule-type I want to show/edit
+             1) The PolicyRule-Widgets
+             2) The RedirectionRule-Widgetes
+         -->
+
+        <!-- Policy Rule Stub -->
+        <ViewStub android:id="@+id/stub__dialog_edit_rule_policy_config"
+            android:inflatedId="@+id/linearLayout_rule_policy"
+            android:layout="@layout/dialog_edit_rule__policy_config"
             android:layout_width="fill_parent"
             android:layout_height="45dp"
             android:layout_weight="2"
             android:orientation="horizontal"
-            android:gravity="center_vertical"
-            >
+            android:gravity="center_vertical" />
 
-            <TextView
-                android:id="@+id/textView_rule_policy"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight=".5"
-                android:text="Policy"
-                />
-
-            <RadioGroup
-                android:layout_width="0dp"
-                android:layout_weight="2.75"
-                android:layout_height="fill_parent"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                >
-
-                <RadioButton
-                    android:layout_width="fill_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Accept"
-                    android:id="@+id/radioButton_rule_policy_accept"
-                    android:layout_weight=".95"
-                    />
-
-                <RadioButton
-                    android:layout_width="fill_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Block"
-                    android:id="@+id/radioButton_rule_policy_block"
-                    android:layout_weight="1"
-                    />
-
-                <RadioButton
-                    android:layout_width="fill_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Interactive"
-                    android:id="@+id/radioButton_rule_policy_interactive"
-                    android:layout_weight=".8"
-                    />
-
-            </RadioGroup>
-
-        </LinearLayout>
+        <!-- Redirection Rule Stub -->
+        <ViewStub android:id="@+id/stub__dialog_edit_rule_redirection_config"
+            android:inflatedId="@+id/linearLayout_rule_redirect"
+            android:layout="@layout/dialog_edit_rule__redirection_config"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="2"
+            android:orientation="horizontal"
+            android:gravity="center_vertical" />
 
     </LinearLayout>
 

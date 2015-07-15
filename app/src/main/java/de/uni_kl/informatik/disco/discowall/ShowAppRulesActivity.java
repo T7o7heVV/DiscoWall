@@ -12,17 +12,15 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
-import android.widget.CheckBox;
-import android.widget.CompoundButton;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import de.uni_kl.informatik.disco.discowall.firewall.Firewall;
 import de.uni_kl.informatik.disco.discowall.firewall.FirewallService;
 import de.uni_kl.informatik.disco.discowall.firewall.rules.FirewallRules;
 import de.uni_kl.informatik.disco.discowall.gui.adapters.AppRulesAdapter;
+import de.uni_kl.informatik.disco.discowall.utils.GuiUtils;
 import de.uni_kl.informatik.disco.discowall.utils.apps.AppUidGroup;
 
 
@@ -131,88 +129,33 @@ public class ShowAppRulesActivity extends AppCompatActivity {
         showAppRulesInGui(appUidGroup);
     }
 
-//    /**
-//     * Since the extremely incomplete listView-framework uses internal buffers for buffering events and constructing rows,
-//     * the checkbox-checked-listeners are being fired as the gui is being constructed.
-//     * ==> I have to sort out those cases.
-//     * But since it is not possible to determine whether the listview is "done" with constructing the list,
-//     * I simply enable the checkbox-listeners when the user tries to click it the first time.
-//     */
-//    private boolean checkBoxesEnabled = false;
-
     private void showAppRulesInGui(final AppUidGroup appUidGroup) {
         ListView rulesListView = (ListView) findViewById(R.id.activity_show_app_rules_listView_rules);
         final AppRulesAdapter appRulesAdapter = new AppRulesAdapter(this, firewall.subsystem.rulesManager.getRules(appUidGroup));
         rulesListView.setAdapter(appRulesAdapter);
 
+        // Result-Handler for Rule-Edit dialog:
+        final EditRuleDialog.DialogListener editRuleDialogHandler = new EditRuleDialog.DialogListener() {
+            @Override
+            public void onRuleChanged(FirewallRules.IFirewallRule rule, AppUidGroup appUidGroup) {
+                // Restart activity for refreshing data. Reloading listViews almost never works anyway.
+                GuiUtils.restartActivity(ShowAppRulesActivity.this);
+            }
+
+            @Override
+            public void onRuleUnchanged(FirewallRules.IFirewallRule rule, AppUidGroup appUidGroup) {
+                // do nothing
+            }
+        };
+
         // Listeners for opening the rule-edit-dialog
         appRulesAdapter.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-//                if (view instanceof CheckBox) {
-//                    if (!checkBoxesEnabled) {
-//                        Log.v(LOG_TAG, "checkbox clicked --> checkbox checked-events are enabled from now on. This is a android-listview bug-workaround.");
-//                        checkBoxesEnabled = true;
-//
-//                        // performing the toggle-click, which would be lost otherwise (as it would have been executed before this call):
-//                        appRulesAdapter.getOnCheckedChangeListener().onCheckedChanged(appRulesAdapter, appRulesAdapter.getItem(position), position, ((CheckBox)view), ((CheckBox)view).isChecked());
-//                    }
-//
-//                    return;
-//                }
-
                 FirewallRules.IFirewallRule appRule = appRulesAdapter.getItem(position);
-                EditConnectionRuleDialog.show(ShowAppRulesActivity.this, "", appUidGroup, appRule);
+                EditRuleDialog.show(ShowAppRulesActivity.this, editRuleDialogHandler, appUidGroup, appRule);
             }
         });
-
-//        // Listeners for changing protocol-/device-filter
-//        appRulesAdapter.setOnCheckedChangeListener(new AppRulesAdapter.CheckedChangedListener() {
-//            @Override
-//            public void onCheckedChanged(AppRulesAdapter adapter, FirewallRules.IFirewallRule rule, int position, CheckBox checkBox, boolean isChecked) {
-//                // IMPORTANT NOTE:
-//                // No idea how to stop android form calling this method before the GUI is finished building (the list view is NOT filled linear, but randomly!).
-//                // Even though the listeners is set AFTER the assignment of the adapter, a few calls still end in this listener. -.-
-//
-//                if (!checkBoxesEnabled)
-//                    return;
-//
-//                Log.v(LOG_TAG, "original rule: " + rule);
-//
-//                try {
-//                    switch (checkBox.getId()) {
-//                        case AppRulesAdapter.widgetId_checkbox_rule_interface_umts:
-//                            rule.setDeviceFilter(FirewallRules.DeviceFilter.construct(rule.getDeviceFilter().allowsWifi(), isChecked));
-//                            break;
-//                        case AppRulesAdapter.widgetId_checkbox_rule_interface_wifi:
-//                            rule.setDeviceFilter(FirewallRules.DeviceFilter.construct(isChecked, rule.getDeviceFilter().allowsUmts()));
-//                            break;
-//                        case AppRulesAdapter.widgetId_checkbox_rule_protocol_tcp:
-//                            rule.setProtocolFilter(FirewallRules.ProtocolFilter.construct(isChecked, rule.getProtocolFilter().isUdp()));
-//                            break;
-//                        case AppRulesAdapter.widgetId_checkbox_rule_protocol_udp:
-//                            rule.setProtocolFilter(FirewallRules.ProtocolFilter.construct(rule.getProtocolFilter().isTcp(), isChecked));
-//                            break;
-//                    }
-//
-//                    Toast.makeText(ShowAppRulesActivity.this, "rule updated", Toast.LENGTH_SHORT).show();
-//                } catch (FirewallRules.DeviceFilter.DeviceFilterException e) {
-//                    // happens if the resulting filter is NONE ==> user unchecked WiFi+UMTS
-//                    // ==> reset last checkbox.
-//                    checkBox.setChecked(true);
-//
-//                    Toast.makeText(ShowAppRulesActivity.this, "at least one interface required.", Toast.LENGTH_SHORT).show();
-//                } catch (FirewallRules.ProtocolFilter.ProtocolFilterException e) {
-//                    // happens if the resulting filter is NONE ==> user unchecked TCP+UDP
-//                    // ==> reset last checkbox.
-//                    checkBox.setChecked(true);
-//
-//                    Toast.makeText(ShowAppRulesActivity.this, "at least one protocol required", Toast.LENGTH_SHORT).show();
-//                }
-//
-//                Log.v(LOG_TAG, "updated rule: " + rule);
-//            }
-//        });
 
         // Hide the "list empty" text, if the list is not empty
         if (appRulesAdapter.getRules().size() > 0)

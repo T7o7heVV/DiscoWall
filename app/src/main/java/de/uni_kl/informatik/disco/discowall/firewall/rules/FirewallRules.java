@@ -73,29 +73,35 @@ public class FirewallRules {
         int getUserId();
 
         DeviceFilter getDeviceFilter();
-        void setDeviceFilter(DeviceFilter deviceFilter);
         ProtocolFilter getProtocolFilter();
-        void setProtocolFilter(ProtocolFilter protocolFilter);
         Packages.IpPortPair getLocalFilter();
         Packages.IpPortPair getRemoteFilter();
+
+        void setDeviceFilter(DeviceFilter deviceFilter);
+        void setProtocolFilter(ProtocolFilter protocolFilter);
+        void setLocalFilter(Packages.IpPortPair localFilter);
+        void setRemoteFilter(Packages.IpPortPair remoteFilter);
+
         boolean appliesTo(Packages.TransportLayerPackage tlPackage);
     }
 
     public interface IFirewallPolicyRule extends IFirewallRule {
         RulePolicy getRulePolicy();
-//        DirectionFilter getDirectionFilter();
+        void setRulePolicy(RulePolicy policy);
+
         boolean isPackageAccepted(Packages.TransportLayerPackage tlPackage);
     }
 
     public interface IFirewallRedirectRule extends IFirewallRule {
         Packages.IpPortPair getRedirectionRemoteHost();
+        void setRedirectionRemoteHost(Packages.IpPortPair redirectionRemoteHost) throws FirewallRuleExceptions.InvalidRuleDefinitionException;
     }
 
     /***********************************************************************************************/
 
     private static abstract class AbstractFirewallRule implements IFirewallRule {
         private final int userId;
-        private final Packages.IpPortPair localFilter, remoteFilter;
+        private Packages.IpPortPair localFilter, remoteFilter;
         private DeviceFilter deviceFilter;
         private ProtocolFilter protocolFilter;
 
@@ -103,7 +109,7 @@ public class FirewallRules {
             if (localFilter == null)
                 throw new IllegalArgumentException("Source-Filter cannot be null!");
             if (remoteFilter == null)
-                throw new IllegalArgumentException("Source-Filter cannot be null!");
+                throw new IllegalArgumentException("Remote-Filter cannot be null!");
 
             this.userId = userId;
             this.deviceFilter = deviceFilter;
@@ -145,6 +151,22 @@ public class FirewallRules {
         @Override
         public Packages.IpPortPair getRemoteFilter() {
             return remoteFilter;
+        }
+
+        @Override
+        public void setLocalFilter(Packages.IpPortPair localFilter) {
+            if (localFilter == null)
+                throw new IllegalArgumentException("Source-Filter cannot be null!");
+
+            this.localFilter = localFilter;
+        }
+
+        @Override
+        public void setRemoteFilter(Packages.IpPortPair remoteFilter) {
+            if (remoteFilter == null)
+                throw new IllegalArgumentException("Remote-Filter cannot be null!");
+
+            this.remoteFilter = remoteFilter;
         }
 
         private boolean filterMatches(Packages.IpPortPair filter, Packages.IpPortPair packageInfo, boolean ignoreIP) {
@@ -190,7 +212,7 @@ public class FirewallRules {
     }
 
     private static abstract class AbstractFirewallPolicyRule extends AbstractFirewallRule implements IFirewallPolicyRule {
-        private final RulePolicy rulePolicy;
+        private RulePolicy rulePolicy;
 //        private final DirectionFilter directionFilter = DirectionFilter.ANY;
 
         protected AbstractFirewallPolicyRule(int userId, ProtocolFilter protocolFilter, Packages.IpPortPair sourceFilter, Packages.IpPortPair destinationFilter, DeviceFilter deviceFilter, RulePolicy rulePolicy) {
@@ -201,6 +223,11 @@ public class FirewallRules {
         @Override
         public RulePolicy getRulePolicy() {
             return rulePolicy;
+        }
+
+        @Override
+        public void setRulePolicy(RulePolicy rulePolicy) {
+            this.rulePolicy = rulePolicy;
         }
 
         public boolean isPackageAccepted(Packages.TransportLayerPackage tlPackage) {
@@ -221,18 +248,29 @@ public class FirewallRules {
     }
 
     public static class FirewallTransportRule extends AbstractFirewallPolicyRule implements IFirewallPolicyRule {
+        public FirewallTransportRule(int userId, RulePolicy rulePolicy) {
+            this(userId, new Packages.IpPortPair("", 0), new Packages.IpPortPair("", 0), DeviceFilter.WiFi_UMTS, ProtocolFilter.TCP_UDP, rulePolicy);
+        }
+
         public FirewallTransportRule(int userId, Packages.IpPortPair sourceFilter, Packages.IpPortPair destinationFilter, DeviceFilter deviceFilter, ProtocolFilter protocolFilter, RulePolicy rulePolicy) {
             super(userId, protocolFilter, sourceFilter, destinationFilter, deviceFilter, rulePolicy);
         }
     }
 
     private static abstract class AbstractFirewallRedirectRule extends AbstractFirewallRule implements IFirewallRedirectRule {
-        private final Packages.IpPortPair redirectTo;
+        private Packages.IpPortPair redirectTo;
 
         protected AbstractFirewallRedirectRule(int userId, ProtocolFilter protocolFilter, Packages.IpPortPair sourceFilter, Packages.IpPortPair destinationFilter, DeviceFilter deviceFilter, Packages.IpPortPair redirectTo) throws FirewallRuleExceptions.InvalidRuleDefinitionException {
             super(userId, protocolFilter, sourceFilter, destinationFilter, deviceFilter);
-            this.redirectTo = redirectTo;
+            setRedirectionRemoteHost(redirectTo);
+        }
 
+        @Override
+        public Packages.IpPortPair getRedirectionRemoteHost() {
+            return redirectTo;
+        }
+
+        public void setRedirectionRemoteHost(Packages.IpPortPair redirectTo) throws FirewallRuleExceptions.InvalidRuleDefinitionException {
             if (redirectTo == null)
                 throw new FirewallRuleExceptions.InvalidRuleDefinitionException(this, "No redirection target specified for redirection rule.");
             if (!redirectTo.hasIp() || !redirectTo.hasPort())
@@ -243,11 +281,8 @@ public class FirewallRules {
 //                throw new FirewallRuleExceptions.InvalidRuleDefinitionException(this, "IP or Port missing for connection-source: " + sourceFilter);
 //            if (!destinationFilter.hasIp() || !destinationFilter.hasPort())
 //                throw new FirewallRuleExceptions.InvalidRuleDefinitionException(this, "IP or Port missing for connection-destination: " + destinationFilter);
-        }
 
-        @Override
-        public Packages.IpPortPair getRedirectionRemoteHost() {
-            return redirectTo;
+            this.redirectTo = redirectTo;
         }
 
         @Override
@@ -258,6 +293,10 @@ public class FirewallRules {
     }
 
     public static class FirewallTransportRedirectRule extends AbstractFirewallRedirectRule  {
+        public FirewallTransportRedirectRule(int userId, Packages.IpPortPair redirectTo) throws FirewallRuleExceptions.InvalidRuleDefinitionException {
+            this(userId, new Packages.IpPortPair("", 0), new Packages.IpPortPair("", 0), DeviceFilter.WiFi_UMTS, ProtocolFilter.TCP_UDP, redirectTo);
+        }
+
         public FirewallTransportRedirectRule(int userId, Packages.IpPortPair sourceFilter, Packages.IpPortPair destinationFilter, DeviceFilter deviceFilter, ProtocolFilter protocolFilter, Packages.IpPortPair redirectTo) throws FirewallRuleExceptions.InvalidRuleDefinitionException {
             super(userId, protocolFilter, sourceFilter, destinationFilter, deviceFilter, redirectTo);
         }
