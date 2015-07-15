@@ -26,6 +26,9 @@
 
             <item android:id="@+id/action_iptables_show_discowall_only" android:title="@string/action_main_menu_iptables_show_firewall_rules"
                 android:orderInCategory="81" app:showAsAction="never" />
+
+            <item android:id="@+id/action_ifconfig" android:title="@string/action_main_menu_ifconfig"
+                android:orderInCategory="85" app:showAsAction="never" />
         </menu>
     </item>
 

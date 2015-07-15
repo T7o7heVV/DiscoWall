@@ -27,6 +27,8 @@ import de.uni_kl.informatik.disco.discowall.gui.dialogs.AboutDialog;
 import de.uni_kl.informatik.disco.discowall.gui.handlers.MainActivityGuiHandlerWatchedApps;
 import de.uni_kl.informatik.disco.discowall.packages.Packages;
 import de.uni_kl.informatik.disco.discowall.utils.ressources.DiscoWallSettings;
+import de.uni_kl.informatik.disco.discowall.utils.shell.RootShellExecute;
+import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecuteExceptions;
 
 
 public class MainActivity extends AppCompatActivity implements DecideConnectionDialog.DecideConnectionDialogListener {
@@ -85,6 +87,11 @@ public class MainActivity extends AppCompatActivity implements DecideConnectionD
                 finish();
                 return true;
             }
+            case R.id.action_ifconfig:
+            {
+                actionShowIfconfigOutput();
+                return true;
+            }
             case R.id.action_iptables_show_all:
             {
                 actionShowIptableRules(true);
@@ -113,6 +120,19 @@ public class MainActivity extends AppCompatActivity implements DecideConnectionD
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    private void actionShowIfconfigOutput() {
+        String content = "";
+
+        try {
+            content = RootShellExecute.execute(true, "busybox ifconfig").processOutput;
+        } catch (ShellExecuteExceptions.CallException e) {
+            content = e.getMessage(); // showing error directly in text-view.
+            e.printStackTrace();
+        }
+
+        TextViewActivity.showText(this, "ifconfig output", content);
     }
 
     private void actionShowIptableRules(boolean all) {
