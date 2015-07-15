@@ -128,6 +128,9 @@ public class MainActivityGuiHandlerWatchedApps extends MainActivityGuiHandler {
 
     private void actionWatchedAppShowFirewallRules(AppUidGroup appGroup) {
         boolean createRuleIsDefaultChecked = DiscoWallSettings.getInstance().isHandleConnectionDialogDefaultCreateRule(mainActivity);
+
+        mainActivity.firewall.DEBUG_TEST(appGroup); // DEBUG! Adding rules for testing
+
         ShowAppRulesActivity.showAppRules(mainActivity, appGroup);
 
 //        DecideConnectionDialog.show(mainActivity, "example tag", appGroup, new Packages.IpPortPair("192.168.178.100", 1337), new Packages.IpPortPair("192.168.178.200", 4200), Connections.TransportLayerProtocol.TCP, createRuleIsDefaultChecked);

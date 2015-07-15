@@ -247,6 +247,14 @@ public class Packages {
         public int getLength() { return length; }
         public int getChecksum() { return checksum; }
 
+        public boolean isOriginRemote() {
+            return remoteAddress.equals(destination);
+        }
+
+        public boolean isOriginLocal() {
+            return localAddress.equals(source);
+        }
+
         public TransportLayerPackage(int inputDeviceIndex, int outputDeviceIndex, TransportLayerProtocol protocol, String sourceIP, String destinationIP, int sourcePort, int destinationPort, int checksum, int length) {
             super(inputDeviceIndex, outputDeviceIndex);
 
@@ -311,6 +319,30 @@ public class Packages {
 //                    + (hasFlagACK ? ", isACK= " +hasFlagACK : "" )    + (hasFlagSYN ? ", isSYN=" + hasFlagSYN : "")   + (hasFlagFIN ? ", isFIN=" +hasFlagFIN : "")
 //                    + (hasFlagReset ? ", isRST=" + hasFlagReset : "") + (hasFlagPush ? ", isPSH=" + hasFlagPush : "") + (hasFlagUrgent ? ", isURG=" + hasFlagUrgent : "")
                     + " } " + super.toString();
+        }
+
+        /**
+         * Specifies whether this package is the attempt to establish a connection from a remote host.
+         * <p></p>
+         * This is true, if the package originates in remote-host, has SYN flag but no ACK flag.
+         * @return
+         */
+        public boolean isRemoteConnectionEstablishSyn() {
+            return isOriginRemote() && hasFlagSYN() && !hasFlagACK();
+        }
+
+        /**
+         * Specifies whether this package is the attempt to establish a connection from localhost.
+         * <p></p>
+         * This is true, if the package originates in remote-server, has SYN flag but no ACK flag.
+         * @return
+         */
+        public boolean isLocalConnectionEstablishSyn() {
+            return isOriginLocal() && hasFlagSYN() && !hasFlagACK();
+        }
+
+        public boolean isConnectionEstablishSyn() {
+            return hasFlagSYN() && !hasFlagACK();
         }
     }
 

@@ -77,24 +77,60 @@ public class FirewallRulesManager {
         return rule;
     }
 
+    public FirewallRules.FirewallTransportRule createTransportLayerRule(int userId, FirewallRules.RulePolicy rulePolicy) {
+        FirewallRules.FirewallTransportRule rule = new FirewallRules.FirewallTransportRule(userId, rulePolicy);
+        rulesHash.addRule(rule);
+        return rule;
+    }
+
+    public FirewallRules.FirewallTransportRedirectRule createTransportLayerRedirectionRule(int userId, Packages.IpPortPair redirectTo) throws FirewallRuleExceptions.InvalidRuleDefinitionException {
+        FirewallRules.FirewallTransportRedirectRule rule = new FirewallRules.FirewallTransportRedirectRule(userId, redirectTo);
+        rulesHash.addRule(rule);
+        return rule;
+    }
+
     public FirewallRules.FirewallTransportRedirectRule createTransportLayerRedirectionRule(int userId, Packages.IpPortPair sourceFilter, Packages.IpPortPair destinationFilter, FirewallRules.DeviceFilter deviceFilter, FirewallRules.ProtocolFilter protocolFilter, Packages.IpPortPair redirectTo) throws FirewallRuleExceptions.InvalidRuleDefinitionException {
         FirewallRules.FirewallTransportRedirectRule rule = new FirewallRules.FirewallTransportRedirectRule(userId, sourceFilter, destinationFilter, deviceFilter, protocolFilter, redirectTo);
         rulesHash.addRule(rule);
         return rule;
     }
 
+    public void addRule(FirewallRules.IFirewallRule ruleToAdd) throws FirewallRuleExceptions.DuplicateRuleException {
+        // throw exception if rule is already listed:
+        if (rulesHash.getRules(ruleToAdd.getUserId()).contains(ruleToAdd))
+            throw new FirewallRuleExceptions.DuplicateRuleException(ruleToAdd);
+
+        rulesHash.addRule(ruleToAdd);
+    }
+
+    public void deleteAllRules(int uid) {
+        rulesHash.deleteAllRules(uid);
+    }
+
+    public void deleteRule(FirewallRules.IFirewallRule rule) {
+        rulesHash.deleteRule(rule);
+    }
+
     private class RulesHash {
         private final HashMap<Integer, LinkedList<FirewallRules.IFirewallRule>> userIdToRulesListHash = new HashMap<>();
 
         public void addRule(FirewallRules.IFirewallRule rule) {
-            getUserRules(rule.getUserId()).add(rule);
+            getRulesEx(rule.getUserId()).add(rule);
+        }
+
+        public void deleteAllRules(int uid) {
+            getRulesEx(uid).clear();
+        }
+
+        public void deleteRule(FirewallRules.IFirewallRule rule) {
+            getRulesEx(rule.getUserId()).remove(rule);
         }
 
         public LinkedList<FirewallRules.IFirewallRule> getRules(int userId) {
-            return new LinkedList<>(getUserRules(userId));
+            return new LinkedList<>(getRulesEx(userId));
         }
 
-        private LinkedList<FirewallRules.IFirewallRule> getUserRules(int userId) {
+        private LinkedList<FirewallRules.IFirewallRule> getRulesEx(int userId) {
             LinkedList<FirewallRules.IFirewallRule> rules = userIdToRulesListHash.get(userId);
 
             if (rules == null) {

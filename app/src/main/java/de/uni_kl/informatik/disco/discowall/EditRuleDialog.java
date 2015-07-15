@@ -11,7 +11,6 @@ import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
-import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewStub;
@@ -25,7 +24,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import de.uni_kl.informatik.disco.discowall.firewall.rules.FirewallRules;
-import de.uni_kl.informatik.disco.discowall.gui.dialogs.ErrorDialog;
 import de.uni_kl.informatik.disco.discowall.packages.Packages;
 import de.uni_kl.informatik.disco.discowall.utils.apps.AppUidGroup;
 
@@ -34,8 +32,8 @@ public class EditRuleDialog extends DialogFragment {
     private static final String LOG_TAG = EditRuleDialog.class.getSimpleName();
 
     public static interface DialogListener {
-        void onRuleChanged(FirewallRules.IFirewallRule rule, AppUidGroup appUidGroup);
-        void onRuleUnchanged(FirewallRules.IFirewallRule rule, AppUidGroup appUidGroup);
+        void onAcceptChanges(FirewallRules.IFirewallRule rule, AppUidGroup appUidGroup);
+        void onDiscardChanges(FirewallRules.IFirewallRule rule, AppUidGroup appUidGroup);
     }
 
     // In order to preserve the currently displayed data across dialog-instances (changing the orientation kills the instance),
@@ -100,14 +98,14 @@ public class EditRuleDialog extends DialogFragment {
             public void onClick(View v) {
                 saveRuleDataFromGui();
                 EditRuleDialog.this.dismiss();
-                dialogListener.onRuleChanged(rule, appUidGroup);
+                dialogListener.onAcceptChanges(rule, appUidGroup);
             }
         });
         buttonCancel.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 EditRuleDialog.this.dismiss();
-                dialogListener.onRuleChanged(rule, appUidGroup);
+                dialogListener.onAcceptChanges(rule, appUidGroup);
             }
         });
 
@@ -222,20 +220,15 @@ public class EditRuleDialog extends DialogFragment {
             // Show redirect-rule-symbol:
             ruleImageView.setImageDrawable(getResources().getDrawable(R.mipmap.symbol_rule_redirect));
 
-            // TEST:
-//            ruleImageView.setOnClickListener(new View.OnClickListener() {
-//                @Override
-//                public void onClick(View v) {
-//                    ruleImageView.setImageDrawable(getResources().getDrawable(R.mipmap.symbol_rule_policy_block));
-//                }
-//            });
-
             // Inflate viewStub containing redirection-rule-widgetes
             View redirectionLayout = ((ViewStub) layoutView.findViewById(R.id.stub__dialog_edit_rule_redirection_config)).inflate();
 
             // fetch references:
             textViewRedirectHostIp = (EditText) redirectionLayout.findViewById(R.id.editText_redirectHost_ip);
             textViewRedirectHostPort = (EditText) redirectionLayout.findViewById(R.id.editText_redirectHost_port);
+
+            // write data to gui:
+            writeIpPortInfoToGui(redirectRule.getRedirectionRemoteHost(), textViewRedirectHostIp, textViewRedirectHostPort);
 
             // redirection host: associate listeners, so that no empty IP or port is allowed
             textViewRedirectHostIp.addTextChangedListener(new TextWatcher() {
@@ -253,12 +246,9 @@ public class EditRuleDialog extends DialogFragment {
                     boolean noRedirPort = textViewRedirectHostPort.getText().length() == 0 || textViewRedirectHostPort.getText().equals("0"); // no port, or port is "0"
 
                     // OK only clickable, if valid redirection-target - i.e. IP+PORT
-                    buttonOK.setEnabled(! (noRedirIp || noRedirPort));
+                    buttonOK.setEnabled(!noRedirIp && !noRedirPort);
                 }
             });
-
-            // write data to gui:
-            writeIpPortInfoToGui(redirectRule.getRedirectionRemoteHost(), textViewRedirectHostIp, textViewRedirectHostPort);
         }
 
         return builder.create();

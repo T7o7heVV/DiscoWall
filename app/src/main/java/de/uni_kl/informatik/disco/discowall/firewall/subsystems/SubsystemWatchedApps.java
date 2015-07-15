@@ -69,4 +69,8 @@ public class SubsystemWatchedApps extends FirewallSubsystem {
     public AppUidGroup getInstalledAppGroupByUid(int uid) {
         return watchedAppsManager.getInstalledAppGroupByUid(uid);
     }
+
+    public void updateInstalledAppsList() {
+        watchedAppsManager.updateInstalledAppsList();
+    }
 }

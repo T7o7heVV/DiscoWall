@@ -57,11 +57,36 @@ public class SubsystemRulesManager extends FirewallSubsystem{
         return rulesManager.getRedirectionRules(appGroup.getUid());
     }
 
+    public FirewallRules.FirewallTransportRule createTransportLayerRule(AppUidGroup appGroup, FirewallRules.RulePolicy rulePolicy) {
+        return rulesManager.createTransportLayerRule(appGroup.getUid(), rulePolicy);
+    }
+
     public FirewallRules.FirewallTransportRule createTransportLayerRule(AppUidGroup appGroup, Packages.IpPortPair sourceFilter, Packages.IpPortPair destinationFilter, FirewallRules.DeviceFilter deviceFilter, FirewallRules.ProtocolFilter protocolFilter, FirewallRules.RulePolicy rulePolicy) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
         return rulesManager.createTransportLayerRule(appGroup.getUid(), sourceFilter, destinationFilter, deviceFilter, protocolFilter, rulePolicy);
     }
 
+    public FirewallRules.FirewallTransportRedirectRule createTransportLayerRedirectionRule(AppUidGroup appGroup, Packages.IpPortPair redirectTo) throws FirewallRuleExceptions.InvalidRuleDefinitionException {
+        return rulesManager.createTransportLayerRedirectionRule(appGroup.getUid(), redirectTo);
+    }
+
     public FirewallRules.FirewallTransportRedirectRule createTransportLayerRedirectionRule(AppUidGroup appGroup, Packages.IpPortPair sourceFilter, Packages.IpPortPair destinationFilter, FirewallRules.DeviceFilter deviceFilter, FirewallRules.ProtocolFilter protocolFilter, Packages.IpPortPair redirectTo) throws FirewallRuleExceptions.InvalidRuleDefinitionException {
         return rulesManager.createTransportLayerRedirectionRule(appGroup.getUid(), sourceFilter, destinationFilter, deviceFilter, protocolFilter, redirectTo);
+    }
+
+    /**
+     * Adds a FirewallRule instance, which has been created manually - i.e. by calling the rules constructor directly.
+     * @param rule
+     * @throws FirewallRuleExceptions.DuplicateRuleException if the rule has already been added before.
+     */
+    public void addRule(FirewallRules.IFirewallRule rule) throws FirewallRuleExceptions.DuplicateRuleException {
+        rulesManager.addRule(rule);
+    }
+
+    public void deleteAllRules(AppUidGroup appUidGroup) {
+        rulesManager.deleteAllRules(appUidGroup.getUid());
+    }
+
+    public void deleteRule(FirewallRules.IFirewallRule rule) {
+        rulesManager.deleteRule(rule);
     }
 }

@@ -182,6 +182,9 @@ public class MainActivity extends AppCompatActivity implements DecideConnectionD
     private void onFirewallServiceBound() {
         Log.d(LOG_TAG, "FirewallService bound");
 
+        // Update list of installed apps when opening the firewall-gui, so that newly installed apps are shown and can be selected for filtering
+        firewall.subsystem.watchedApps.updateInstalledAppsList();
+
         // Restoring firewall-state, if current state differs from supposed state
         // (happens when app is started and firewall was enabled last time)
         if (discowallSettings.isFirewallEnabled(this) != firewall.isFirewallRunning())

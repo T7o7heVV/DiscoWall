@@ -75,4 +75,8 @@ public class AppUidGroup extends AppGroup {
         return uidToGroupMap;
     }
 
+    @Override
+    public String toString() {
+        return super.toString() + " { uid="+uid+" }";
+    }
 }

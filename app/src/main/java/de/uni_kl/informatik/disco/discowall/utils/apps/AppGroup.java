@@ -53,4 +53,8 @@ public class AppGroup {
         return packageName;
     }
 
+    @Override
+    public String toString() {
+        return getName() + " [ " + packageName + " ]";
+    }
 }

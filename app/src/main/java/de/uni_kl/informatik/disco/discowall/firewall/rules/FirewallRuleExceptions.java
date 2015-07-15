@@ -19,6 +19,12 @@ public class FirewallRuleExceptions {
         }
     }
 
+    public static class DuplicateRuleException extends RuleException {
+        public DuplicateRuleException(FirewallRules.IFirewallRule rule) {
+            super(rule, "Rule is already added: " + rule);
+        }
+    }
+
     public static class InvalidRuleDefinitionException extends RuleException {
         public InvalidRuleDefinitionException(FirewallRules.IFirewallRule rule, String message) {
             super(rule, message);

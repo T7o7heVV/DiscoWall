@@ -340,6 +340,12 @@ public class Firewall implements NetfilterBridgeCommunicator.BridgeEventsHandler
     }
 
     public void DEBUG_TEST(AppUidGroup appUidGroup) {
+        // Add rules only if there are none
+        if (subsystemRulesManager.getRules(appUidGroup).size() > 0)
+            return;
+
+        Log.i("DEBUG", "Adding testing-rules...");
+
         try {
             subsystemRulesManager.createTransportLayerRule(
                     appUidGroup,

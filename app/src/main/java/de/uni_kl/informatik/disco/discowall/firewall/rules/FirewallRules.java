@@ -5,9 +5,11 @@ import de.uni_kl.informatik.disco.discowall.packages.Packages;
 public class FirewallRules {
     /************************* Rule Data ***********************************************************/
 
-    public enum RulePolicy {
-        ALLOW, BLOCK, INTERACTIVE }
-
+    public enum RulePolicy { ALLOW, BLOCK, INTERACTIVE }
+    public enum RuleKind { Policy, Redirect }
+    public enum ConnectionDirectionFilter {
+        LOCAL_TO_REMOTE, REMOTE_TO_LOCAL, ANY
+    }
     public enum ProtocolFilter { TCP, UDP, TCP_UDP;
         public boolean isTcp() {
             return this == TCP || this == TCP_UDP;
@@ -71,6 +73,7 @@ public class FirewallRules {
     /*************************** ARCHITECTURE ******************************************************/
     public interface IFirewallRule {
         int getUserId();
+        RuleKind getRuleKind();
 
         DeviceFilter getDeviceFilter();
         ProtocolFilter getProtocolFilter();
@@ -88,8 +91,6 @@ public class FirewallRules {
     public interface IFirewallPolicyRule extends IFirewallRule {
         RulePolicy getRulePolicy();
         void setRulePolicy(RulePolicy policy);
-
-        boolean isPackageAccepted(Packages.TransportLayerPackage tlPackage);
     }
 
     public interface IFirewallRedirectRule extends IFirewallRule {
@@ -104,6 +105,11 @@ public class FirewallRules {
         private Packages.IpPortPair localFilter, remoteFilter;
         private DeviceFilter deviceFilter;
         private ProtocolFilter protocolFilter;
+
+        /**
+         * Can limit rule-direction. Currently not supported by GUI and therefore fixed.
+         */
+        private ConnectionDirectionFilter connectionDirectionFilter = ConnectionDirectionFilter.ANY;
 
         protected AbstractFirewallRule(int userId, ProtocolFilter protocolFilter, Packages.IpPortPair localFilter, Packages.IpPortPair remoteFilter, DeviceFilter deviceFilter) {
             if (localFilter == null)
@@ -189,7 +195,29 @@ public class FirewallRules {
         public boolean appliesTo(Packages.TransportLayerPackage tlPackage) {
             // The local-address has a irrelevant host-ip, which is sometimes "localhost" or "127.0.0.1" or even the hostname.
             // But as it specifies the localhost, only the port is relevant anyway.
-            return filterMatches(localFilter, tlPackage.getLocalAddress(), true) && filterMatches(remoteFilter, tlPackage.getRemoteAddress(), false);
+            boolean packageMatches = filterMatches(localFilter, tlPackage.getLocalAddress(), true) && filterMatches(remoteFilter, tlPackage.getRemoteAddress(), false);
+
+            // only client to server connections are allowed by any rule:
+            boolean connectionDirectionMatches = true;
+
+            // The connection-direction is being checked, if the filter is set
+            if (connectionDirectionFilter != ConnectionDirectionFilter.ANY) {
+                // since TCP-Connections have connection-directions - UDP don't
+                if (tlPackage.getProtocol() == Packages.TransportLayerProtocol.TCP) {
+                    Packages.TcpPackage tcpPackage = (Packages.TcpPackage) tlPackage;
+
+                    if (connectionDirectionFilter == ConnectionDirectionFilter.LOCAL_TO_REMOTE) {
+                        if (tcpPackage.isRemoteConnectionEstablishSyn()) // remote host tries to establishe connection
+                            connectionDirectionMatches = false;
+                    }
+                    if (connectionDirectionFilter == ConnectionDirectionFilter.REMOTE_TO_LOCAL) {
+                        if (tcpPackage.isLocalConnectionEstablishSyn()) // localhost tries to establishe connection
+                            connectionDirectionMatches = false;
+                    }
+                }
+            }
+
+            return packageMatches && connectionDirectionMatches;
         }
 
         @Override
@@ -230,16 +258,10 @@ public class FirewallRules {
             this.rulePolicy = rulePolicy;
         }
 
-        public boolean isPackageAccepted(Packages.TransportLayerPackage tlPackage) {
-            if (!appliesTo(tlPackage))
-                throw new IllegalArgumentException("Rule does not apply to package.");
-            return false;
+        @Override
+        public RuleKind getRuleKind() {
+            return RuleKind.Policy;
         }
-
-//        @Override
-//        public DirectionFilter getDirectionFilter() {
-//            return directionFilter;
-//        }
 
         @Override
         public String toString() {
@@ -263,6 +285,11 @@ public class FirewallRules {
         protected AbstractFirewallRedirectRule(int userId, ProtocolFilter protocolFilter, Packages.IpPortPair sourceFilter, Packages.IpPortPair destinationFilter, DeviceFilter deviceFilter, Packages.IpPortPair redirectTo) throws FirewallRuleExceptions.InvalidRuleDefinitionException {
             super(userId, protocolFilter, sourceFilter, destinationFilter, deviceFilter);
             setRedirectionRemoteHost(redirectTo);
+        }
+
+        @Override
+        public RuleKind getRuleKind() {
+            return RuleKind.Redirect;
         }
 
         @Override
