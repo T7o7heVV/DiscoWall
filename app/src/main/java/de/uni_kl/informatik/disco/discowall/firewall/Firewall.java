@@ -345,7 +345,7 @@ public class Firewall implements NetfilterBridgeCommunicator.BridgeEventsHandler
                     appUidGroup,
                     new Packages.IpPortPair("localhost", 0),
                     new Packages.IpPortPair("*", 80),
-                    FirewallRules.DeviceFilter.ANY,
+                    FirewallRules.DeviceFilter.WiFi_UMTS,
                     FirewallRules.ProtocolFilter.TCP_UDP,
                     FirewallRules.RulePolicy.BLOCK
             );

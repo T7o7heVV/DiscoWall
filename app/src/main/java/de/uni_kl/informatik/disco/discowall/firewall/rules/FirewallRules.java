@@ -38,21 +38,21 @@ public class FirewallRules {
     }
 
     public enum DeviceFilter {
-        WIFI, UMTS_3G_4G, ANY;
+        WIFI, UMTS_3G_4G, WiFi_UMTS;
 
         public boolean allowsWifi() {
-            return this == WIFI || this == ANY;
+            return this == WIFI || this == WiFi_UMTS;
         }
         public boolean allowsUmts() {
-            return this == UMTS_3G_4G || this == ANY;
+            return this == UMTS_3G_4G || this == WiFi_UMTS;
         }
         public boolean allowsAny() {
-            return this == ANY;
+            return this == WiFi_UMTS;
         }
 
         public static DeviceFilter construct(boolean wifi, boolean umts) throws DeviceFilterException {
             if (wifi && umts)
-                return ANY;
+                return WiFi_UMTS;
             else if (wifi)
                 return WIFI;
             else if (umts)

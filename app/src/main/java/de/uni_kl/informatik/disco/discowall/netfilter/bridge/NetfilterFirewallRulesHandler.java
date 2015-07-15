@@ -126,7 +126,7 @@ public class NetfilterFirewallRulesHandler implements FirewallIptableRulesHandle
             case UMTS_3G_4G:
                 chain = NetfilterBridgeIptablesHandler.CHAIN_FIREWALL_INTERFACE_3G;
                 break;
-            case ANY:
+            case WiFi_UMTS:
                 addDeleteUserRule(userID, rule, FirewallRules.DeviceFilter.WIFI, delete);
                 addDeleteUserRule(userID, rule, FirewallRules.DeviceFilter.UMTS_3G_4G, delete);
                 return;

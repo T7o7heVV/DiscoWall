@@ -1,6 +1,7 @@
 package de.uni_kl.informatik.disco.discowall.gui.adapters;
 
 import android.content.Context;
+import android.graphics.Typeface;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -112,15 +113,19 @@ public class AppRulesAdapter extends ArrayAdapter<FirewallRules.IFirewallRule> {
         writeRuleActionToGui(rule, imageViewActionIcon);
 
         // Client/Server
-        writeIpPortInfoToGui(rule.getLocalFilter(), textViewClient);
-        writeIpPortInfoToGui(rule.getRemoteFilter(), textViewServer);
+        {
+            // Set default font-layout for string "Host:IP" on server
+            textViewServer.setTypeface(null, Typeface.BOLD); // server info is BOLD
+
+            writeIpPortInfoToGui(rule.getLocalFilter(), textViewClient);
+            writeIpPortInfoToGui(rule.getRemoteFilter(), textViewServer);
+        }
 
         // WiFi, UMTS, TCP, UDP
         checkBoxInterfaceUmts.setChecked(rule.getDeviceFilter().allowsUmts());
         checkBoxInterfaceWifi.setChecked(rule.getDeviceFilter().allowsWifi());
         checkBoxProtocolTcp.setChecked(rule.getProtocolFilter().isTcp());
         checkBoxProtocolUdp.setChecked(rule.getProtocolFilter().isUdp());
-
 
         // --------------------------------------------------------------------------------------------------------------
         //  Associate Event-Listeners
@@ -137,10 +142,14 @@ public class AppRulesAdapter extends ArrayAdapter<FirewallRules.IFirewallRule> {
         // --------------------------------------------------------------------------------------------------------------
         //  Make Checkboxes readonly
         // --------------------------------------------------------------------------------------------------------------
-//        checkBoxInterfaceUmts.setKeyListener(null);
-//        checkBoxInterfaceWifi.setKeyListener(null);
-//        checkBoxProtocolTcp.setKeyListener(null);
-//        checkBoxProtocolUdp.setKeyListener(null);
+        // Everything else makes no sense. Since the Android-Framework is EXTREMELY incomplete/buggy
+        // reagrding ListViews, the checked-events for listviews are fired as they are initialy created by the adapter.
+        // Since there is no way of reacting to the ListView-Created Event (does not exist), one cannot filter out these erroneous calls.
+        // So just better don't use CheckBoxes within ListViews. -.-
+        checkBoxInterfaceUmts.setKeyListener(null);
+        checkBoxInterfaceWifi.setKeyListener(null);
+        checkBoxProtocolTcp.setKeyListener(null);
+        checkBoxProtocolUdp.setKeyListener(null);
 
         return view;
     }
