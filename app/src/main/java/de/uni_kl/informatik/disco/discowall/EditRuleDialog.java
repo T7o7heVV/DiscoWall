@@ -230,8 +230,8 @@ public class EditRuleDialog extends DialogFragment {
             // write data to gui:
             writeIpPortInfoToGui(redirectRule.getRedirectionRemoteHost(), textViewRedirectHostIp, textViewRedirectHostPort);
 
-            // redirection host: associate listeners, so that no empty IP or port is allowed
-            textViewRedirectHostIp.addTextChangedListener(new TextWatcher() {
+            // listeners for redirection-textviews:
+            TextWatcher redirectionHostEditListener = new TextWatcher() {
                 @Override
                 public void beforeTextChanged(CharSequence s, int start, int count, int after) {
                 }
@@ -242,13 +242,39 @@ public class EditRuleDialog extends DialogFragment {
 
                 @Override
                 public void afterTextChanged(Editable s) {
-                    boolean noRedirIp = textViewRedirectHostIp.getText().length() == 0; // no ip
-                    boolean noRedirPort = textViewRedirectHostPort.getText().length() == 0 || textViewRedirectHostPort.getText().equals("0"); // no port, or port is "0"
+                    String ip = (textViewRedirectHostIp.getText() + "").trim();
+                    String port = (textViewRedirectHostPort.getText() + "").trim(); // note that the EditText only accepts postive numbers from 0...n
+
+                    boolean noRedirIp = ip.isEmpty(); // no ip
+                    boolean noRedirPort = port.isEmpty() || port.equals("0"); // no port, or port is "0"
+
+                    Log.v(LOG_TAG, "Validate redirection host IP+Port: >>" + ip + ":" + port + "<<");
+
+                    if (noRedirIp)
+                        Toast.makeText(getActivity(), "ip required", Toast.LENGTH_SHORT).show();
+
+                    if (noRedirPort) {
+                        if (port.isEmpty())
+                            Toast.makeText(getActivity(), "port required", Toast.LENGTH_SHORT).show();
+                        else
+                            Toast.makeText(getActivity(), "invalid port: " + port, Toast.LENGTH_SHORT).show();
+                    } else {
+                        int portInt = Integer.parseInt(port);
+
+                        if (portInt > Packages.IpPortPair.PORT_MAX) {
+                            Toast.makeText(getActivity(), "invalid port " + port + " exceeds limit: " + Packages.IpPortPair.PORT_MAX, Toast.LENGTH_SHORT).show();
+                            noRedirPort = true;
+                        }
+                    }
 
                     // OK only clickable, if valid redirection-target - i.e. IP+PORT
                     buttonOK.setEnabled(!noRedirIp && !noRedirPort);
                 }
-            });
+            };
+
+            // redirection host: associate listeners, so that no empty IP or port is allowed
+            textViewRedirectHostIp.addTextChangedListener(redirectionHostEditListener);
+            textViewRedirectHostPort.addTextChangedListener(redirectionHostEditListener);
         }
 
         return builder.create();

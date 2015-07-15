@@ -73,8 +73,8 @@ public class ShowAppRulesActivity extends AppCompatActivity {
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.menu_show_app_rules, menu);
-        return true;
+//        getMenuInflater().inflate(R.menu.menu_show_app_rules, menu);
+        return false;
     }
 
     @Override
