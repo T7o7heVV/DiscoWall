@@ -19,6 +19,10 @@ import de.uni_kl.informatik.disco.discowall.firewall.rules.FirewallRules;
 import de.uni_kl.informatik.disco.discowall.packages.Packages;
 
 public class AppRulesAdapter extends ArrayAdapter<FirewallRules.IFirewallRule> {
+    public static interface CheckedChangedListener {
+        void onCheckedChanged(AppRulesAdapter adapter, FirewallRules.IFirewallRule rule, int position, CheckBox checkBox, boolean isChecked);
+    }
+
     private static final String LOG_TAG = AppRulesAdapter.class.getSimpleName();
     public static final int listRowLayoutResourceId = R.layout.list_item_firewall_rule;
 
@@ -34,7 +38,7 @@ public class AppRulesAdapter extends ArrayAdapter<FirewallRules.IFirewallRule> {
     private final List<FirewallRules.IFirewallRule> rules;
     private AdapterView.OnItemClickListener onItemClickListener;
     private AdapterView.OnItemLongClickListener onItemLongClickListener;
-    private CompoundButton.OnCheckedChangeListener onCheckedChangeListener;
+    private CheckedChangedListener onCheckedChangeListener;
 
     public AppRulesAdapter(Context context, List<FirewallRules.IFirewallRule> rules) {
         super(context, listRowLayoutResourceId, rules);
@@ -43,6 +47,14 @@ public class AppRulesAdapter extends ArrayAdapter<FirewallRules.IFirewallRule> {
 
     public List<FirewallRules.IFirewallRule> getRules() {
         return rules;
+    }
+
+    public CheckedChangedListener getOnCheckedChangeListener() {
+        return onCheckedChangeListener;
+    }
+
+    public void setOnCheckedChangeListener(CheckedChangedListener onCheckedChangeListener) {
+        this.onCheckedChangeListener = onCheckedChangeListener;
     }
 
     public AdapterView.OnItemLongClickListener getOnItemLongClickListener() {
@@ -121,40 +133,54 @@ public class AppRulesAdapter extends ArrayAdapter<FirewallRules.IFirewallRule> {
         associateWidgetEventListeners(checkBoxProtocolTcp, position, parent);
         associateWidgetEventListeners(checkBoxProtocolUdp, position, parent);
 
+
+        // --------------------------------------------------------------------------------------------------------------
+        //  Make Checkboxes readonly
+        // --------------------------------------------------------------------------------------------------------------
+//        checkBoxInterfaceUmts.setKeyListener(null);
+//        checkBoxInterfaceWifi.setKeyListener(null);
+//        checkBoxProtocolTcp.setKeyListener(null);
+//        checkBoxProtocolUdp.setKeyListener(null);
+
         return view;
     }
 
     private void associateWidgetEventListeners(View widget, final int position, final ViewGroup parent) {
         // NOTE: Do NOT declare widget-References as final here, as the view-instances are permanently changing.
         //       Therefore I use the view-references directly from callback and cast them there (if required).
-        
-        widget.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (onItemClickListener != null)
-                    onItemClickListener.onItemClick((AdapterView<?>) parent, v, position, position);
-            }
-        });
 
-        widget.setOnLongClickListener(new View.OnLongClickListener() {
-            @Override
-            public boolean onLongClick(View v) {
-                if (onItemLongClickListener != null)
-                    return onItemLongClickListener.onItemLongClick((AdapterView<?>) parent, v, position, position);
-                else
-                    return false;
-            }
-        });
 
-        // Checkboxes only:
+        // Checkboxes react to CHECKED-, everything else to CLICKED-events:
         if (widget instanceof CheckBox) {
-            CheckBox checkbox = (CheckBox) widget;
+            // Checkboxes only:
+
+            final CheckBox checkbox = (CheckBox) widget;
 
             checkbox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
                 @Override
                 public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                     if (onCheckedChangeListener != null)
-                        onCheckedChangeListener.onCheckedChanged((CheckBox) buttonView, isChecked);
+                        onCheckedChangeListener.onCheckedChanged(AppRulesAdapter.this, getItem(position), position, checkbox, isChecked);
+                }
+            });
+        } else {
+            // all widgets but checkboxes - click events:
+
+            widget.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if (onItemClickListener != null)
+                        onItemClickListener.onItemClick((AdapterView<?>) parent, v, position, position);
+                }
+            });
+
+            widget.setOnLongClickListener(new View.OnLongClickListener() {
+                @Override
+                public boolean onLongClick(View v) {
+                    if (onItemLongClickListener != null)
+                        return onItemLongClickListener.onItemLongClick((AdapterView<?>) parent, v, position, position);
+                    else
+                        return false;
                 }
             });
         }

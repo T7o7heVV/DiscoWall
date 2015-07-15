@@ -17,10 +17,14 @@ import android.widget.TextView;
 import de.uni_kl.informatik.disco.discowall.firewall.rules.FirewallRules;
 import de.uni_kl.informatik.disco.discowall.gui.dialogs.ErrorDialog;
 import de.uni_kl.informatik.disco.discowall.packages.Packages;
+import de.uni_kl.informatik.disco.discowall.utils.apps.AppUidGroup;
 
 
 public class EditConnectionRuleDialog extends DialogFragment {
     private static final String LOG_TAG = EditConnectionRuleDialog.class.getSimpleName();
+
+    private FirewallRules.IFirewallRule rule;
+    private AppUidGroup appUidGroup;
 
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
@@ -35,28 +39,33 @@ public class EditConnectionRuleDialog extends DialogFragment {
         // Inflate and set the layout for the dialog
         // Pass null as the parent view because its going in the dialog layout
         View layoutView = inflater.inflate(R.layout.dialog_edit_connection_rule, null);
-        builder.setView(layoutView)
-                .setTitle("Edit Connection Rule");
+        builder.setView(layoutView).setTitle("Edit Connection Rule");
 
-        // Fetching ApplicationInfo:
-        final Activity context = getActivity();
-        PackageManager packageManager = context.getPackageManager();
-        String packageName = bundle.getString("app.packageName");
-        ApplicationInfo appInfo;
-
-        try {
-            appInfo = packageManager.getApplicationInfo(packageName, PackageManager.GET_META_DATA);
-        } catch (PackageManager.NameNotFoundException e) {
-            Log.e(LOG_TAG, "Error fetching ApplicationInfo for app with packageName: " + packageName, e);
-            ErrorDialog.showError(context, "Error fetching ApplicationInfo for app with packageName: " + packageName, e);
-
-            return builder.create();
-        }
+//        // Fetching ApplicationInfo:
+//        final Activity context = getActivity();
+//        PackageManager packageManager = context.getPackageManager();
+//        String packageName = bundle.getString("app.packageName");
+//        ApplicationInfo appInfo;
+//
+//        try {
+//            appInfo = packageManager.getApplicationInfo(packageName, PackageManager.GET_META_DATA);
+//        } catch (PackageManager.NameNotFoundException e) {
+//            Log.e(LOG_TAG, "Error fetching ApplicationInfo for app with packageName: " + packageName, e);
+//            ErrorDialog.showError(context, "Error fetching ApplicationInfo for app with packageName: " + packageName, e);
+//
+//            return builder.create();
+//        }
+//
+//        // App Information
+//        ((TextView) layoutView.findViewById(R.id.textView_app_name)).setText(appInfo.loadLabel(packageManager));
+//        ((TextView) layoutView.findViewById(R.id.textView_app_package)).setText(packageName);
+//        ((ImageView) layoutView.findViewById(R.id.imageView_app_icon)).setImageDrawable(appInfo.loadIcon(packageManager));
 
         // App Information
-        ((TextView) layoutView.findViewById(R.id.textView_app_name)).setText(appInfo.loadLabel(packageManager));
-        ((TextView) layoutView.findViewById(R.id.textView_app_package)).setText(packageName);
-        ((ImageView) layoutView.findViewById(R.id.imageView_app_icon)).setImageDrawable(appInfo.loadIcon(packageManager));
+        ((TextView) layoutView.findViewById(R.id.textView_app_name)).setText(appUidGroup.getName());
+        ((TextView) layoutView.findViewById(R.id.textView_app_package)).setText(appUidGroup.getPackageName());
+        ((ImageView) layoutView.findViewById(R.id.imageView_app_icon)).setImageDrawable(appUidGroup.getIcon());
+
 
         // Rule Information:
         ((RadioButton) layoutView.findViewById(R.id.radioButton_rule_policy_accept)).setChecked(true);
@@ -70,21 +79,26 @@ public class EditConnectionRuleDialog extends DialogFragment {
         outState.putAll(getArguments());
     }
 
-    public static EditConnectionRuleDialog show(Activity context, String dialogTag, ApplicationInfo appInfo, Packages.IpPortPair client, Packages.IpPortPair server, FirewallRules.RulePolicy policy) {
-        final PackageManager packageManager = context.getPackageManager();
-        Bundle args = new Bundle();
-
-        args.putString("rule.client.ip", client.getIp());
-        args.putInt("rule.client.port", client.getPort());
-        args.putString("rule.server.ip", server.getIp());
-        args.putInt("rule.server.port", server.getPort());
-        args.putSerializable("rule.policy", policy);
-
-        // Dialog-Infos:
-        args.putString("app.packageName", appInfo.packageName);
+    public static EditConnectionRuleDialog show(Activity context, String dialogTag, AppUidGroup appUidGroup, FirewallRules.IFirewallRule rule) {
+//        final PackageManager packageManager = context.getPackageManager();
+//        Bundle args = new Bundle();
+//
+//        args.putString("rule.client.ip", client.getIp());
+//        args.putInt("rule.client.port", client.getPort());
+//        args.putString("rule.server.ip", server.getIp());
+//        args.putInt("rule.server.port", server.getPort());
+//        args.putSerializable("rule.policy", policy);
+//
+//        // Dialog-Infos:
+//        args.putInt("app.uid", appUidGroup.getUid());
 
         EditConnectionRuleDialog dialog = new EditConnectionRuleDialog();
-        dialog.setArguments(args);
+
+        // Supplying the arguments per object-attribute:
+        dialog.rule = rule;
+        dialog.appUidGroup = appUidGroup;
+
+//        dialog.setArguments(args);
         dialog.show(context.getFragmentManager(), dialogTag);
 
         return dialog;

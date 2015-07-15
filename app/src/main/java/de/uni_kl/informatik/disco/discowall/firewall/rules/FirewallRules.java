@@ -18,6 +18,23 @@ public class FirewallRules {
         public boolean isTcpAndUdp() {
             return this == TCP_UDP;
         }
+
+        public static ProtocolFilter construct(boolean tcp, boolean udp) throws ProtocolFilterException {
+            if (tcp && udp)
+                return TCP_UDP;
+            else if (tcp)
+                return TCP;
+            else if (udp)
+                return UDP;
+            else
+                throw new ProtocolFilterException("Invalid ProtocolFilter! At least one protocol has to be specified.");
+        }
+
+        public static class ProtocolFilterException extends Exception {
+            public ProtocolFilterException(String detailMessage) {
+                super(detailMessage);
+            }
+        }
     }
 
     public enum DeviceFilter {
@@ -32,6 +49,23 @@ public class FirewallRules {
         public boolean allowsAny() {
             return this == ANY;
         }
+
+        public static DeviceFilter construct(boolean wifi, boolean umts) throws DeviceFilterException {
+            if (wifi && umts)
+                return ANY;
+            else if (wifi)
+                return WIFI;
+            else if (umts)
+                return UMTS_3G_4G;
+            else
+                throw new DeviceFilterException("Invalid DeviceFilter! At least one device has to be specified.");
+        }
+
+        public static class DeviceFilterException extends Exception {
+            public DeviceFilterException(String detailMessage) {
+                super(detailMessage);
+            }
+        }
     }
 
 //    public enum DirectionFilter {
@@ -43,7 +77,9 @@ public class FirewallRules {
         int getUserId();
 
         DeviceFilter getDeviceFilter();
+        void setDeviceFilter(DeviceFilter deviceFilter);
         ProtocolFilter getProtocolFilter();
+        void setProtocolFilter(ProtocolFilter protocolFilter);
         Packages.IpPortPair getLocalFilter();
         Packages.IpPortPair getRemoteFilter();
         boolean appliesTo(Packages.TransportLayerPackage tlPackage);
@@ -63,9 +99,9 @@ public class FirewallRules {
 
     private static abstract class AbstractFirewallRule implements IFirewallRule {
         private final int userId;
-        private final DeviceFilter deviceFilter;
-        private final ProtocolFilter protocolFilter;
         private final Packages.IpPortPair localFilter, remoteFilter;
+        private DeviceFilter deviceFilter;
+        private ProtocolFilter protocolFilter;
 
         protected AbstractFirewallRule(int userId, ProtocolFilter protocolFilter, Packages.IpPortPair localFilter, Packages.IpPortPair remoteFilter, DeviceFilter deviceFilter) {
             if (localFilter == null)
@@ -91,8 +127,18 @@ public class FirewallRules {
         }
 
         @Override
+        public void setDeviceFilter(DeviceFilter deviceFilter) {
+            this.deviceFilter = deviceFilter;
+        }
+
+        @Override
         public ProtocolFilter getProtocolFilter() {
             return protocolFilter;
+        }
+
+        @Override
+        public void setProtocolFilter(ProtocolFilter protocolFilter) {
+            this.protocolFilter = protocolFilter;
         }
 
         @Override
