@@ -2,6 +2,7 @@ package de.uni_kl.informatik.disco.discowall.gui.adapters;
 
 import android.content.Context;
 import android.graphics.Typeface;
+import android.graphics.drawable.Drawable;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -195,24 +196,35 @@ public class AppRulesAdapter extends ArrayAdapter<FirewallRules.IFirewallRule> {
         }
     }
 
+    public static Drawable getRuleIcon(FirewallRules.IFirewallRule rule, Context context) {
+        if (rule instanceof FirewallRules.IFirewallRedirectRule)
+            return context.getResources().getDrawable(R.mipmap.symbol_rule_redirect);
+        else if (rule instanceof FirewallRules.IFirewallPolicyRule)
+            return getRulePolicyIcon(((FirewallRules.IFirewallPolicyRule)rule).getRulePolicy(), context);
+
+        Log.e(LOG_TAG, "No icon specified for rule kind " + rule.getRuleKind() + " of rule: " + rule);
+        return null;
+    }
+
+    public static Drawable getRulePolicyIcon(FirewallRules.RulePolicy policy, Context context) {
+        switch(policy) {
+            case ALLOW:
+                return context.getResources().getDrawable(R.mipmap.symbol_rule_policy_allow);
+            case BLOCK:
+                return context.getResources().getDrawable(R.mipmap.symbol_rule_policy_block);
+            case INTERACTIVE:
+                return context.getResources().getDrawable(R.mipmap.symbol_rule_policy_interactive);
+            default:
+                Log.e(LOG_TAG, "No icon specified for rule policy: " + policy);
+                return null;
+        }
+    }
+
     private void writeRuleActionToGui(FirewallRules.IFirewallRule rule, ImageView imageViewActionIcon) {
         if (rule instanceof FirewallRules.IFirewallPolicyRule) {
             FirewallRules.IFirewallPolicyRule policyRule = (FirewallRules.IFirewallPolicyRule) rule;
-
-            switch(((FirewallRules.IFirewallPolicyRule) rule).getRulePolicy()) {
-                case ALLOW:
-                    imageViewActionIcon.setImageDrawable(getContext().getResources().getDrawable(R.mipmap.symbol_rule_policy_allow));
-                    break;
-                case BLOCK:
-                    imageViewActionIcon.setImageDrawable(getContext().getResources().getDrawable(R.mipmap.symbol_rule_policy_block));
-                    break;
-                case INTERACTIVE:
-                    imageViewActionIcon.setImageDrawable(getContext().getResources().getDrawable(R.mipmap.symbol_rule_policy_interactive));
-                    break;
-                default:
-                    Log.e(LOG_TAG, "Unknown rule policy " + policyRule.getRulePolicy() + " at rule " + rule + ".");
-                    break;
-            }
+            Drawable policyIcon = getRulePolicyIcon(policyRule.getRulePolicy(), getContext());
+            imageViewActionIcon.setImageDrawable(policyIcon);
         } else if (rule instanceof FirewallRules.IFirewallRedirectRule) {
             imageViewActionIcon.setImageDrawable(getContext().getResources().getDrawable(R.mipmap.symbol_rule_redirect));
         } else {

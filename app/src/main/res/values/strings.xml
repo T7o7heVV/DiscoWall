@@ -55,6 +55,9 @@
     <string name="action_interactive">Interactive</string>
     <string name="action_apply_for_all_connections_of_this_app">Apply For All New App-Connections</string>
 
+    <string name="action_rule_create">Create Rule</string>
+    <string name="action_rule_edit">Edit Rule</string>
+    <string name="action_rule_delete">Delete Rule</string>
 
     <!-- GUI-specific texts -->
 
@@ -76,7 +79,4 @@
     <string name="title_activity_text_view">TextViewActivity</string>
     <string name="title_activity_edit_connection_rule_dialog">Edit Connection Rule</string>
     <string name="title_activity_show_app_rules">ShowAppRulesActivity</string>
-
-    <string name="hello_world">Hello world!</string>
-    <string name="action_settings">Settings</string>
 </resources>
