@@ -1,0 +1,8 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context="de.uni_kl.informatik.disco.discowall.DecideConnectionDialogActivity"
+    android:layout_height="match_parent"
+    android:layout_width="match_parent"
+    >
+
+</RelativeLayout>

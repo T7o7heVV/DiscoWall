@@ -9,6 +9,7 @@ import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.ContextThemeWrapper;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
@@ -22,6 +23,7 @@ import de.uni_kl.informatik.disco.discowall.firewall.rules.FirewallRules;
 import de.uni_kl.informatik.disco.discowall.gui.dialogs.ErrorDialog;
 import de.uni_kl.informatik.disco.discowall.packages.Connections;
 import de.uni_kl.informatik.disco.discowall.packages.Packages;
+import de.uni_kl.informatik.disco.discowall.utils.apps.AppUidGroup;
 import de.uni_kl.informatik.disco.discowall.utils.ressources.DiscoWallSettings;
 
 
@@ -58,6 +60,9 @@ public class DecideConnectionDialog extends DialogFragment {
         builder.setView(layoutView)
                 .setTitle(R.string.decide_connection_dialog__title)
                 .setCancelable(false);
+
+        // DEBUG!!!
+        if (true) return builder.create(); // TODO REMOVE!
 
         // Fetching ApplicationInfo:
         final Activity context = getActivity();
@@ -166,35 +171,27 @@ public class DecideConnectionDialog extends DialogFragment {
         outState.putAll(getArguments());
     }
 
-    public static DecideConnectionDialog show(Activity context, ApplicationInfo appInfo, Connections.Connection connection) {
-        return show(context, appInfo, connection.getSource(), connection.getDestination(), connection.getTransportLayerProtocol());
-    }
-
-    public static DecideConnectionDialog show(Activity context, ApplicationInfo appInfo, Packages.IpPortPair client, Packages.IpPortPair server, Packages.TransportLayerProtocol protocol) {
-        return show(context, appInfo, client, server, protocol);
-    }
-
-    public static DecideConnectionDialog show(Activity context, String dialogTag, ApplicationInfo appInfo, Packages.IpPortPair client, Packages.IpPortPair server, Packages.TransportLayerProtocol protocol) {
+    public static DecideConnectionDialog show(Activity context, Connections.Connection connection, AppUidGroup appUidGroup) {
         if (! (context instanceof DecideConnectionDialogListener))
             throw new ClassCastException("Starting-Activity must implement interface " + DecideConnectionDialogListener.class.getCanonicalName());
 
         final PackageManager packageManager = context.getPackageManager();
         Bundle args = new Bundle();
 
-        args.putString("client.ip", client.getIp());
-        args.putInt("client.port", client.getPort());
-        args.putString("server.ip", server.getIp());
-        args.putInt("server.port", server.getPort());
-
-        args.putString("connection.protocol", protocol.toString());
-
-        // Dialog-Infos:
-        args.putBoolean("action.createRule", DiscoWallSettings.getInstance().isHandleConnectionDialogDefaultCreateRule(context));
-        args.putString("app.packageName", appInfo.packageName);
+//        args.putString("client.ip", connection.getSource().getIp());
+//        args.putInt("client.port", connection.getSource().getPort());
+//        args.putString("server.ip", connection.getDestination().getIp());
+//        args.putInt("server.port", connection.getDestination().getPort());
+//
+//        args.putString("connection.protocol", connection.getTransportLayerProtocol().toString());
+//
+//        // Dialog-Infos:
+//        args.putBoolean("action.createRule", DiscoWallSettings.getInstance().isHandleConnectionDialogDefaultCreateRule(context));
+//        args.putString("app.packageName", appUidGroup.getPackageName());
 
         DecideConnectionDialog dialog = new DecideConnectionDialog();
         dialog.setArguments(args);
-        dialog.show(context.getFragmentManager(), dialogTag);
+        dialog.show(context.getFragmentManager(), "");
 
         return dialog;
     }

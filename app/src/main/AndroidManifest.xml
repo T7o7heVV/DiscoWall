@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="de.uni_kl.informatik.disco.discowall" >
+
     <!--
  minSdkVersion=3 is required for NDK to work
          [https://developer.android.com/tools/sdk/ndk/index.html#Reqs]
@@ -8,6 +9,7 @@
         // This value is always overwritten by the gradle-script's value, specified in the gradle-config-file
         <uses-sdk android:minSdkVersion="3" />
     -->
+
 
     <!-- Permissions: -->
     <uses-permission android:name="android.permission.INTERNET" />
@@ -63,6 +65,13 @@
         <activity
             android:name=".ShowAppRulesActivity"
             android:label="@string/title_activity_show_app_rules" >
+        </activity>
+
+        <!-- Invisible Activity used for showing the Connection-Decide-Dialog -->
+        <activity
+            android:name=".DecideConnectionDialogActivity"
+            android:theme="@style/Theme.Transparent"
+            >
         </activity>
     </application>
 
