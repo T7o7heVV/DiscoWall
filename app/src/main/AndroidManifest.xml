@@ -68,11 +68,6 @@
         </activity>
 
         <!-- Invisible Activity used for showing the Connection-Decide-Dialog -->
-        <activity
-            android:name=".DecideConnectionDialogActivity"
-            android:theme="@style/Theme.Transparent"
-            >
-        </activity>
     </application>
 
 </manifest>

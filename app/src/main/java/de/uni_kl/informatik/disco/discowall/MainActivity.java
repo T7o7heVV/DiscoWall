@@ -281,8 +281,6 @@ public class MainActivity extends AppCompatActivity {
 
         // show apps and watched-status
         guiHandlerWatchedApps.setupWatchedAppsList();
-
-        DecideConnectionDialogActivity.show(this);
     }
 
     /** Defines callbacks for service binding, passed to bindService() */
