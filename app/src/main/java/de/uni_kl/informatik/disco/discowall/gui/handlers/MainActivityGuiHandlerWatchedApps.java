@@ -129,6 +129,7 @@ public class MainActivityGuiHandlerWatchedApps extends MainActivityGuiHandler {
     private void actionWatchedAppShowFirewallRules(AppUidGroup appGroup) {
         boolean createRuleIsDefaultChecked = DiscoWallSettings.getInstance().isHandleConnectionDialogDefaultCreateRule(mainActivity);
 
+        // TODO: Remove debug-line
         mainActivity.firewall.DEBUG_TEST(appGroup); // DEBUG! Adding rules for testing
 
         ShowAppRulesActivity.showAppRules(mainActivity, appGroup);

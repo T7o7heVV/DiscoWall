@@ -118,7 +118,7 @@ public class Connections {
 
         @Override
         public Packages.TransportLayerProtocol getTransportLayerProtocol() {
-            return Packages.TransportLayerProtocol.TCP;
+            return Packages.TransportLayerProtocol.UDP;
         }
 
         public boolean update(Packages.UdpPackage udpPackage) {
@@ -186,7 +186,7 @@ public class Connections {
 
         @Override
         public Packages.TransportLayerProtocol getTransportLayerProtocol() {
-            return Packages.TransportLayerProtocol.UDP;
+            return Packages.TransportLayerProtocol.TCP;
         }
 
         @Override

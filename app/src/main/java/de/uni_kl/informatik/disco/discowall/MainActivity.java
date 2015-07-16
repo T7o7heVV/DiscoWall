@@ -1,7 +1,9 @@
 package de.uni_kl.informatik.disco.discowall;
 
+import android.app.AlertDialog;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.pm.ApplicationInfo;
@@ -22,6 +24,8 @@ import android.widget.Toast;
 import de.uni_kl.informatik.disco.discowall.firewall.Firewall;
 import de.uni_kl.informatik.disco.discowall.firewall.FirewallExceptions;
 import de.uni_kl.informatik.disco.discowall.firewall.FirewallService;
+import de.uni_kl.informatik.disco.discowall.gui.adapters.AppRulesAdapter;
+import de.uni_kl.informatik.disco.discowall.gui.dialogs.ErrorDialog;
 import de.uni_kl.informatik.disco.discowall.gui.handlers.MainActivityGuiHandlerFirewallControl;
 import de.uni_kl.informatik.disco.discowall.gui.dialogs.AboutDialog;
 import de.uni_kl.informatik.disco.discowall.gui.handlers.MainActivityGuiHandlerWatchedApps;
@@ -31,7 +35,7 @@ import de.uni_kl.informatik.disco.discowall.utils.shell.RootShellExecute;
 import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecuteExceptions;
 
 
-public class MainActivity extends AppCompatActivity implements DecideConnectionDialog.DecideConnectionDialogListener {
+public class MainActivity extends AppCompatActivity {
     private static final String LOG_TAG = MainActivity.class.getSimpleName();
 
     private final MainActivityGuiHandlerFirewallControl guiHandlerFirewallControl = new MainActivityGuiHandlerFirewallControl(this);
@@ -79,12 +83,17 @@ public class MainActivity extends AppCompatActivity implements DecideConnectionD
                 AboutDialog.show(this);
                 return true;
             }
-            case R.id.action_main_menu_exit:
+            case R.id.action_main_menu_hide:
             {
                 if (firewall.isFirewallRunning())
-                    Toast.makeText(this, "Firewall runs in background...", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, R.string.message_application_runs_in_background, Toast.LENGTH_LONG).show();
 
                 finish();
+                return true;
+            }
+            case R.id.action_main_menu_exit:
+            {
+                actionExitFirewall();
                 return true;
             }
             case R.id.action_ifconfig:
@@ -135,6 +144,52 @@ public class MainActivity extends AppCompatActivity implements DecideConnectionD
         TextViewActivity.showText(this, "ifconfig output", content);
     }
 
+    private void actionExitFirewall() {
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.action_exit_application)
+                .setIcon(R.drawable.firewall_launcher)
+                .setMessage(firewall.isFirewallStopped() ? R.string.question_exit_application : R.string.question_disable_firewall_and_exit_application) // ask exit or disable+exit (if firewall running) otherwise
+                .setCancelable(true)
+                .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        terminateApplication();
+                    }
+                })
+                .setNegativeButton("No", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        // do nothing
+                    }
+                })
+                .create().show();
+    }
+
+    private void terminateApplication() {
+        Runnable actionTerminateApplication = new Runnable() {
+            @Override
+            public void run() {
+                // stop service:
+                // The service is still bound to this activity, but will unbind on activity-stop
+                // ==> since the service then is (1) not persistent anymore and (2) not bound, it will stop completely.
+                firewallService.stopFirewallService(); // will also remove notification
+
+                Toast.makeText(MainActivity.this, R.string.message_application_terminated, Toast.LENGTH_LONG).show();
+
+                // Close MainActivity
+                finish(); // will automatically unbind service
+            }
+        };
+
+        if (!firewall.isFirewallStopped()) {
+            // Disable Firewall and show Progress in Dialog, then do App-Exit
+            guiHandlerFirewallControl.actionSetFirewallEnabled(false, actionTerminateApplication);
+        } else {
+            // directly exit application
+            actionTerminateApplication.run();
+        }
+    }
+
     private void actionShowIptableRules(boolean all) {
         String content = "";
 
@@ -182,7 +237,6 @@ public class MainActivity extends AppCompatActivity implements DecideConnectionD
 
         // assure that the firewall-service runs indefinitely - even if all bound activities unbind:
         FirewallService.startFirewallService(this, false);
-//        startService(new Intent(this, FirewallService.class));
 
         // Bind to LocalService
         Intent intent = new Intent(this, FirewallService.class);
@@ -227,6 +281,8 @@ public class MainActivity extends AppCompatActivity implements DecideConnectionD
 
         // show apps and watched-status
         guiHandlerWatchedApps.setupWatchedAppsList();
+
+        DecideConnectionDialogActivity.show(this);
     }
 
     /** Defines callbacks for service binding, passed to bindService() */
@@ -245,11 +301,5 @@ public class MainActivity extends AppCompatActivity implements DecideConnectionD
             firewallService = null;
         }
     };
-
-    @Override
-    public void onConnectionDecided(ApplicationInfo appInfo, Packages.IpPortPair source, Packages.IpPortPair destination, DecideConnectionDialog.AppConnectionDecision decision) {
-        // TODO
-        Toast.makeText(this, decision.allowConnection ? "Allowed" : "Blocked", Toast.LENGTH_LONG).show();
-    }
 
 }

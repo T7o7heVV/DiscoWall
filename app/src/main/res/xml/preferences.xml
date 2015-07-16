@@ -1,5 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+    <SwitchPreference
+        android:title="Firewall-Service Autostart"
+        android:key="@string/preference_id__service_autostart"
+        android:summary="@string/preference_summary__service_autostart"
+        android:defaultValue="true">
+    </SwitchPreference>
+
     <EditTextPreference
         android:title="NFQUEUE-Bridge Communication Port"
         android:key="@string/preference_id__nfqueue_bridge_port"
@@ -9,7 +16,7 @@
     </EditTextPreference>
 
     <EditTextPreference
-        android:title="Firewall connection decision timeout"
+        android:title="Connection Decision: Timeout"
         android:key="@string/preference_id__firewall_connection_decision_timeoutMS"
         android:summary="@string/preference_summary__firewall_connection_decision_timeoutMS"
         android:defaultValue="30000"
@@ -17,18 +24,12 @@
     </EditTextPreference>
 
     <SwitchPreference
-        android:title="Firewall-Service Autostart"
+        android:title="Connection Decision: Default Accept"
         android:key="@string/preference_id__firewall_connection_decision_default_action"
         android:summary="@string/preference_summary__firewall_connection_decision_default_action"
         android:defaultValue="true">
     </SwitchPreference>
 
-    <SwitchPreference
-        android:title="Firewall-Service Autostart"
-        android:key="@string/preference_id__service_autostart"
-        android:summary="@string/preference_summary__service_autostart"
-        android:defaultValue="true">
-    </SwitchPreference>
 
     <!--
 

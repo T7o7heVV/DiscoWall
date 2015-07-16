@@ -34,7 +34,11 @@ public class MainActivityGuiHandlerFirewallControl {
         actionSetFirewallEnabled(isChecked);
     }
 
-    public void actionSetFirewallEnabled(final boolean enabled) {
+    public void actionSetFirewallEnabled(boolean enabled) {
+        actionSetFirewallEnabled(enabled, null);
+    }
+
+    public void actionSetFirewallEnabled(final boolean enabled, final Runnable taskAfterActionDone) {
         try {
             if (enabled && mainActivity.firewall.isFirewallRunning()) {
                 return;
@@ -125,6 +129,10 @@ public class MainActivityGuiHandlerFirewallControl {
 
                 // Hide Busy-Dialog
                 progressDialog.dismiss();
+
+                // Execute the specified action (if any) after firewall-enable/disable completed:
+                if (taskAfterActionDone != null)
+                    taskAfterActionDone.run();
             }
 
             @Override
