@@ -193,13 +193,46 @@ public class FirewallRules {
 
         @Override
         public boolean appliesTo(Packages.TransportLayerPackage tlPackage) {
+            // Device-Filter - check interface:
+            switch(deviceFilter) {
+                case WiFi_UMTS:
+                    // any interface will do
+                    break;
+                case WIFI:
+                    if (tlPackage.getNetworkInterface() != Packages.NetworkInterface.WiFi)
+                        return false;
+                case UMTS:
+                    // umts matches only
+                    if (tlPackage.getNetworkInterface() != Packages.NetworkInterface.Umts)
+                        return false;
+                default:
+                    throw new RuntimeException("Device-Filter unknown: " + deviceFilter);
+            }
+
+            // Protocol Filter
+            switch(protocolFilter) {
+                case TCP_UDP:
+                    // tcp+udp will do
+                    break;
+                case UDP:
+                    if (tlPackage.getProtocol() != Packages.TransportLayerProtocol.UDP)
+                        return false;
+                case TCP:
+                    if (tlPackage.getProtocol() != Packages.TransportLayerProtocol.TCP)
+                        return false;
+                default:
+                    throw new RuntimeException("Protocol-Filter unknown: " + protocolFilter);
+            }
+
+            // Source- & Destination-Filter:
             // The local-address has a irrelevant host-ip, which is sometimes "localhost" or "127.0.0.1" or even the hostname.
             // But as it specifies the localhost, only the port is relevant anyway.
             boolean packageMatches = filterMatches(localFilter, tlPackage.getLocalAddress(), true) && filterMatches(remoteFilter, tlPackage.getRemoteAddress(), false);
+            if (!packageMatches)
+                return false;
 
+            // Connection-Direction Filter:
             // only client to server connections are allowed by any rule:
-            boolean connectionDirectionMatches = true;
-
             // The connection-direction is being checked, if the filter is set
             if (connectionDirectionFilter != ConnectionDirectionFilter.ANY) {
                 // since TCP-Connections have connection-directions - UDP don't
@@ -208,16 +241,16 @@ public class FirewallRules {
 
                     if (connectionDirectionFilter == ConnectionDirectionFilter.LOCAL_TO_REMOTE) {
                         if (tcpPackage.isRemoteConnectionEstablishSyn()) // remote host tries to establishe connection
-                            connectionDirectionMatches = false;
+                            return false;
                     }
                     if (connectionDirectionFilter == ConnectionDirectionFilter.REMOTE_TO_LOCAL) {
                         if (tcpPackage.isLocalConnectionEstablishSyn()) // localhost tries to establishe connection
-                            connectionDirectionMatches = false;
+                            return false;
                     }
                 }
             }
 
-            return packageMatches && connectionDirectionMatches;
+            return true;
         }
 
         @Override

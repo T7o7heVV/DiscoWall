@@ -218,7 +218,7 @@ public class ShowAppRulesActivity extends AppCompatActivity {
                 new AlertDialog.Builder(ShowAppRulesActivity.this)
                         .setTitle("Clear All Rules")
                         .setIcon(appUidGroup.getIcon())
-                        .setMessage("Delete all rules for the currently selected app?")
+                        .setMessage("Delete all rules for app '" + appUidGroup.getName() + "'?")
                         .setCancelable(true)
                         .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
                             @Override

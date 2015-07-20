@@ -42,9 +42,12 @@ public class NetfilterBridgeIptablesHandler {
     static final String RULE_JUMP_TO_FIREWALL_INTERACTIVE = "-j " + CHAIN_FIREWALL_ACTION_INTERACTIVE;
     static final String RULE_JUMP_TO_FIREWALL_REJECTED = "-j " + CHAIN_FIREWALL_ACTION_REJECT;
 
-    // port-dependent rules: Contain the user-selected firewall-netfilter-bridge-port
-    private final String RULE_BRIDGE_COM_EXCEPTION_SERVER;
-    private final String RULE_BRIDGE_COM_EXCEPTION_CLIENT;
+    // Ignoring traffic from and to loopback device (everything from/to loopback, has been sent from/to loopback)
+    static final String RULE_IGNORE_TRAFFIC_FROM_LOOPBACK = "-o lo -j ACCEPT";
+    static final String RULE_IGNORE_TRAFFIC_TO_LOOPBACK = "-i lo -j ACCEPT";
+//    // port-dependent rules: Contain the user-selected firewall-netfilter-bridge-port
+//    private final String RULE_BRIDGE_COM_EXCEPTION_SERVER;
+//    private final String RULE_BRIDGE_COM_EXCEPTION_CLIENT;
 
     // interfaces
     private static final String[] DEVICES_3G = { "rmnet+", "pdp+", "ppp+", "uwbr+", "wimax+", "vsnet+", "ccmni+", "usb+" };
@@ -61,8 +64,8 @@ public class NetfilterBridgeIptablesHandler {
     public NetfilterBridgeIptablesHandler(int bridgeCommunicationPort) {
         this.bridgeCommunicationPort = bridgeCommunicationPort;
 
-        RULE_BRIDGE_COM_EXCEPTION_CLIENT = "-p tcp -s localhost -d localhost --destination-port " + bridgeCommunicationPort + " -j ACCEPT";
-        RULE_BRIDGE_COM_EXCEPTION_SERVER = "-p tcp -s localhost -d localhost --source-port " + bridgeCommunicationPort + " -j ACCEPT";
+//        RULE_BRIDGE_COM_EXCEPTION_CLIENT = "-p tcp -s localhost -d localhost --destination-port " + bridgeCommunicationPort + " -j ACCEPT";
+//        RULE_BRIDGE_COM_EXCEPTION_SERVER = "-p tcp -s localhost -d localhost --source-port " + bridgeCommunicationPort + " -j ACCEPT";
     }
 
     /**
@@ -108,9 +111,13 @@ public class NetfilterBridgeIptablesHandler {
 
         // chain MAIN-PREFILTER:
         {
-            // rule: exceptions for netfilter-bridge
-            IptablesControl.ruleAdd(CHAIN_FIREWALL_MAIN_PREFILTER, RULE_BRIDGE_COM_EXCEPTION_CLIENT); // client
-            IptablesControl.ruleAdd(CHAIN_FIREWALL_MAIN_PREFILTER, RULE_BRIDGE_COM_EXCEPTION_SERVER); // server
+            // rule: exceptions for all local traffic - including the netfilter-bridge
+            IptablesControl.ruleAdd(CHAIN_FIREWALL_MAIN_PREFILTER, RULE_IGNORE_TRAFFIC_FROM_LOOPBACK);
+            IptablesControl.ruleAdd(CHAIN_FIREWALL_MAIN_PREFILTER, RULE_IGNORE_TRAFFIC_TO_LOOPBACK);
+
+//            // rule: exceptions for netfilter-bridge
+//            IptablesControl.ruleAdd(CHAIN_FIREWALL_MAIN_PREFILTER, RULE_BRIDGE_COM_EXCEPTION_CLIENT); // client
+//            IptablesControl.ruleAdd(CHAIN_FIREWALL_MAIN_PREFILTER, RULE_BRIDGE_COM_EXCEPTION_SERVER); // server
         }
 
         // chain MAIN:
