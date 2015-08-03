@@ -14,12 +14,14 @@ import java.io.OutputStream;
 
 public enum DroidWallFiles {
     DEPLOYED_BINARIES__DIR,
+    FIREWALL_RULES__DIR,
     NETFILTER_BRIDGE_BINARY__FILE,
     ;
 
     public File getFile(Context context) throws RuntimeException {
         switch(this) {
             case DEPLOYED_BINARIES__DIR: return context.getDir("bin", Context.MODE_PRIVATE);
+            case FIREWALL_RULES__DIR: return context.getDir("rules", Context.MODE_PRIVATE);
 
             case NETFILTER_BRIDGE_BINARY__FILE: return new File(DEPLOYED_BINARIES__DIR.getFile(context), "netfilter_bridge");
 

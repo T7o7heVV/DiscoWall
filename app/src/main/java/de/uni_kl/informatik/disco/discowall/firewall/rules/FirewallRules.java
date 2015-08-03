@@ -1,5 +1,7 @@
 package de.uni_kl.informatik.disco.discowall.firewall.rules;
 
+import java.util.UUID;
+
 import de.uni_kl.informatik.disco.discowall.packages.Packages;
 
 public class FirewallRules {
@@ -72,6 +74,8 @@ public class FirewallRules {
 
     /*************************** ARCHITECTURE ******************************************************/
     public interface IFirewallRule {
+        String getUUID();
+
         int getUserId();
         RuleKind getRuleKind();
 
@@ -101,6 +105,12 @@ public class FirewallRules {
     /***********************************************************************************************/
 
     private static abstract class AbstractFirewallRule implements IFirewallRule {
+        /**
+         * This UUID can be used to check whether two rule instances are the same rule - even after the data of one instance has been changed.
+         * This is required for loading rules (to know which rule has to be updated/changed, and which is a new rule).
+         */
+        private String uuid = UUID.randomUUID().toString();
+
         private final int userId;
         private Packages.IpPortPair localFilter, remoteFilter;
         private DeviceFilter deviceFilter;
@@ -122,6 +132,17 @@ public class FirewallRules {
             this.protocolFilter = protocolFilter;
             this.localFilter = localFilter;
             this.remoteFilter = remoteFilter;
+        }
+
+        public String getUUID() {
+            return uuid;
+        }
+
+        /**
+         * Only used when loading a rule from storage.
+         */
+        public void setUUID(String uuid) {
+            this.uuid = uuid;
         }
 
         @Override

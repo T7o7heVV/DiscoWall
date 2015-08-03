@@ -40,6 +40,8 @@
 
     <string name="action_rules_export">Export Rules</string>
     <string name="action_rules_import">Import Rules</string>
+    <string name="action_rules_export_all">Export All Rules</string>
+    <string name="action_rules_import_all">Import All Rules</string>
 
     <string name="action_main_menu_iptables_show_all">Show Iptable Rules (All)</string>
     <string name="action_main_menu_iptables_show_firewall_rules">Show Iptable Rules (firewall only)</string>

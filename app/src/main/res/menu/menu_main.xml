@@ -21,25 +21,40 @@
         android:title="Tools">
 
         <menu>
-            <item android:id="@+id/action_iptables_show_all" android:title="@string/action_main_menu_iptables_show_all"
-                android:orderInCategory="80" app:showAsAction="never" />
+            <item
+                android:title="Import/Export Rules">
 
-            <item android:id="@+id/action_iptables_show_discowall_only" android:title="@string/action_main_menu_iptables_show_firewall_rules"
-                android:orderInCategory="81" app:showAsAction="never" />
+                <menu>
+                    <item android:id="@+id/action_rules_export" android:title="@string/action_rules_export_all"
+                        android:orderInCategory="10" app:showAsAction="never" />
 
-            <item android:id="@+id/action_ifconfig" android:title="@string/action_main_menu_ifconfig"
-                android:orderInCategory="85" app:showAsAction="never" />
+                    <item android:id="@+id/action_rules_import" android:title="@string/action_rules_import_all"
+                        android:orderInCategory="20" app:showAsAction="never" />
+                </menu>
+            </item>
+
+            <item
+                android:title="Linux System-Tools">
+
+                <menu>
+                    <item android:id="@+id/action_iptables_show_all" android:title="@string/action_main_menu_iptables_show_all"
+                        android:orderInCategory="80" app:showAsAction="never" />
+
+                    <item android:id="@+id/action_iptables_show_discowall_only" android:title="@string/action_main_menu_iptables_show_firewall_rules"
+                        android:orderInCategory="81" app:showAsAction="never" />
+
+                    <item android:id="@+id/action_ifconfig" android:title="@string/action_main_menu_ifconfig"
+                        android:orderInCategory="85" app:showAsAction="never" />
+                </menu>
+            </item>
+
+            <item android:id="@+id/action_main_menu_settings" android:title="@string/action_main_menu_settings"
+                android:orderInCategory="90" app:showAsAction="never" />
         </menu>
     </item>
 
-    <item android:id="@+id/action_main_menu_settings" android:title="@string/action_main_menu_settings"
-        android:orderInCategory="90" app:showAsAction="never" />
-
     <item android:id="@+id/action_main_menu_about" android:title="@string/action_main_menu_about"
         android:orderInCategory="95" app:showAsAction="never" />
-
-    <item android:id="@+id/action_main_menu_hide" android:title="@string/action_main_menu_hide"
-        android:orderInCategory="100" app:showAsAction="never" />
 
     <item android:id="@+id/action_main_menu_exit" android:title="@string/action_main_menu_exit"
         android:orderInCategory="100" app:showAsAction="never" />

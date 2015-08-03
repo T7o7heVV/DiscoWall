@@ -2,9 +2,11 @@ package de.uni_kl.informatik.disco.discowall.firewall.subsystems;
 
 import android.content.pm.ApplicationInfo;
 
+import java.io.File;
 import java.util.HashMap;
 import java.util.LinkedList;
 
+import de.uni_kl.informatik.disco.discowall.R;
 import de.uni_kl.informatik.disco.discowall.firewall.Firewall;
 import de.uni_kl.informatik.disco.discowall.firewall.FirewallExceptions;
 import de.uni_kl.informatik.disco.discowall.firewall.FirewallService;
@@ -12,10 +14,14 @@ import de.uni_kl.informatik.disco.discowall.firewall.helpers.FirewallRulesManage
 import de.uni_kl.informatik.disco.discowall.firewall.rules.FirewallIptableRulesHandler;
 import de.uni_kl.informatik.disco.discowall.firewall.rules.FirewallRuleExceptions;
 import de.uni_kl.informatik.disco.discowall.firewall.rules.FirewallRules;
+import de.uni_kl.informatik.disco.discowall.firewall.rules.serialization.FirewallRulesExporter;
 import de.uni_kl.informatik.disco.discowall.netfilter.bridge.NetfilterFirewallRulesHandler;
 import de.uni_kl.informatik.disco.discowall.netfilter.iptables.IptablesControl;
 import de.uni_kl.informatik.disco.discowall.packages.Packages;
+import de.uni_kl.informatik.disco.discowall.utils.FileUtils;
 import de.uni_kl.informatik.disco.discowall.utils.apps.AppUidGroup;
+import de.uni_kl.informatik.disco.discowall.utils.ressources.DiscoWallConstants;
+import de.uni_kl.informatik.disco.discowall.utils.ressources.DroidWallFiles;
 import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecuteExceptions;
 
 public class SubsystemRulesManager extends FirewallSubsystem{
@@ -88,5 +94,39 @@ public class SubsystemRulesManager extends FirewallSubsystem{
 
     public void deleteRule(FirewallRules.IFirewallRule rule) {
         rulesManager.deleteRule(rule);
+    }
+
+    public void addRule(FirewallRules.IFirewallRule rule, FirewallRules.IFirewallRule existingRuleBelowNewOne) throws FirewallRuleExceptions.DuplicateRuleException, FirewallRuleExceptions.RuleNotFoundException {
+        rulesManager.addRule(rule, existingRuleBelowNewOne);
+    }
+
+    public void saveAllRulesToFile(File exportFile) {
+        exportFile.getParentFile().mkdirs(); // create all missing directories up to discowall-dir
+        FirewallRulesExporter exporter = new FirewallRulesExporter();
+        exporter.saveRulesToFile(getAllRules(), exportFile);
+    }
+
+    /**
+     * After a rule has been created/edited/deleted for a specific app, the list of rules has to be serialized,
+     * so that it exists between Discowall-Instances.
+     * @param appUidGroup
+     * @see #loadRulesFromAppStorage(AppUidGroup)
+     */
+    public void saveRulesToAppStorage(AppUidGroup appUidGroup) {
+        File rulesDir = DroidWallFiles.FIREWALL_RULES__DIR.getFile(firewallServiceContext);
+
+        // TODO
+    }
+
+    /**
+     * After a rule has been created/edited/deleted for a specific app, the list of rules has to be serialized,
+     * so that it exists between Discowall-Instances.
+     * @param appUidGroup
+     * @see #saveRulesToAppStorage(AppUidGroup)
+     */
+    public void loadRulesFromAppStorage(AppUidGroup appUidGroup) {
+        File rulesDir = DroidWallFiles.FIREWALL_RULES__DIR.getFile(firewallServiceContext);
+
+        // TODO
     }
 }

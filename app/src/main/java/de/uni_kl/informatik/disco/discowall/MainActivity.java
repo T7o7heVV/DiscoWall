@@ -7,6 +7,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.pm.ApplicationInfo;
+import android.os.Environment;
 import android.os.IBinder;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
@@ -21,15 +22,20 @@ import android.widget.CompoundButton;
 import android.widget.Switch;
 import android.widget.Toast;
 
+import java.io.File;
+
 import de.uni_kl.informatik.disco.discowall.firewall.Firewall;
 import de.uni_kl.informatik.disco.discowall.firewall.FirewallExceptions;
 import de.uni_kl.informatik.disco.discowall.firewall.FirewallService;
+import de.uni_kl.informatik.disco.discowall.firewall.rules.serialization.FirewallRulesExporter;
 import de.uni_kl.informatik.disco.discowall.gui.adapters.AppRulesAdapter;
 import de.uni_kl.informatik.disco.discowall.gui.dialogs.ErrorDialog;
 import de.uni_kl.informatik.disco.discowall.gui.handlers.MainActivityGuiHandlerFirewallControl;
 import de.uni_kl.informatik.disco.discowall.gui.dialogs.AboutDialog;
 import de.uni_kl.informatik.disco.discowall.gui.handlers.MainActivityGuiHandlerWatchedApps;
 import de.uni_kl.informatik.disco.discowall.packages.Packages;
+import de.uni_kl.informatik.disco.discowall.utils.FileUtils;
+import de.uni_kl.informatik.disco.discowall.utils.ressources.DiscoWallConstants;
 import de.uni_kl.informatik.disco.discowall.utils.ressources.DiscoWallSettings;
 import de.uni_kl.informatik.disco.discowall.utils.shell.RootShellExecute;
 import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecuteExceptions;
@@ -83,14 +89,14 @@ public class MainActivity extends AppCompatActivity {
                 AboutDialog.show(this);
                 return true;
             }
-            case R.id.action_main_menu_hide:
-            {
-                if (firewall.isFirewallRunning())
-                    Toast.makeText(this, R.string.message_application_runs_in_background, Toast.LENGTH_LONG).show();
-
-                finish();
-                return true;
-            }
+//            case R.id.action_main_menu_hide:
+//            {
+//                if (firewall.isFirewallRunning())
+//                    Toast.makeText(this, R.string.message_application_runs_in_background, Toast.LENGTH_LONG).show();
+//
+//                finish();
+//                return true;
+//            }
             case R.id.action_main_menu_exit:
             {
                 actionExitFirewall();
@@ -126,9 +132,34 @@ public class MainActivity extends AppCompatActivity {
                 guiHandlerWatchedApps.actionInvertAllAppsWatched();
                 return true;
             }
+            case R.id.action_rules_export:
+            {
+                actionExportRules();
+                return true;
+            }
+            case R.id.action_rules_import:
+            {
+                actionImportRules();
+                return true;
+            }
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    private void actionExportRules() {
+        File discowallPublicDir = DiscoWallConstants.Directories.discowallPublicDirectory;
+
+        String filePrefix = getString(R.string.app_name) + "_rules_export";
+        File exportFile = FileUtils.createUniqueFilename(discowallPublicDir, filePrefix, ".xml");
+
+        firewall.subsystem.rulesManager.saveAllRulesToFile(exportFile);
+
+        Toast.makeText(this, exportFile.getAbsolutePath() + " written.", Toast.LENGTH_LONG).show();
+    }
+
+    private void actionImportRules() {
+        // TODO!
     }
 
     private void actionShowIfconfigOutput() {
