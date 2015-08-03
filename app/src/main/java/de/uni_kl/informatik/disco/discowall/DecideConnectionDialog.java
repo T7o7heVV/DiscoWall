@@ -172,8 +172,10 @@ public class DecideConnectionDialog extends DialogFragment {
     }
 
     public static DecideConnectionDialog show(Activity context, Connections.Connection connection, AppUidGroup appUidGroup) {
-        if (! (context instanceof DecideConnectionDialogListener))
+        if (! (context instanceof DecideConnectionDialogListener)) {
+            Log.e(LOG_TAG, "Starting-Activity must implement interface " + DecideConnectionDialogListener.class.getCanonicalName());
             throw new ClassCastException("Starting-Activity must implement interface " + DecideConnectionDialogListener.class.getCanonicalName());
+        }
 
         final PackageManager packageManager = context.getPackageManager();
         Bundle args = new Bundle();

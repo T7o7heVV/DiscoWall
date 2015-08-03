@@ -8,6 +8,7 @@ import java.util.List;
 
 import de.uni_kl.informatik.disco.discowall.firewall.helpers.FirewallPolicyManager;
 import de.uni_kl.informatik.disco.discowall.firewall.helpers.FirewallRulesManager;
+import de.uni_kl.informatik.disco.discowall.firewall.helpers.WatchedAppsManager;
 import de.uni_kl.informatik.disco.discowall.firewall.rules.FirewallIptableRulesHandler;
 import de.uni_kl.informatik.disco.discowall.firewall.rules.FirewallRules;
 import de.uni_kl.informatik.disco.discowall.firewall.subsystems.SubsystemRulesManager;
@@ -74,8 +75,11 @@ public class Firewall implements NetfilterBridgeCommunicator.BridgeEventsHandler
     private final NetworkInterfaceHelper networkInterfaceHelper = new NetworkInterfaceHelper();
     private final FirewallIptableRulesHandler iptableRulesManager = NetfilterFirewallRulesHandler.instance;
     private final FirewallPackageFilter packageFilter;
+
+    // Helpers:
     private final FirewallPolicyManager policyManager = new FirewallPolicyManager(NetfilterFirewallRulesHandler.instance);
     private final FirewallRulesManager firewallRulesManager = new FirewallRulesManager();
+    private final WatchedAppsManager watchedAppsManager;
 
     // Firewall-Service-Connection:
     private final Context firewallServiceContext;
@@ -96,10 +100,11 @@ public class Firewall implements NetfilterBridgeCommunicator.BridgeEventsHandler
         this.firewallState = FirewallState.STOPPED;
 
         // Helpers:
-        this.packageFilter = new FirewallPackageFilter(firewallServiceContext, policyManager, firewallRulesManager);
+        this.watchedAppsManager = new WatchedAppsManager(firewallServiceContext);
+        this.packageFilter = new FirewallPackageFilter(firewallServiceContext, policyManager, firewallRulesManager, watchedAppsManager);
 
         // Subsystems:
-        this.subsystemWatchedApps = new SubsystemWatchedApps(this, firewallServiceContext, iptableRulesManager);
+        this.subsystemWatchedApps = new SubsystemWatchedApps(this, firewallServiceContext, iptableRulesManager, watchedAppsManager);
         this.subsystemRulesManager = new SubsystemRulesManager(this, firewallServiceContext, firewallRulesManager);
         this.subsystem = new FirewallSubsystems();
 

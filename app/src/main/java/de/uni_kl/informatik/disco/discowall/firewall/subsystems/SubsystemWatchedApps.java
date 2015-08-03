@@ -18,10 +18,10 @@ public class SubsystemWatchedApps extends FirewallSubsystem {
     private final WatchedAppsManager watchedAppsManager;
     private final FirewallIptableRulesHandler iptableRulesManager;
 
-    public SubsystemWatchedApps(Firewall firewall, FirewallService firewallServiceContext, FirewallIptableRulesHandler iptableRulesManager) {
+    public SubsystemWatchedApps(Firewall firewall, FirewallService firewallServiceContext, FirewallIptableRulesHandler iptableRulesManager, WatchedAppsManager watchedAppsManager) {
         super(firewall, firewallServiceContext);
         this.iptableRulesManager = iptableRulesManager;
-        this.watchedAppsManager = new WatchedAppsManager(firewallServiceContext);
+        this.watchedAppsManager = watchedAppsManager;
     }
 
     /**

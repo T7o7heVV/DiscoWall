@@ -25,6 +25,20 @@ public class FirewallRuleExceptions {
         }
     }
 
+    public static class RuleNotFoundException extends RuleException {
+        public RuleNotFoundException(FirewallRules.IFirewallRule rule) {
+            super(rule, "Rule is not registered for user " + rule.getUserId() + ". Rule: " + rule);
+        }
+
+        public RuleNotFoundException(FirewallRules.IFirewallRule rule, String message) {
+            super(rule, message);
+        }
+
+        public RuleNotFoundException(FirewallRules.IFirewallRule rule, String message, Exception cause) {
+            super(rule, message, cause);
+        }
+    }
+
     public static class InvalidRuleDefinitionException extends RuleException {
         public InvalidRuleDefinitionException(FirewallRules.IFirewallRule rule, String message) {
             super(rule, message);

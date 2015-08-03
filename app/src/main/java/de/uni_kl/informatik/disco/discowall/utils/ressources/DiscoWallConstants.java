@@ -1,5 +1,7 @@
 package de.uni_kl.informatik.disco.discowall.utils.ressources;
 
+import android.os.Environment;
+
 import java.io.File;
 
 public final class DiscoWallConstants {
@@ -7,8 +9,16 @@ public final class DiscoWallConstants {
 
     // IMPORTANT: DO NOT add language-specific strings here! I am using the res.values.strings for that.
 
+    public static final class App {
+        public static final String appName = "Discowall"; // IMPORTANT: keep equal to R.string.app_name!
+    }
+
     public static final class NotificationIDs {
         public static final int firewallService = 10;
+    }
+
+    public static final class Directories {
+        public static final File discowallPublicDirectory = new File(Environment.getExternalStorageDirectory(), App.appName);
     }
 
     public static final class Files {

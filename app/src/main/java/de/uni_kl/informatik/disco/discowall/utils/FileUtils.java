@@ -43,4 +43,19 @@ public class FileUtils {
         if (result.returnValue != 0)
             throw new ShellExecuteExceptions.NonZeroReturnValueException(result);
     }
+
+
+    public static File createUniqueFilename(File parent, String filenamePrefix, String filenameSuffix) {
+        File unchangedFile = new File(parent, filenamePrefix + filenameSuffix);
+        if (!unchangedFile.exists())
+            return unchangedFile;
+
+        // Create file with name of form: prefix_n_suffix - where "n" is the first number where this filename is unique.
+        int fileNumber = 0;
+        while(new File(parent, filenamePrefix +"_" + fileNumber + filenameSuffix).exists())
+            fileNumber++;
+
+        return new File(parent, filenamePrefix +"_" + fileNumber + filenameSuffix);
+    }
+
 }

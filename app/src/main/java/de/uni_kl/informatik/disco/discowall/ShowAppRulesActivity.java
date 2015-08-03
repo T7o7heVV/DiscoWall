@@ -107,7 +107,7 @@ public class ShowAppRulesActivity extends AppCompatActivity {
 
         switch(item.getItemId()) {
             case R.id.action_rules_create_rule:
-                actionCreateRule();
+                actionCreateRuleAbove(clickedRule);
                 return true;
             case R.id.action_rules_delete_rule:
                 actionDeleteRule(clickedRule);
@@ -115,9 +115,16 @@ public class ShowAppRulesActivity extends AppCompatActivity {
             case R.id.action_rules_edit_rule:
                 actionEditRule(clickedRule);
                 return true;
+            case R.id.action_rules_move_rule_up:
+//                actionMoveRuleUp(clickedRule); // TODO
+                return true;
+            case R.id.action_rules_move_rule_down:
+//                actionMoveRuleDown(clickedRule); // TODO
+                return true;
             default:
                 return super.onContextItemSelected(item);
         }
+
     }
 
     private void actionDeleteRule(final FirewallRules.IFirewallRule ruleToDelete) {
@@ -202,6 +209,20 @@ public class ShowAppRulesActivity extends AppCompatActivity {
         setupButtons();
 
         showAppRulesInGui(appUidGroup);
+
+        handleIntentCommand();
+    }
+
+    private void handleIntentCommand() {
+        Bundle args = getIntent().getExtras();
+        String action = args.getString("action");
+
+        if (action.equals("show")) {
+            // nothing to do - just show
+        } else if (action.equals("connection.decide")) {
+            // decide what to do with connection
+            DecideConnectionDialog.show(this, null, appUidGroup); // TODO
+        }
     }
 
     private void setupButtons() {
@@ -244,6 +265,10 @@ public class ShowAppRulesActivity extends AppCompatActivity {
     }
 
     private void actionCreateRule() {
+        actionCreateRuleAbove(null);
+    }
+
+    private void actionCreateRuleAbove(final FirewallRules.IFirewallRule selectedRule) {
         new AlertDialog.Builder(ShowAppRulesActivity.this)
                 .setTitle("Create Rule")
                 .setIcon(appUidGroup.getIcon())
@@ -252,19 +277,19 @@ public class ShowAppRulesActivity extends AppCompatActivity {
                 .setPositiveButton("Redirection", new DialogInterface.OnClickListener() { // positive button is on the right ==> redirection is right button
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        actionCreateRule(FirewallRules.RuleKind.Redirect);
+                        actionCreateRuleAbove(selectedRule, FirewallRules.RuleKind.Redirect);
                     }
                 })
                 .setNegativeButton("Policy", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        actionCreateRule(FirewallRules.RuleKind.Policy);
+                        actionCreateRuleAbove(selectedRule, FirewallRules.RuleKind.Policy);
                     }
                 })
                 .create().show();
     }
 
-    private void actionCreateRule(FirewallRules.RuleKind ruleKind) {
+    private void actionCreateRuleAbove(final FirewallRules.IFirewallRule existingRuleBelowNewOne, FirewallRules.RuleKind ruleKind) {
         FirewallRules.IFirewallRule rule;
 
         switch(ruleKind) {
@@ -292,10 +317,16 @@ public class ShowAppRulesActivity extends AppCompatActivity {
             public void onAcceptChanges(FirewallRules.IFirewallRule rule, AppUidGroup appUidGroup) {
                 try {
                     Log.v(LOG_TAG, "Adding rule for AppGroup" + appUidGroup + ": " + rule);
-                    firewall.subsystem.rulesManager.addRule(rule);
+
+                    if (existingRuleBelowNewOne != null)
+                        firewall.subsystem.rulesManager.addRule(rule, existingRuleBelowNewOne);
+                    else
+                        firewall.subsystem.rulesManager.addRule(rule);
+
                     refreshActivityAfterRulesChanged();
-                } catch (FirewallRuleExceptions.DuplicateRuleException e) {
-                    // This exception cannot be fired, as I will never try to add this rule again
+                } catch (FirewallRuleExceptions.DuplicateRuleException | FirewallRuleExceptions.RuleNotFoundException e) {
+                    // RuleNotFoundException: can also not happen, as both rules are owned by the same user - as they are in this list
+                    // DuplicateRuleException: will never be fired, as I will never try to add this rule agAIn
                     Log.e(LOG_TAG, e.getMessage(), e);
                 }
             }
@@ -328,7 +359,8 @@ public class ShowAppRulesActivity extends AppCompatActivity {
     }
 
     private void showAppRulesInGui(final AppUidGroup appUidGroup) {
-        ListView rulesListView = (ListView) findViewById(R.id.activity_show_app_rules_listView_rules);
+        final ListView rulesListView = (ListView) findViewById(R.id.activity_show_app_rules_listView_rules);
+
         appRulesAdapter = new AppRulesAdapter(this, firewall.subsystem.rulesManager.getRules(appUidGroup));
         rulesListView.setAdapter(appRulesAdapter);
 
@@ -346,14 +378,31 @@ public class ShowAppRulesActivity extends AppCompatActivity {
             findViewById(android.R.id.empty).setVisibility(View.INVISIBLE);
     }
 
-    public static void showAppRules(Context context, AppUidGroup appUidGroup) {
+    private static Intent createActivityIntentForApp(Context context, AppUidGroup appUidGroup) {
         Bundle args = new Bundle();
 
-        // Dialog-Infos:
         args.putInt("app.uid", appUidGroup.getUid());
+        args.putString("action", "show");
 
-        Intent showAppRulesIntent = new Intent(context, ShowAppRulesActivity.class);
-        showAppRulesIntent.putExtras(args);
-        context.startActivity(showAppRulesIntent);
+        Intent intentWithAppGroupInfos = new Intent(context, ShowAppRulesActivity.class);
+        intentWithAppGroupInfos.putExtras(args);
+
+        return intentWithAppGroupInfos;
+    }
+
+    public static void showAppRules(Context context, AppUidGroup appUidGroup) {
+        context.startActivity(createActivityIntentForApp(context, appUidGroup));
+    }
+
+    public static void showNewRuleDialog(Context context, AppUidGroup appUidGroup, Packages.TransportLayerPackage tlPackage, boolean useFlagNewTask) {
+        Intent intent = createActivityIntentForApp(context, appUidGroup);
+
+        if (useFlagNewTask)
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+
+        Bundle args = intent.getExtras();
+        args.putString("action", "connection.decide");
+
+        context.startActivity(intent);
     }
 }

@@ -38,6 +38,9 @@
 
     <!-- Actions -->
 
+    <string name="action_rules_export">Export Rules</string>
+    <string name="action_rules_import">Import Rules</string>
+
     <string name="action_main_menu_iptables_show_all">Show Iptable Rules (All)</string>
     <string name="action_main_menu_iptables_show_firewall_rules">Show Iptable Rules (firewall only)</string>
     <string name="action_main_menu_ifconfig">Show ifconfig</string>
@@ -59,9 +62,11 @@
     <string name="action_interactive">Interactive</string>
     <string name="action_apply_for_all_connections_of_this_app">Apply For All New App-Connections</string>
 
-    <string name="action_rule_create">Create Rule</string>
+    <string name="action_rule_add">Add Rule</string>
     <string name="action_rule_edit">Edit Rule</string>
     <string name="action_rule_delete">Delete Rule</string>
+    <string name="action_rule_move_up">Move Rule Up</string>
+    <string name="action_rule_move_down">Move Rule Down</string>
 
     <string name="question_exit_application">Exit DiscoWall?</string>
     <string name="question_disable_firewall_and_exit_application">Disable and Exit DiscoWall?</string>

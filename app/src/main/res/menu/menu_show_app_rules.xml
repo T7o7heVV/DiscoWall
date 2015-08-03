@@ -10,13 +10,16 @@
 
     -->
 
-    <item android:id="@+id/action_rules_create_rule" android:title="@string/action_rule_create"
-        android:orderInCategory="25" app:showAsAction="never" />
+    <item android:id="@+id/action_rules_move_rule_up" android:title="@string/action_rule_move_up"
+        app:showAsAction="never" />
+    <item android:id="@+id/action_rules_move_rule_down" android:title="@string/action_rule_move_down"
+        app:showAsAction="never" />
 
+    <item android:id="@+id/action_rules_create_rule" android:title="@string/action_rule_add"
+        app:showAsAction="never" />
     <item android:id="@+id/action_rules_edit_rule" android:title="@string/action_rule_edit"
-        android:orderInCategory="30" app:showAsAction="never" />
-
+        app:showAsAction="never" />
     <item android:id="@+id/action_rules_delete_rule" android:title="@string/action_rule_delete"
-        android:orderInCategory="35" app:showAsAction="never" />
+        app:showAsAction="never" />
 
 </menu>
