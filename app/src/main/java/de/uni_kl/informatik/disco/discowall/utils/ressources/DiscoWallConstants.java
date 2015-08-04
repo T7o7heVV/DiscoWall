@@ -25,6 +25,7 @@ public final class DiscoWallConstants {
         public static final File dnsServerConfigFile = new File("/etc/resolv.conf");
 //        public static final File networkDevicesListFile = new File("/proc/net/dev");
         public static final File installedPackagesXmlFile = new File("/data/system/packages.xml");
+        public static final String ruledAppRulesFilePrefix = "RuledAppRules-uid-";
     }
 
     public static final class Firewall {

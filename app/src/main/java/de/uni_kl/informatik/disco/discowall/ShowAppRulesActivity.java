@@ -142,7 +142,7 @@ public class ShowAppRulesActivity extends AppCompatActivity {
                         Toast.makeText(ShowAppRulesActivity.this, "rule deleted", Toast.LENGTH_SHORT).show();
 
                         // reload activity, so that the empty list is shown:
-                        refreshActivityAfterRulesChanged();
+                        afterRulesChanged();
                     }
                 })
                 .setNegativeButton("No", new DialogInterface.OnClickListener() {
@@ -250,7 +250,7 @@ public class ShowAppRulesActivity extends AppCompatActivity {
                                 Toast.makeText(ShowAppRulesActivity.this, "all rules deleted", Toast.LENGTH_SHORT).show();
 
                                 // reload activity, so that the empty list is shown:
-                                refreshActivityAfterRulesChanged();
+                                afterRulesChanged();
                             }
                         })
                         .setNegativeButton("No", new DialogInterface.OnClickListener() {
@@ -323,7 +323,7 @@ public class ShowAppRulesActivity extends AppCompatActivity {
                     else
                         firewall.subsystem.rulesManager.addRule(rule);
 
-                    refreshActivityAfterRulesChanged();
+                    afterRulesChanged();
                 } catch (FirewallRuleExceptions.DuplicateRuleException | FirewallRuleExceptions.RuleNotFoundException e) {
                     // RuleNotFoundException: can also not happen, as both rules are owned by the same user - as they are in this list
                     // DuplicateRuleException: will never be fired, as I will never try to add this rule agAIn
@@ -337,7 +337,10 @@ public class ShowAppRulesActivity extends AppCompatActivity {
         }, appUidGroup, rule);
     }
 
-    private void refreshActivityAfterRulesChanged() {
+    private void afterRulesChanged() {
+        // Write rules to storage:
+        firewall.subsystem.rulesManager.saveRulesToAppStorage(appUidGroup);
+
         // Restart activity for refreshing data. Reloading listViews almost never works anyway.
         GuiUtils.restartActivity(ShowAppRulesActivity.this);
     }
@@ -347,7 +350,7 @@ public class ShowAppRulesActivity extends AppCompatActivity {
                 ShowAppRulesActivity.this, new EditRuleDialog.DialogListener() {
                     @Override
                     public void onAcceptChanges(FirewallRules.IFirewallRule rule, AppUidGroup appUidGroup) {
-                        refreshActivityAfterRulesChanged();
+                        afterRulesChanged();
                     }
 
                     @Override

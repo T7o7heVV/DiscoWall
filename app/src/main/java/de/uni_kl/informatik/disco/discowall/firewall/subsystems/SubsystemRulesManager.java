@@ -16,6 +16,7 @@ import de.uni_kl.informatik.disco.discowall.netfilter.bridge.NetfilterFirewallRu
 import de.uni_kl.informatik.disco.discowall.netfilter.iptables.IptablesControl;
 import de.uni_kl.informatik.disco.discowall.packages.Packages;
 import de.uni_kl.informatik.disco.discowall.utils.apps.AppUidGroup;
+import de.uni_kl.informatik.disco.discowall.utils.ressources.DiscoWallConstants;
 import de.uni_kl.informatik.disco.discowall.utils.ressources.DroidWallFiles;
 import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecuteExceptions;
 
@@ -116,8 +117,10 @@ public class SubsystemRulesManager extends FirewallSubsystem{
      */
     public void saveRulesToAppStorage(AppUidGroup appUidGroup) {
         File rulesDir = DroidWallFiles.FIREWALL_RULES__DIR.getFile(firewallServiceContext);
+        File groupRulesFiles = new File(rulesDir, DiscoWallConstants.Files.ruledAppRulesFilePrefix + appUidGroup.getUid() + ".xml");
 
-        // TODO
+        FirewallRulesExporter exporter = new FirewallRulesExporter();
+        exporter.exportRulesToFile(firewall.getRuledApp(appUidGroup), groupRulesFiles);
     }
 
     /**

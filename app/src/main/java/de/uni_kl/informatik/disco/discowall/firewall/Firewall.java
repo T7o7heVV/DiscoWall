@@ -340,13 +340,18 @@ public class Firewall implements NetfilterBridgeCommunicator.BridgeEventsHandler
         packageFilter.decidePackageAccepted(tlPackage, connection, actionCallback);
     }
 
+    public FirewallRuledApp getRuledApp(AppUidGroup group) {
+        boolean isMonitored = subsystemWatchedApps.isAppWatched(group);
+        LinkedList<FirewallRules.IFirewallRule> rules = subsystemRulesManager.getRules(group);
+
+        return new FirewallRuledApp(group, rules, isMonitored);
+    }
+
     public LinkedList<FirewallRuledApp> getRuledApps() {
         LinkedList<FirewallRuledApp> ruledApps = new LinkedList<>();
 
         for(AppUidGroup group : subsystemWatchedApps.getInstalledAppGroups()) {
-            boolean isMonitored = subsystemWatchedApps.isAppWatched(group);
-            LinkedList<FirewallRules.IFirewallRule> rules = subsystemRulesManager.getRules(group);
-            ruledApps.add(new FirewallRuledApp(group, rules, isMonitored));
+            ruledApps.add(getRuledApp(group));
         }
 
         return ruledApps;

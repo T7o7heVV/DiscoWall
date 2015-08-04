@@ -111,7 +111,15 @@ public class FirewallRulesExporter {
         return groupsElement;
     }
 
+    public void exportRulesToFile(FirewallRuledApp ruledApp, File xmlFile) {
+        LinkedList<FirewallRuledApp> ruledAppsList = new LinkedList<>();
+        ruledAppsList.add(ruledApp);
+
+        exportRulesToFile(ruledAppsList, xmlFile);
+    }
+
     public void exportRulesToFile(LinkedList<FirewallRuledApp> ruledApps, File xmlFile) {
+        Log.i(LOG_TAG, "Exporting rules of " + ruledApps.size() + " apps to xml-file: " + xmlFile.getAbsolutePath());
         exportRulesToStream(ruledApps, new StreamResult(xmlFile));
     }
 
