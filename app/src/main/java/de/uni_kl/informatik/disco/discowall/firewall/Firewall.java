@@ -13,6 +13,7 @@ import de.uni_kl.informatik.disco.discowall.firewall.rules.FirewallIptableRulesH
 import de.uni_kl.informatik.disco.discowall.firewall.rules.FirewallRules;
 import de.uni_kl.informatik.disco.discowall.firewall.subsystems.SubsystemRulesManager;
 import de.uni_kl.informatik.disco.discowall.firewall.subsystems.SubsystemWatchedApps;
+import de.uni_kl.informatik.disco.discowall.firewall.util.FirewallRuledApp;
 import de.uni_kl.informatik.disco.discowall.gui.dialogs.ErrorDialog;
 import de.uni_kl.informatik.disco.discowall.netfilter.bridge.NetfilterBridgeCommunicator;
 import de.uni_kl.informatik.disco.discowall.netfilter.bridge.NetfilterBridgeControl;
@@ -105,7 +106,7 @@ public class Firewall implements NetfilterBridgeCommunicator.BridgeEventsHandler
 
         // Subsystems:
         this.subsystemWatchedApps = new SubsystemWatchedApps(this, firewallServiceContext, iptableRulesManager, watchedAppsManager);
-        this.subsystemRulesManager = new SubsystemRulesManager(this, firewallServiceContext, firewallRulesManager);
+        this.subsystemRulesManager = new SubsystemRulesManager(this, firewallServiceContext, firewallRulesManager, watchedAppsManager);
         this.subsystem = new FirewallSubsystems();
 
         Log.i(LOG_TAG, "firewall service running.");
@@ -337,6 +338,18 @@ public class Firewall implements NetfilterBridgeCommunicator.BridgeEventsHandler
         Log.v(LOG_TAG, "Connection: " + connection);
 
         packageFilter.decidePackageAccepted(tlPackage, connection, actionCallback);
+    }
+
+    public LinkedList<FirewallRuledApp> getRuledApps() {
+        LinkedList<FirewallRuledApp> ruledApps = new LinkedList<>();
+
+        for(AppUidGroup group : subsystemWatchedApps.getInstalledAppGroups()) {
+            boolean isMonitored = subsystemWatchedApps.isAppWatched(group);
+            LinkedList<FirewallRules.IFirewallRule> rules = subsystemRulesManager.getRules(group);
+            ruledApps.add(new FirewallRuledApp(group, rules, isMonitored));
+        }
+
+        return ruledApps;
     }
 
     @Override

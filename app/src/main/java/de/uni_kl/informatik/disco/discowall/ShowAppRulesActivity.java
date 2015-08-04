@@ -129,7 +129,7 @@ public class ShowAppRulesActivity extends AppCompatActivity {
 
     private void actionDeleteRule(final FirewallRules.IFirewallRule ruleToDelete) {
         new AlertDialog.Builder(ShowAppRulesActivity.this)
-                .setTitle("Delete Rule")
+                .setTitle(R.string.question_delete_rule)
                 .setIcon(AppRulesAdapter.getRuleIcon(ruleToDelete, ShowAppRulesActivity.this))
                 .setMessage("Delete selected rule?" + "\n\n" + ruleToDelete.getLocalFilter() + " -> " + ruleToDelete.getRemoteFilter())
                 .setCancelable(true)

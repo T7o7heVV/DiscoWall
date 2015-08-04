@@ -1,5 +1,12 @@
 package de.uni_kl.informatik.disco.discowall.utils;
 
+import android.content.ActivityNotFoundException;
+import android.content.Context;
+import android.content.Intent;
+import android.net.Uri;
+import android.webkit.MimeTypeMap;
+import android.widget.Toast;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -58,4 +65,25 @@ public class FileUtils {
         return new File(parent, filenamePrefix +"_" + fileNumber + filenameSuffix);
     }
 
+    public static void openFileWithDefaultApp(Context context, File file) {
+        MimeTypeMap myMime = MimeTypeMap.getSingleton();
+        Intent newIntent = new Intent(Intent.ACTION_VIEW);
+
+        String fileExtension = "";
+        if (file.getName().contains("."))
+            fileExtension = file.getName().substring(file.getName().lastIndexOf("."));
+
+        String mimeType = myMime.getMimeTypeFromExtension(fileExtension);
+//        if (mimeType != null)
+//            mimeType = mimeType.substring(1);
+
+        newIntent.setDataAndType(Uri.fromFile(file),mimeType);
+        newIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+
+        try {
+            context.startActivity(newIntent);
+        } catch (ActivityNotFoundException e) {
+            Toast.makeText(context, "No handler for this type of file.", Toast.LENGTH_LONG).show();
+        }
+    }
 }

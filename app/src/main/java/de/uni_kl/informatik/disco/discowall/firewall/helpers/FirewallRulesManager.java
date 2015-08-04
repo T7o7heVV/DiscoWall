@@ -123,6 +123,10 @@ public class FirewallRulesManager {
         rulesHash.deleteRule(rule);
     }
 
+    public void deleteAllRules() {
+        rulesHash.deleteAllRules();
+    }
+
 
     private class RulesHash {
         private final HashMap<Integer, LinkedList<FirewallRules.IFirewallRule>> userIdToRulesListHash = new HashMap<>();
@@ -137,6 +141,10 @@ public class FirewallRulesManager {
 
         public int getRuleIndex(FirewallRules.IFirewallRule rule) {
             return getRulesEx(rule.getUserId()).indexOf(rule);
+        }
+
+        public void deleteAllRules() {
+            userIdToRulesListHash.clear();
         }
 
         public void deleteAllRules(int uid) {

@@ -1,16 +1,13 @@
 package de.uni_kl.informatik.disco.discowall.firewall.subsystems;
 
-import android.content.pm.ApplicationInfo;
-
 import java.io.File;
-import java.util.HashMap;
 import java.util.LinkedList;
 
-import de.uni_kl.informatik.disco.discowall.R;
 import de.uni_kl.informatik.disco.discowall.firewall.Firewall;
 import de.uni_kl.informatik.disco.discowall.firewall.FirewallExceptions;
 import de.uni_kl.informatik.disco.discowall.firewall.FirewallService;
 import de.uni_kl.informatik.disco.discowall.firewall.helpers.FirewallRulesManager;
+import de.uni_kl.informatik.disco.discowall.firewall.helpers.WatchedAppsManager;
 import de.uni_kl.informatik.disco.discowall.firewall.rules.FirewallIptableRulesHandler;
 import de.uni_kl.informatik.disco.discowall.firewall.rules.FirewallRuleExceptions;
 import de.uni_kl.informatik.disco.discowall.firewall.rules.FirewallRules;
@@ -18,19 +15,19 @@ import de.uni_kl.informatik.disco.discowall.firewall.rules.serialization.Firewal
 import de.uni_kl.informatik.disco.discowall.netfilter.bridge.NetfilterFirewallRulesHandler;
 import de.uni_kl.informatik.disco.discowall.netfilter.iptables.IptablesControl;
 import de.uni_kl.informatik.disco.discowall.packages.Packages;
-import de.uni_kl.informatik.disco.discowall.utils.FileUtils;
 import de.uni_kl.informatik.disco.discowall.utils.apps.AppUidGroup;
-import de.uni_kl.informatik.disco.discowall.utils.ressources.DiscoWallConstants;
 import de.uni_kl.informatik.disco.discowall.utils.ressources.DroidWallFiles;
 import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecuteExceptions;
 
 public class SubsystemRulesManager extends FirewallSubsystem{
     private final FirewallRulesManager rulesManager;
     private final FirewallIptableRulesHandler iptableRulesManager = NetfilterFirewallRulesHandler.instance;
+    private final WatchedAppsManager watchedAppsManager;
 
-    public SubsystemRulesManager(Firewall firewall, FirewallService firewallServiceContext, FirewallRulesManager rulesManager) {
+    public SubsystemRulesManager(Firewall firewall, FirewallService firewallServiceContext, FirewallRulesManager rulesManager, WatchedAppsManager watchedAppsManager) {
         super(firewall, firewallServiceContext);
         this.rulesManager = rulesManager;
+        this.watchedAppsManager = watchedAppsManager;
     }
 
     public String getIptableRules(boolean all) throws FirewallExceptions.FirewallException {
@@ -96,6 +93,10 @@ public class SubsystemRulesManager extends FirewallSubsystem{
         rulesManager.deleteRule(rule);
     }
 
+    public void deleteAllRules() {
+        rulesManager.deleteAllRules();
+    }
+
     public void addRule(FirewallRules.IFirewallRule rule, FirewallRules.IFirewallRule existingRuleBelowNewOne) throws FirewallRuleExceptions.DuplicateRuleException, FirewallRuleExceptions.RuleNotFoundException {
         rulesManager.addRule(rule, existingRuleBelowNewOne);
     }
@@ -103,7 +104,8 @@ public class SubsystemRulesManager extends FirewallSubsystem{
     public void saveAllRulesToFile(File exportFile) {
         exportFile.getParentFile().mkdirs(); // create all missing directories up to discowall-dir
         FirewallRulesExporter exporter = new FirewallRulesExporter();
-        exporter.saveRulesToFile(getAllRules(), exportFile);
+
+        exporter.exportRulesToFile(firewall.getRuledApps(), exportFile);
     }
 
     /**
@@ -129,4 +131,5 @@ public class SubsystemRulesManager extends FirewallSubsystem{
 
         // TODO
     }
+
 }

@@ -35,6 +35,7 @@ import de.uni_kl.informatik.disco.discowall.gui.dialogs.AboutDialog;
 import de.uni_kl.informatik.disco.discowall.gui.handlers.MainActivityGuiHandlerWatchedApps;
 import de.uni_kl.informatik.disco.discowall.packages.Packages;
 import de.uni_kl.informatik.disco.discowall.utils.FileUtils;
+import de.uni_kl.informatik.disco.discowall.utils.GuiUtils;
 import de.uni_kl.informatik.disco.discowall.utils.ressources.DiscoWallConstants;
 import de.uni_kl.informatik.disco.discowall.utils.ressources.DiscoWallSettings;
 import de.uni_kl.informatik.disco.discowall.utils.shell.RootShellExecute;
@@ -142,9 +143,39 @@ public class MainActivity extends AppCompatActivity {
                 actionImportRules();
                 return true;
             }
+            case R.id.action_rules_delete_all:
+            {
+                actionDeleteAllRules();
+                return true;
+            }
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    private void actionDeleteAllRules() {
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.question_delete_all_rules)
+                .setMessage(R.string.message_delete_all_rules_confirm)
+                .setCancelable(true)
+                .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        Log.d(LOG_TAG, "Deleting all rules...");
+                        firewall.subsystem.rulesManager.deleteAllRules();
+                        Log.d(LOG_TAG, "rules deleted.");
+
+                        // reload activity, so that the empty list is shown:
+                        GuiUtils.restartActivity(MainActivity.this);
+                    }
+                })
+                .setNegativeButton("No", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        // do nothing
+                    }
+                })
+                .create().show();
     }
 
     private void actionExportRules() {

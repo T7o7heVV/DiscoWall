@@ -35,11 +35,13 @@
     <string name="message_protocol_at_least_one_required">At least one protocol is required.</string>
     <string name="message_application_terminated">DiscoWall terminated</string>
     <string name="message_application_runs_in_background">DiscoWall running in background…</string>
+    <string name="message_delete_all_rules_confirm">All rules will be deleted. Continue?</string>
 
     <!-- Actions -->
 
     <string name="action_rules_export">Export Rules</string>
     <string name="action_rules_import">Import Rules</string>
+    <string name="action_rules_delete_all">Delete Rules</string>
     <string name="action_rules_export_all">Export All Rules</string>
     <string name="action_rules_import_all">Import All Rules</string>
 
@@ -70,6 +72,8 @@
     <string name="action_rule_move_up">Move Rule Up</string>
     <string name="action_rule_move_down">Move Rule Down</string>
 
+    <string name="question_delete_rule">Delete Rule?</string>
+    <string name="question_delete_all_rules">Delete All Rules?</string>
     <string name="question_exit_application">Exit DiscoWall?</string>
     <string name="question_disable_firewall_and_exit_application">Disable and Exit DiscoWall?</string>
 

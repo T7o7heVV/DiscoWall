@@ -53,6 +53,22 @@ public class AppGroup {
         return packageName;
     }
 
+    public String getAllPackageNames() {
+        return getAllPackageNames(";");
+    }
+
+    public String getAllPackageNames(String delim) {
+        String names = "";
+
+        for(App app : apps) {
+            if (!names.isEmpty())
+                names += delim;
+            names += app.getPackageName();
+        }
+
+        return names;
+    }
+
     @Override
     public String toString() {
         return getName() + " [ " + packageName + " ]";

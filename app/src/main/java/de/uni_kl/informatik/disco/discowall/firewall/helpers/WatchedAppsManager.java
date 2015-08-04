@@ -11,6 +11,7 @@ import java.util.Set;
 
 import de.uni_kl.informatik.disco.discowall.R;
 import de.uni_kl.informatik.disco.discowall.firewall.FirewallService;
+import de.uni_kl.informatik.disco.discowall.firewall.util.FirewallRuledApp;
 import de.uni_kl.informatik.disco.discowall.utils.apps.App;
 import de.uni_kl.informatik.disco.discowall.utils.apps.AppUidGroup;
 import de.uni_kl.informatik.disco.discowall.utils.ressources.DiscoWallSettings;

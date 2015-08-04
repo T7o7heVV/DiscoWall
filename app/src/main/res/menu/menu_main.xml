@@ -3,6 +3,21 @@
     xmlns:tools="http://schemas.android.com/tools" tools:context=".MainActivity">
 
     <item
+        android:title="Manage Rules">
+
+        <menu>
+            <item android:id="@+id/action_rules_export" android:title="@string/action_rules_export"
+                android:orderInCategory="10" app:showAsAction="never" />
+
+            <item android:id="@+id/action_rules_import" android:title="@string/action_rules_import"
+                android:orderInCategory="20" app:showAsAction="never" />
+
+            <item android:id="@+id/action_rules_delete_all" android:title="@string/action_rules_delete_all"
+                android:orderInCategory="30" app:showAsAction="never" />
+        </menu>
+    </item>
+
+    <item
         android:title="Monitored Apps">
 
         <menu>
@@ -21,18 +36,6 @@
         android:title="Tools">
 
         <menu>
-            <item
-                android:title="Import/Export Rules">
-
-                <menu>
-                    <item android:id="@+id/action_rules_export" android:title="@string/action_rules_export_all"
-                        android:orderInCategory="10" app:showAsAction="never" />
-
-                    <item android:id="@+id/action_rules_import" android:title="@string/action_rules_import_all"
-                        android:orderInCategory="20" app:showAsAction="never" />
-                </menu>
-            </item>
-
             <item
                 android:title="Linux System-Tools">
 
