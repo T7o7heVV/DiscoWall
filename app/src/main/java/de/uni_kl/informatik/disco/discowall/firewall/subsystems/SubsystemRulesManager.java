@@ -1,5 +1,7 @@
 package de.uni_kl.informatik.disco.discowall.firewall.subsystems;
 
+import android.util.Log;
+
 import java.io.File;
 import java.util.LinkedList;
 
@@ -11,7 +13,10 @@ import de.uni_kl.informatik.disco.discowall.firewall.helpers.WatchedAppsManager;
 import de.uni_kl.informatik.disco.discowall.firewall.rules.FirewallIptableRulesHandler;
 import de.uni_kl.informatik.disco.discowall.firewall.rules.FirewallRuleExceptions;
 import de.uni_kl.informatik.disco.discowall.firewall.rules.FirewallRules;
+import de.uni_kl.informatik.disco.discowall.firewall.rules.serialization.FirewallRuleSerializationExceptions;
 import de.uni_kl.informatik.disco.discowall.firewall.rules.serialization.FirewallRulesExporter;
+import de.uni_kl.informatik.disco.discowall.firewall.rules.serialization.FirewallRulesImporter;
+import de.uni_kl.informatik.disco.discowall.firewall.util.FirewallRuledApp;
 import de.uni_kl.informatik.disco.discowall.netfilter.bridge.NetfilterFirewallRulesHandler;
 import de.uni_kl.informatik.disco.discowall.netfilter.iptables.IptablesControl;
 import de.uni_kl.informatik.disco.discowall.packages.Packages;
@@ -21,6 +26,8 @@ import de.uni_kl.informatik.disco.discowall.utils.ressources.DroidWallFiles;
 import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecuteExceptions;
 
 public class SubsystemRulesManager extends FirewallSubsystem{
+    private static final String LOG_TAG = SubsystemRulesManager.class.getSimpleName();
+
     private final FirewallRulesManager rulesManager;
     private final FirewallIptableRulesHandler iptableRulesManager = NetfilterFirewallRulesHandler.instance;
     private final WatchedAppsManager watchedAppsManager;
@@ -109,6 +116,11 @@ public class SubsystemRulesManager extends FirewallSubsystem{
         exporter.exportRulesToFile(firewall.getRuledApps(), exportFile);
     }
 
+    private File getAppGroupRulesFile(AppUidGroup appUidGroup) {
+        File rulesDir = DroidWallFiles.FIREWALL_RULES__DIR.getFile(firewallServiceContext);
+        return new File(rulesDir, DiscoWallConstants.Files.ruledAppRulesFilePrefix + appUidGroup.getUid() + ".xml");
+    }
+
     /**
      * After a rule has been created/edited/deleted for a specific app, the list of rules has to be serialized,
      * so that it exists between Discowall-Instances.
@@ -116,11 +128,40 @@ public class SubsystemRulesManager extends FirewallSubsystem{
      * @see #loadRulesFromAppStorage(AppUidGroup)
      */
     public void saveRulesToAppStorage(AppUidGroup appUidGroup) {
-        File rulesDir = DroidWallFiles.FIREWALL_RULES__DIR.getFile(firewallServiceContext);
-        File groupRulesFiles = new File(rulesDir, DiscoWallConstants.Files.ruledAppRulesFilePrefix + appUidGroup.getUid() + ".xml");
+        File groupRulesFiles = getAppGroupRulesFile(appUidGroup);
 
         FirewallRulesExporter exporter = new FirewallRulesExporter();
         exporter.exportRulesToFile(firewall.getRuledApp(appUidGroup), groupRulesFiles);
+    }
+
+    public LinkedList<FirewallRuledApp> loadAllRulesFromAppStorage() throws FirewallRuleSerializationExceptions.RulesSerializerException {
+        Log.i(LOG_TAG, "importing firewall-rules from storage...");
+
+        LinkedList<FirewallRuledApp> installedRuledAppsWithRestoredRules = new LinkedList<>();
+
+        for(FirewallRuledApp ruledApp : firewall.getRuledApps()) {
+            AppUidGroup uidGroup = ruledApp.getUidGroup();
+            Log.d(LOG_TAG, "loading rules for apps by user-id: " + uidGroup.getUid());
+
+            FirewallRulesImporter.ImportedRuledApp importedRuledApp = loadRulesFromAppStorage(uidGroup);
+            if (importedRuledApp == null) {
+                Log.d(LOG_TAG, "no rules stored for app.");
+                continue;
+            }
+
+            FirewallRuledApp installedRuledAppWithLoadedRules = new FirewallRuledApp(uidGroup, importedRuledApp.getRules(), ruledApp.isMonitored());
+            installedRuledAppsWithRestoredRules.add(installedRuledAppWithLoadedRules);
+
+//            for(FirewallRules.IFirewallRule rule : app.getRules()) {
+//                try {
+//                    addRule(rule);
+//                } catch (FirewallRuleExceptions.DuplicateRuleException e) {
+//                    Log.e(LOG_TAG, "Trying to import rule which already exists. Rule will not be imported: " + e.getMessage(), e);
+//                }
+//            }
+        }
+
+        return installedRuledAppsWithRestoredRules;
     }
 
     /**
@@ -129,10 +170,28 @@ public class SubsystemRulesManager extends FirewallSubsystem{
      * @param appUidGroup
      * @see #saveRulesToAppStorage(AppUidGroup)
      */
-    public void loadRulesFromAppStorage(AppUidGroup appUidGroup) {
-        File rulesDir = DroidWallFiles.FIREWALL_RULES__DIR.getFile(firewallServiceContext);
+    private FirewallRulesImporter.ImportedRuledApp loadRulesFromAppStorage(AppUidGroup appUidGroup) throws FirewallRuleSerializationExceptions.RulesSerializerException {
+        File groupRulesFiles = getAppGroupRulesFile(appUidGroup);
 
-        // TODO
+        // Return empty list, of no stored rules for this appGroup exist
+        if (!groupRulesFiles.exists())
+            return null;
+
+        FirewallRulesImporter importer = new FirewallRulesImporter();
+        importer.setUidFilter(appUidGroup.getUid());
+
+        LinkedList<FirewallRulesImporter.ImportedRuledApp> importedRules = importer.importRulesFromFile(groupRulesFiles);
+        if (importedRules.size() > 1) {
+            Log.w(LOG_TAG, "Expected 1 app-group with uid " + appUidGroup.getUid() + " but got " + importedRules.size() + ".");
+        } else if (importedRules.size() == 0) {
+            Log.e(LOG_TAG, "Expected 1 app-group with uid " + appUidGroup.getUid() + " but got 0.");
+            return null;
+        }
+
+        FirewallRulesImporter.ImportedRuledApp importedRuledApp = importedRules.get(0);
+        Log.d(LOG_TAG, "rules imported: " + importedRuledApp.getRules().size());
+
+        return importedRuledApp;
     }
 
 }

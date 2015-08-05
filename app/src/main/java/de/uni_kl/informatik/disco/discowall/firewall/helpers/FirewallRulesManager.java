@@ -95,9 +95,21 @@ public class FirewallRulesManager {
         return rule;
     }
 
+    public boolean containsRule(FirewallRules.IFirewallRule rule) {
+        return getRuleByUUID(rule.getUUID(), rule.getUserId()) != null;
+    }
+
+    private FirewallRules.IFirewallRule getRuleByUUID(String ruleUUID, int userID) {
+        for(FirewallRules.IFirewallRule rule : getRules(userID))
+            if (rule.getUUID().equals(ruleUUID))
+                return rule;
+
+        return null;
+    }
+
     public void addRule(FirewallRules.IFirewallRule ruleToAdd) throws FirewallRuleExceptions.DuplicateRuleException {
         // throw exception if rule is already listed:
-        if (rulesHash.getRules(ruleToAdd.getUserId()).contains(ruleToAdd))
+        if (containsRule(ruleToAdd))
             throw new FirewallRuleExceptions.DuplicateRuleException(ruleToAdd);
 
         rulesHash.addRule(ruleToAdd);
@@ -105,7 +117,7 @@ public class FirewallRulesManager {
 
     public void addRule(FirewallRules.IFirewallRule ruleToAdd, FirewallRules.IFirewallRule existingRuleBelowNewOne) throws FirewallRuleExceptions.DuplicateRuleException, FirewallRuleExceptions.RuleNotFoundException {
         // throw exception if rule is already listed:
-        if (rulesHash.getRules(ruleToAdd.getUserId()).contains(ruleToAdd))
+        if (containsRule(ruleToAdd))
             throw new FirewallRuleExceptions.DuplicateRuleException(ruleToAdd);
 
         int newRuleIndex = rulesHash.getRuleIndex(existingRuleBelowNewOne);
@@ -126,7 +138,6 @@ public class FirewallRulesManager {
     public void deleteAllRules() {
         rulesHash.deleteAllRules();
     }
-
 
     private class RulesHash {
         private final HashMap<Integer, LinkedList<FirewallRules.IFirewallRule>> userIdToRulesListHash = new HashMap<>();

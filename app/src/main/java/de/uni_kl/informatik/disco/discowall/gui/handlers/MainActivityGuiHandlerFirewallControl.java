@@ -18,6 +18,7 @@ import de.uni_kl.informatik.disco.discowall.R;
 import de.uni_kl.informatik.disco.discowall.firewall.Firewall;
 import de.uni_kl.informatik.disco.discowall.firewall.FirewallExceptions;
 import de.uni_kl.informatik.disco.discowall.firewall.helpers.FirewallPolicyManager;
+import de.uni_kl.informatik.disco.discowall.firewall.rules.FirewallRules;
 import de.uni_kl.informatik.disco.discowall.gui.dialogs.ErrorDialog;
 import de.uni_kl.informatik.disco.discowall.utils.apps.AppUidGroup;
 
@@ -82,6 +83,13 @@ public class MainActivityGuiHandlerFirewallControl {
             }
             class FirewallPolicyUpdate {
                 FirewallPolicyManager.FirewallPolicy policy;
+            }
+            class FirewallBeforeRestoreSavedRules {
+                int rulesCount;
+            }
+            class FirewallRestoreRule {
+                AppUidGroup watchedApp;
+                FirewallRules.IFirewallRule rule;
             }
 
             @Override
@@ -194,6 +202,20 @@ public class MainActivityGuiHandlerFirewallControl {
                         progressDialog.setIndeterminate(false);
                         progressDialog.setProgress(updateRestoreApp.appIndex + 1);
                         progressDialog.setIcon(appInfo.getIcon());
+                    } else if (value instanceof FirewallBeforeRestoreSavedRules) {
+                        FirewallBeforeRestoreSavedRules restoreSavedRules = (FirewallBeforeRestoreSavedRules) value;
+
+                        progressDialog.setMessage("loading stored rules..." );
+                        progressDialog.setIndeterminate(true);
+                        progressDialog.setMax(restoreSavedRules.rulesCount);
+                        progressDialog.setProgress(0);
+                        progressDialog.setIcon(R.drawable.firewall_launcher);
+                    } else if (value instanceof FirewallRestoreRule) {
+                        FirewallRestoreRule restoreRule = (FirewallRestoreRule) value;
+
+                        progressDialog.setIndeterminate(false);
+                        progressDialog.setMessage("loading rule: " + restoreRule.rule);
+                        progressDialog.setIcon(restoreRule.watchedApp.getIcon());
                     } else if (value instanceof FirewallPolicyUpdate) {
                         FirewallPolicyUpdate firewallPolicyUpdate = (FirewallPolicyUpdate) value;
 
@@ -239,6 +261,23 @@ public class MainActivityGuiHandlerFirewallControl {
                 firewallPolicyUpdate.policy = policy;
 
                 publishProgress(firewallPolicyUpdate);
+            }
+
+            @Override
+            public void onFirewallBeforeRestoreRules(int totalRulesCount) {
+                FirewallBeforeRestoreSavedRules restoreSavedRules = new FirewallBeforeRestoreSavedRules();
+                restoreSavedRules.rulesCount = totalRulesCount;
+
+                publishProgress(restoreSavedRules);
+            }
+
+            @Override
+            public void onFirewallRestoreRule(FirewallRules.IFirewallRule rule, AppUidGroup watchedApp) {
+                FirewallRestoreRule restoreRule = new FirewallRestoreRule();
+                restoreRule.rule = rule;
+                restoreRule.watchedApp = watchedApp;
+
+                publishProgress(restoreRule);
             }
 
             @Override

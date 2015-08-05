@@ -25,4 +25,24 @@ public class FirewallRuleSerializationExceptions {
             this.ruleKind = ruleKind;
         }
     }
+
+    public static class XmlDocumentFormatException extends RulesSerializerException {
+        public XmlDocumentFormatException(String message) {
+            super(message);
+        }
+
+        public XmlDocumentFormatException(String message, Throwable cause) {
+            super(message, cause);
+        }
+    }
+
+    public static class XmlTagMissingException extends XmlDocumentFormatException {
+        public XmlTagMissingException(String missingTag, String parentTag) {
+            super("Expected tag "+ missingTag +" not found within parent tag " + parentTag);
+        }
+
+        public XmlTagMissingException(String missingTag, String parentTag, Throwable cause) {
+            super("Expected tag "+ missingTag +" not found within parent tag " + parentTag, cause);
+        }
+    }
 }

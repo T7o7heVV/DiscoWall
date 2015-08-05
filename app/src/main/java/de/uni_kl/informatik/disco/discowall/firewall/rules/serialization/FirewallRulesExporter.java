@@ -36,6 +36,18 @@ public class FirewallRulesExporter {
         return pairElement;
     }
 
+    public void exportRulesToFile(FirewallRuledApp ruledApp, File xmlFile) {
+        LinkedList<FirewallRuledApp> ruledAppsList = new LinkedList<>();
+        ruledAppsList.add(ruledApp);
+
+        exportRulesToFile(ruledAppsList, xmlFile);
+    }
+
+    public void exportRulesToFile(LinkedList<FirewallRuledApp> ruledApps, File xmlFile) {
+        Log.i(LOG_TAG, "Exporting rules of " + ruledApps.size() + " apps to xml-file: " + xmlFile.getAbsolutePath());
+        exportRulesToStream(ruledApps, new StreamResult(xmlFile));
+    }
+
     private Element exportRule(Document doc, FirewallRules.IFirewallRule rule) throws UnknownRuleKindException {
         Element ruleElement;
 
@@ -50,15 +62,15 @@ public class FirewallRulesExporter {
                 throw new UnknownRuleKindException("Expected rule of kind Redirect or Policy, but got: " + rule.getRuleKind() + ".", rule.getRuleKind());
         }
 
-//        ruleElement.setAttribute(XMLConstants.Root.RuledApps.Group.FirewallRules.AbstractRule.ATTR_UserID, rule.getUserId() + "");
-        ruleElement.setAttribute(XMLConstants.Root.RuledApps.Group.FirewallRules.AbstractRule.ATTR_RuleKind, rule.getRuleKind() + "");
-        ruleElement.setAttribute(XMLConstants.Root.RuledApps.Group.FirewallRules.AbstractRule.ATTR_ProtocolFilter, rule.getProtocolFilter() + "");
-        ruleElement.setAttribute(XMLConstants.Root.RuledApps.Group.FirewallRules.AbstractRule.ATTR_DeviceFilter, rule.getDeviceFilter() + "");
-        ruleElement.setAttribute(XMLConstants.Root.RuledApps.Group.FirewallRules.AbstractRule.ATTR_UUID, rule.getUUID());
+//        ruleElement.setAttribute(XMLConstants.Root.RuledApps.Group.FirewallRules.AnyRule.ATTR_UserID, rule.getUserId() + "");
+        ruleElement.setAttribute(XMLConstants.Root.RuledApps.Group.FirewallRules.AnyRule.ATTR_RuleKind, rule.getRuleKind() + "");
+        ruleElement.setAttribute(XMLConstants.Root.RuledApps.Group.FirewallRules.AnyRule.ATTR_ProtocolFilter, rule.getProtocolFilter() + "");
+        ruleElement.setAttribute(XMLConstants.Root.RuledApps.Group.FirewallRules.AnyRule.ATTR_DeviceFilter, rule.getDeviceFilter() + "");
+        ruleElement.setAttribute(XMLConstants.Root.RuledApps.Group.FirewallRules.AnyRule.ATTR_UUID, rule.getUUID());
 
         // Export LocalFilter+RemoteFilter
-        ruleElement.appendChild(exportIpPortPair(doc, rule.getLocalFilter(), XMLConstants.Root.RuledApps.Group.FirewallRules.AbstractRule.LocalFilter.TAG));
-        ruleElement.appendChild(exportIpPortPair(doc, rule.getRemoteFilter(), XMLConstants.Root.RuledApps.Group.FirewallRules.AbstractRule.RemoteFilter.TAG));
+        ruleElement.appendChild(exportIpPortPair(doc, rule.getLocalFilter(), XMLConstants.Root.RuledApps.Group.FirewallRules.AnyRule.LocalFilter.TAG));
+        ruleElement.appendChild(exportIpPortPair(doc, rule.getRemoteFilter(), XMLConstants.Root.RuledApps.Group.FirewallRules.AnyRule.RemoteFilter.TAG));
 
         // RuleKind-Specific Data:
         switch(rule.getRuleKind()) {
@@ -68,7 +80,7 @@ public class FirewallRulesExporter {
                 break;
             case Redirect:
                 FirewallRules.IFirewallRedirectRule redirectRule = (FirewallRules.IFirewallRedirectRule) rule;
-                ruleElement.appendChild(exportIpPortPair(doc, redirectRule.getRedirectionRemoteHost(), XMLConstants.Root.RuledApps.Group.FirewallRules.PolicyRule.RemoteFilter.TAG));
+                ruleElement.appendChild(exportIpPortPair(doc, redirectRule.getRedirectionRemoteHost(), XMLConstants.Root.RuledApps.Group.FirewallRules.RedirectionRule.RedirectionRemoteHost.TAG));
                 break;
         }
 
@@ -87,7 +99,7 @@ public class FirewallRulesExporter {
     private Element exportAppGroup(Document doc, FirewallRuledApp ruledApp) throws UnknownRuleKindException {
         Element groupElement = doc.createElement(XMLConstants.Root.RuledApps.Group.TAG);
 
-        groupElement.setAttribute(XMLConstants.Root.RuledApps.Group.ATTR_PackageNamesList, ruledApp.getUidGroup().getAllPackageNames());
+        groupElement.setAttribute(XMLConstants.Root.RuledApps.Group.ATTR_PackageNamesList, ruledApp.getUidGroup().getAllPackageNames(XMLConstants.Root.RuledApps.Group.packageNamesDelim));
         groupElement.setAttribute(XMLConstants.Root.RuledApps.Group.ATTR_IsMonitored, ruledApp.isMonitored() + "");
         groupElement.setAttribute(XMLConstants.Root.RuledApps.Group.ATTR_UserID, ruledApp.getUidGroup().getUid() + "");
 
@@ -109,18 +121,6 @@ public class FirewallRulesExporter {
         }
 
         return groupsElement;
-    }
-
-    public void exportRulesToFile(FirewallRuledApp ruledApp, File xmlFile) {
-        LinkedList<FirewallRuledApp> ruledAppsList = new LinkedList<>();
-        ruledAppsList.add(ruledApp);
-
-        exportRulesToFile(ruledAppsList, xmlFile);
-    }
-
-    public void exportRulesToFile(LinkedList<FirewallRuledApp> ruledApps, File xmlFile) {
-        Log.i(LOG_TAG, "Exporting rules of " + ruledApps.size() + " apps to xml-file: " + xmlFile.getAbsolutePath());
-        exportRulesToStream(ruledApps, new StreamResult(xmlFile));
     }
 
     private void exportRulesToStream(LinkedList<FirewallRuledApp> ruledApps, StreamResult result) {

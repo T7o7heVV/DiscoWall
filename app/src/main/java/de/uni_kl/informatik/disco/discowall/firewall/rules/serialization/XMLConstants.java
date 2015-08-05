@@ -15,6 +15,8 @@ class XMLConstants {
             public static class Group {
                 public static final String TAG = "Group";
 
+                public static final String packageNamesDelim = ";";
+
                 public static final String ATTR_PackageNamesList = "PackageNamesList";
                 public static final String ATTR_IsMonitored = "IsMonitored";
                 public static final String ATTR_UserID = "UserID";
@@ -22,9 +24,7 @@ class XMLConstants {
                 public static class FirewallRules {
                     public static final String TAG = "Rules";
 
-                    public static class AbstractRule {
-                        public static final String TAG = "FirewallRule";
-
+                    public static class AnyRule {
 //                        public static final String ATTR_UserID = "UserID"; // UserID changes when apps are deleted and re-installed, and is device-specific
                         public static final String ATTR_RuleKind = "RuleKind";
                         public static final String ATTR_DeviceFilter = "DeviceFilter";
@@ -40,12 +40,12 @@ class XMLConstants {
                         }
                     }
 
-                    public static class PolicyRule extends AbstractRule {
+                    public static class PolicyRule {
                         public static final String TAG = "PolicyRule";
                         public static final String ATTR_RulePolicy = "RulePolicy";
                     }
 
-                    public static class RedirectionRule extends AbstractRule {
+                    public static class RedirectionRule {
                         public static final String TAG = "RedirectionRule";
 
                         public static class RedirectionRemoteHost extends IpPortPair {
