@@ -10,7 +10,9 @@ import de.uni_kl.informatik.disco.discowall.firewall.helpers.FirewallPolicyManag
 import de.uni_kl.informatik.disco.discowall.firewall.helpers.FirewallRulesManager;
 import de.uni_kl.informatik.disco.discowall.firewall.helpers.WatchedAppsManager;
 import de.uni_kl.informatik.disco.discowall.firewall.rules.FirewallIptableRulesHandler;
+import de.uni_kl.informatik.disco.discowall.firewall.rules.FirewallRuleExceptions;
 import de.uni_kl.informatik.disco.discowall.firewall.rules.FirewallRules;
+import de.uni_kl.informatik.disco.discowall.firewall.rules.serialization.FirewallRuleSerializationExceptions;
 import de.uni_kl.informatik.disco.discowall.firewall.subsystems.SubsystemRulesManager;
 import de.uni_kl.informatik.disco.discowall.firewall.subsystems.SubsystemWatchedApps;
 import de.uni_kl.informatik.disco.discowall.firewall.util.FirewallRuledApp;
@@ -49,6 +51,9 @@ public class Firewall implements NetfilterBridgeCommunicator.BridgeEventsHandler
         void onWatchedAppsRestoreApp(AppUidGroup watchedApp, int appIndex);
 
         void onFirewallPolicyBeforeApplyPolicy(FirewallPolicyManager.FirewallPolicy policy);
+        void onFirewallBeforeRestoreRules(int totalRulesCount);
+//        void onFirewallBeforeRestoreRulesBeforeLoadXML();
+        void onFirewallRestoreRule(FirewallRules.IFirewallRule rule, AppUidGroup watchedApp);
     }
 
     /**
@@ -108,6 +113,9 @@ public class Firewall implements NetfilterBridgeCommunicator.BridgeEventsHandler
         this.subsystemWatchedApps = new SubsystemWatchedApps(this, firewallServiceContext, iptableRulesManager, watchedAppsManager);
         this.subsystemRulesManager = new SubsystemRulesManager(this, firewallServiceContext, firewallRulesManager, watchedAppsManager);
         this.subsystem = new FirewallSubsystems();
+
+        // Load stored rules:
+        loadStoredRulesFromStorage();
 
         Log.i(LOG_TAG, "firewall service running.");
     }
@@ -186,6 +194,30 @@ public class Firewall implements NetfilterBridgeCommunicator.BridgeEventsHandler
                 }
             }
 
+            Log.d(LOG_TAG, "restoring saved rules...");
+            {
+                // reporting progress to listener
+                if (progressListener != null)
+                    progressListener.onFirewallBeforeRestoreRules(subsystemRulesManager.getAllRules().size());
+
+                for(AppUidGroup installedAppGroup : watchedAppsManager.getInstalledAppGroups()) { // Note that ALL rules are being restored - even though the app might not be watched/monitored at the moment
+                    for(FirewallRules.IFirewallRule rule : subsystemRulesManager.getRules(installedAppGroup)) {
+                        // reporting progress to listener
+                        if (progressListener != null)
+                            progressListener.onFirewallRestoreRule(rule, installedAppGroup);
+
+                        // TODO: Rule has to be written to IPTABLES
+                        // They do NOT have to be added to list, as they are already listed - even though not registered in iptables.
+
+//                        try {
+//                            subsystemRulesManager.addRule(rule);
+//                        } catch (FirewallRuleExceptions.DuplicateRuleException e) {
+//                            Log.e(LOG_TAG, "Trying to import rule which already exists. Rule will not be imported: " + e.getMessage(), e);
+//                        }
+                    }
+                }
+            }
+
             Log.d(LOG_TAG, "restoring firewall-policy...");
             {
                 FirewallPolicyManager.FirewallPolicy policy = DiscoWallSettings.getInstance().getFirewallPolicy(firewallServiceContext);
@@ -199,6 +231,24 @@ public class Firewall implements NetfilterBridgeCommunicator.BridgeEventsHandler
             }
 
             Log.i(LOG_TAG, "firewall started.");
+        }
+    }
+
+    public void loadStoredRulesFromStorage() {
+        Log.i(LOG_TAG, "loading all stored rules from app storage...");
+
+        try {
+            for(FirewallRuledApp ruledAppWithLoadedRules : subsystemRulesManager.loadAllRulesFromAppStorage()) {
+                for(FirewallRules.IFirewallRule rule : ruledAppWithLoadedRules.getRules()) {
+                    try {
+                        subsystemRulesManager.addRule(rule);
+                    } catch (FirewallRuleExceptions.DuplicateRuleException e) {
+                        Log.e(LOG_TAG, "Trying to import rule which already exists. Rule will not be imported: " + e.getMessage(), e);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "Error while loading stored rules from XML: " + e.getMessage(), e);
         }
     }
 
