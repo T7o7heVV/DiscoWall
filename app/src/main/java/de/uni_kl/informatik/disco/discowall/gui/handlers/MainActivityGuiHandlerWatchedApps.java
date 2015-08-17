@@ -81,22 +81,22 @@ public class MainActivityGuiHandlerWatchedApps extends MainActivityGuiHandler {
 
             @Override
             public void onAppNameClicked(AppAdapter appAdapter, AppUidGroup appGroup, TextView appNameWidgetview) {
-                actionWatchedAppShowFirewallRules(appGroup);
+                actionShowFirewallRules(appGroup);
             }
 
             @Override
             public void onAppPackageClicked(AppAdapter appAdapter, AppUidGroup appGroup, TextView appPackageNameWidget) {
-                actionWatchedAppShowFirewallRules(appGroup);
+                actionShowFirewallRules(appGroup);
             }
 
             @Override
             public void onAppOptionalInfoClicked(AppAdapter appAdapter, AppUidGroup appGroup, TextView appInfoWidget) {
-                actionWatchedAppShowFirewallRules(appGroup);
+                actionShowFirewallRules(appGroup);
             }
 
             @Override
             public void onAppIconClicked(AppAdapter appAdapter, AppUidGroup appGroup, ImageView appIconImageWidget) {
-                actionWatchedAppShowFirewallRules(appGroup);
+                actionShowFirewallRules(appGroup);
             }
 
             @Override
@@ -126,15 +126,12 @@ public class MainActivityGuiHandlerWatchedApps extends MainActivityGuiHandler {
         });
     }
 
-    private void actionWatchedAppShowFirewallRules(AppUidGroup appGroup) {
+    private void actionShowFirewallRules(AppUidGroup appGroup) {
         boolean createRuleIsDefaultChecked = DiscoWallSettings.getInstance().isHandleConnectionDialogDefaultCreateRule(mainActivity);
 
-        // TODO: Remove debug-line
-        mainActivity.firewall.DEBUG_TEST(appGroup); // DEBUG! Adding rules for testing
+//        mainActivity.firewall.DEBUG_TEST(appGroup); // DEBUG! Adding rules for testing
 
         ShowAppRulesActivity.showAppRules(mainActivity, appGroup);
-
-//        DecideConnectionDialog.show(mainActivity, "example tag", appGroup, new Packages.IpPortPair("192.168.178.100", 1337), new Packages.IpPortPair("192.168.178.200", 4200), Connections.TransportLayerProtocol.TCP, createRuleIsDefaultChecked);
     }
 
     public void actionSetAllAppsWatched(boolean watched) {
@@ -302,7 +299,7 @@ public class MainActivityGuiHandlerWatchedApps extends MainActivityGuiHandler {
         AppUidGroup appGroup = watchedAppsListAdapter.getItem(listViewItemPosition);
         Log.i(LOG_TAG, "Application: Show Rules: " + appGroup.getPackageName());
 
-        actionWatchedAppShowFirewallRules(appGroup);
+        actionShowFirewallRules(appGroup);
     }
 
 }

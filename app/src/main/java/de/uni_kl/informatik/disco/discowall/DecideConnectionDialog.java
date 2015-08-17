@@ -171,25 +171,20 @@ public class DecideConnectionDialog extends DialogFragment {
         outState.putAll(getArguments());
     }
 
-    public static DecideConnectionDialog show(Activity context, Connections.Connection connection, AppUidGroup appUidGroup) {
+    public static DecideConnectionDialog show(Activity context, int uid, Packages.IpPortPair source, Packages.IpPortPair destination) {
         if (! (context instanceof DecideConnectionDialogListener)) {
             Log.e(LOG_TAG, "Starting-Activity must implement interface " + DecideConnectionDialogListener.class.getCanonicalName());
             throw new ClassCastException("Starting-Activity must implement interface " + DecideConnectionDialogListener.class.getCanonicalName());
         }
 
-        final PackageManager packageManager = context.getPackageManager();
         Bundle args = new Bundle();
 
-//        args.putString("client.ip", connection.getSource().getIp());
-//        args.putInt("client.port", connection.getSource().getPort());
-//        args.putString("server.ip", connection.getDestination().getIp());
-//        args.putInt("server.port", connection.getDestination().getPort());
-//
-//        args.putString("connection.protocol", connection.getTransportLayerProtocol().toString());
-//
-//        // Dialog-Infos:
-//        args.putBoolean("action.createRule", DiscoWallSettings.getInstance().isHandleConnectionDialogDefaultCreateRule(context));
-//        args.putString("app.packageName", appUidGroup.getPackageName());
+        args.putInt("uid", uid);
+
+        args.putString("connection.src.ip", source.getIp());
+        args.putInt("connection.src.port", source.getPort());
+        args.putString("connection.dst.ip", destination.getIp());
+        args.putInt("connection.dst.port", destination.getPort());
 
         DecideConnectionDialog dialog = new DecideConnectionDialog();
         dialog.setArguments(args);
@@ -197,5 +192,32 @@ public class DecideConnectionDialog extends DialogFragment {
 
         return dialog;
     }
+
+//    public static DecideConnectionDialog show(Activity context, AppUidGroup appUidGroup, Connections.Connection connection) {
+//        if (! (context instanceof DecideConnectionDialogListener)) {
+//            Log.e(LOG_TAG, "Starting-Activity must implement interface " + DecideConnectionDialogListener.class.getCanonicalName());
+//            throw new ClassCastException("Starting-Activity must implement interface " + DecideConnectionDialogListener.class.getCanonicalName());
+//        }
+//
+//        final PackageManager packageManager = context.getPackageManager();
+//        Bundle args = new Bundle();
+//
+////        args.putString("client.ip", connection.getSource().getIp());
+////        args.putInt("client.port", connection.getSource().getPort());
+////        args.putString("server.ip", connection.getDestination().getIp());
+////        args.putInt("server.port", connection.getDestination().getPort());
+////
+////        args.putString("connection.protocol", connection.getTransportLayerProtocol().toString());
+////
+////        // Dialog-Infos:
+////        args.putBoolean("action.createRule", DiscoWallSettings.getInstance().isHandleConnectionDialogDefaultCreateRule(context));
+////        args.putString("app.packageName", appUidGroup.getPackageName());
+//
+//        DecideConnectionDialog dialog = new DecideConnectionDialog();
+//        dialog.setArguments(args);
+//        dialog.show(context.getFragmentManager(), "");
+//
+//        return dialog;
+//    }
 
 }

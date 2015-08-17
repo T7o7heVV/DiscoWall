@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.content.pm.ApplicationInfo;
 import android.os.IBinder;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
@@ -28,13 +29,22 @@ import de.uni_kl.informatik.disco.discowall.firewall.rules.FirewallRuleException
 import de.uni_kl.informatik.disco.discowall.firewall.rules.FirewallRules;
 import de.uni_kl.informatik.disco.discowall.gui.adapters.AppRulesAdapter;
 import de.uni_kl.informatik.disco.discowall.gui.dialogs.ErrorDialog;
+import de.uni_kl.informatik.disco.discowall.packages.Connections;
 import de.uni_kl.informatik.disco.discowall.packages.Packages;
 import de.uni_kl.informatik.disco.discowall.utils.GuiUtils;
 import de.uni_kl.informatik.disco.discowall.utils.apps.AppUidGroup;
 
 
-public class ShowAppRulesActivity extends AppCompatActivity {
-    private final String LOG_TAG = ShowAppRulesActivity.class.getSimpleName();
+public class ShowAppRulesActivity extends AppCompatActivity implements DecideConnectionDialog.DecideConnectionDialogListener {
+    private static final String LOG_TAG = ShowAppRulesActivity.class.getSimpleName();
+
+    private static final String INTENT_ACTION = "action";
+
+    private static final String INTENT_ACTION_SHOW = "show";
+    private static final String INTENT_ACTION__PENDING_CONNECTION__DECIDE_BY_USER = "action.pendingConnection.user-decide";
+    private static final String INTENT_ACTION__PENDING_CONNECTION__ACCEPT = "action.pendingConnection.accept";
+    private static final String INTENT_ACTION__PENDING_CONNECTION__BLOCK  = "action.pendingConnection.block";
+
 
     public FirewallService firewallService;
     public Firewall firewall;
@@ -217,11 +227,35 @@ public class ShowAppRulesActivity extends AppCompatActivity {
         Bundle args = getIntent().getExtras();
         String action = args.getString("action");
 
-        if (action.equals("show")) {
-            // nothing to do - just show
-        } else if (action.equals("connection.decide")) {
+        if (action.equals(INTENT_ACTION_SHOW))
+            return;
+
+        // Pending Connection Notification Clicks:
+        if (INTENT_ACTION__PENDING_CONNECTION__DECIDE_BY_USER.equals(action)) {
+            String srcIP = args.getString("connection.src.ip");
+            int srcPort = args.getInt("connection.src.port");
+
+            String dstIP = args.getString("connection.dst.ip");
+            int dstPort = args.getInt("connection.dst.port");
+
+            int appUid = args.getInt("app.uid");
+
             // decide what to do with connection
-            DecideConnectionDialog.show(this, null, appUidGroup); // TODO
+//            DecideConnectionDialog.show(this, appUid, new Packages.IpPortPair(srcIP, srcPort), new Packages.IpPortPair(dstIP, dstPort));
+
+            // TODO: DEBUG
+            Log.w(LOG_TAG, "INTERACTIVE decision is NOT impelmented yet! Accepting package...");
+            firewall.subsystem.pendingActionsManager.acceptPendingPackage();
+        } else if (INTENT_ACTION__PENDING_CONNECTION__ACCEPT.equals(action)) {
+            Log.d(LOG_TAG, "Action.PendingConnection: accept package");
+
+            firewall.subsystem.pendingActionsManager.acceptPendingPackage();
+            finish();
+        } else if (INTENT_ACTION__PENDING_CONNECTION__BLOCK.equals(action)) {
+            Log.d(LOG_TAG, "Action.PendingConnection: block package");
+
+            firewall.subsystem.pendingActionsManager.blockPendingPackage();
+            finish();
         }
     }
 
@@ -381,11 +415,11 @@ public class ShowAppRulesActivity extends AppCompatActivity {
             findViewById(android.R.id.empty).setVisibility(View.INVISIBLE);
     }
 
-    private static Intent createActivityIntentForApp(Context context, AppUidGroup appUidGroup) {
+    public static Intent createActionIntent_showAppRules(Context context, AppUidGroup appUidGroup) {
         Bundle args = new Bundle();
 
         args.putInt("app.uid", appUidGroup.getUid());
-        args.putString("action", "show");
+        args.putString(INTENT_ACTION, INTENT_ACTION_SHOW);
 
         Intent intentWithAppGroupInfos = new Intent(context, ShowAppRulesActivity.class);
         intentWithAppGroupInfos.putExtras(args);
@@ -394,18 +428,44 @@ public class ShowAppRulesActivity extends AppCompatActivity {
     }
 
     public static void showAppRules(Context context, AppUidGroup appUidGroup) {
-        context.startActivity(createActivityIntentForApp(context, appUidGroup));
+        context.startActivity(createActionIntent_showAppRules(context, appUidGroup));
     }
 
-    public static void showNewRuleDialog(Context context, AppUidGroup appUidGroup, Packages.TransportLayerPackage tlPackage, boolean useFlagNewTask) {
-        Intent intent = createActivityIntentForApp(context, appUidGroup);
+    public static Intent createActionIntent_decideConnection(Context context, AppUidGroup appUidGroup, Packages.TransportLayerPackage tlPackage, Connections.Connection connection) {
+        Bundle args = new Bundle();
 
-        if (useFlagNewTask)
-            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        args.putInt("app.uid", appUidGroup.getUid());
 
-        Bundle args = intent.getExtras();
-        args.putString("action", "connection.decide");
+        args.putInt("connection.src.port", connection.getSourcePort());
+        args.putString("connection.src.ip", connection.getSourceIP());
+        args.putInt("connection.dst.port", connection.getDestinationPort());
+        args.putString("connection.dst.ip", connection.getDestinationIP());
 
-        context.startActivity(intent);
+        args.putString(INTENT_ACTION, INTENT_ACTION__PENDING_CONNECTION__DECIDE_BY_USER);
+
+        Intent intent = new Intent(context, ShowAppRulesActivity.class);
+        intent.putExtras(args);
+
+        return intent;
+    }
+
+    public static Intent createActionIntent_handleConnection(Context context, boolean accept) {
+        Bundle args = new Bundle();
+
+        args.putString(INTENT_ACTION, accept ? INTENT_ACTION__PENDING_CONNECTION__ACCEPT : INTENT_ACTION__PENDING_CONNECTION__BLOCK);
+
+        Intent intent = new Intent(context, ShowAppRulesActivity.class);
+        intent.putExtras(args);
+
+        return intent;
+    }
+
+    public static void showDecideConnectionDialog(Context context, AppUidGroup appUidGroup, Packages.TransportLayerPackage tlPackage, Connections.Connection connection) {
+        context.startActivity(createActionIntent_decideConnection(context, appUidGroup, tlPackage, connection));
+    }
+
+    @Override
+    public void onConnectionDecided(ApplicationInfo appInfo, Packages.IpPortPair source, Packages.IpPortPair destination, DecideConnectionDialog.AppConnectionDecision decision) {
+        // TODO: report back connection decision
     }
 }

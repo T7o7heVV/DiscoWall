@@ -13,8 +13,10 @@ import de.uni_kl.informatik.disco.discowall.packages.Packages;
 
 public class NetfilterBridgeCommunicator implements Runnable {
     public static interface PackageActionCallback {
-        void acceptPackage(Packages.TransportLayerPackage tlPackage);
-        void blockPackage(Packages.TransportLayerPackage tlPackage);
+//        void acceptPackage(Packages.TransportLayerPackage tlPackage);
+//        void blockPackage(Packages.TransportLayerPackage tlPackage);
+        void acceptPendingPackage();
+        void blockPendingPackage();
     }
 
     public static interface PackageReceivedHandler {
@@ -348,9 +350,9 @@ public class NetfilterBridgeCommunicator implements Runnable {
                     Log.v(LOG_TAG, "Auto-Answer: " + accept);
 
                     if (accept)
-                        acceptPackage(tlPackage);
+                        acceptPendingPackage();
                     else
-                        blockPackage(tlPackage);
+                        blockPendingPackage();
                 }
             };
 
@@ -359,7 +361,7 @@ public class NetfilterBridgeCommunicator implements Runnable {
         }
 
         @Override
-        public void acceptPackage(Packages.TransportLayerPackage tlPackage) {
+        public void acceptPendingPackage() {
             Log.v(LOG_TAG, "Accepting package: " + tlPackage);
             isAnswered = true;
 
@@ -367,11 +369,76 @@ public class NetfilterBridgeCommunicator implements Runnable {
         }
 
         @Override
-        public void blockPackage(Packages.TransportLayerPackage tlPackage) {
+        public void blockPendingPackage() {
             Log.v(LOG_TAG, "Dropping package: " + tlPackage);
             isAnswered = true;
 
             sendPackageQueryResponse(false);
         }
     }
+
+//    /**
+//     * Is being called from within the firewall, as a package-decision is made.
+//     * For each package, there is one instance.
+//     */
+//    private class PackageActionCallbackHandler implements PackageActionCallback {
+//        private final String LOG_TAG = PackageActionCallbackHandler.class.getSimpleName();
+//        private final Packages.TransportLayerPackage tlPackage;
+//
+//        private volatile boolean isAnswered = false;
+//
+//        public boolean isAnswered() {
+//            return isAnswered;
+//        }
+//
+//        public PackageActionCallbackHandler(Packages.TransportLayerPackage tlPackage) {
+//            this.tlPackage = tlPackage;
+//        }
+//
+//        /**
+//         * Will start a thread which automatically answers the package with ACCEPT or BLOCK
+//         * after a certain amount of time.
+//         */
+//        public void startAutoAnswerCountdown(final boolean accept, final int timeoutInMilliseconds) {
+//            Thread answerThread = new Thread() {
+//                @Override
+//                public void run() {
+//                    try {
+//                        Thread.sleep(timeoutInMilliseconds);
+//                    } catch(Exception e) {
+//                        Log.e(LOG_TAG, "Auto-Answer-Thread has been stopped due to exception: " + e.getMessage(), e);
+//                    }
+//
+//                    if (isAnswered)
+//                        return;
+//
+//                    Log.v(LOG_TAG, "Auto-Answer: " + accept);
+//
+//                    if (accept)
+//                        acceptPackage(tlPackage);
+//                    else
+//                        blockPackage(tlPackage);
+//                }
+//            };
+//
+//            answerThread.setDaemon(true);
+//            answerThread.start();
+//        }
+//
+//        @Override
+//        public void acceptPackage(Packages.TransportLayerPackage tlPackage) {
+//            Log.v(LOG_TAG, "Accepting package: " + tlPackage);
+//            isAnswered = true;
+//
+//            sendPackageQueryResponse(true);
+//        }
+//
+//        @Override
+//        public void blockPackage(Packages.TransportLayerPackage tlPackage) {
+//            Log.v(LOG_TAG, "Dropping package: " + tlPackage);
+//            isAnswered = true;
+//
+//            sendPackageQueryResponse(false);
+//        }
+//    }
 }

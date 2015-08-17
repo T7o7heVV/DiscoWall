@@ -61,6 +61,8 @@ public class MainActivity extends AppCompatActivity {
         // for creating the Floating-Menu on the Apps-List ==> Long-Press will now show the menu
         registerForContextMenu(findViewById(R.id.listViewFirewallMonitoredApps)); // see http://developer.android.com/guide/topics/ui/menus.html#FloatingContextMenu
 
+
+
         // NOTE: All initialization of GUI-Elements etc. is being done onFirewallServiceBound
     }
 

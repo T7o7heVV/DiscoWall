@@ -13,6 +13,7 @@ import de.uni_kl.informatik.disco.discowall.firewall.rules.FirewallIptableRulesH
 import de.uni_kl.informatik.disco.discowall.firewall.rules.FirewallRuleExceptions;
 import de.uni_kl.informatik.disco.discowall.firewall.rules.FirewallRules;
 import de.uni_kl.informatik.disco.discowall.firewall.rules.serialization.FirewallRuleSerializationExceptions;
+import de.uni_kl.informatik.disco.discowall.firewall.subsystems.SubsystemPendingPackagesManager;
 import de.uni_kl.informatik.disco.discowall.firewall.subsystems.SubsystemRulesManager;
 import de.uni_kl.informatik.disco.discowall.firewall.subsystems.SubsystemWatchedApps;
 import de.uni_kl.informatik.disco.discowall.firewall.util.FirewallRuledApp;
@@ -39,6 +40,7 @@ public class Firewall implements NetfilterBridgeCommunicator.BridgeEventsHandler
     public class FirewallSubsystems {
         public final SubsystemWatchedApps watchedApps = Firewall.this.subsystemWatchedApps;
         public final SubsystemRulesManager rulesManager = Firewall.this.subsystemRulesManager;
+        public final SubsystemPendingPackagesManager pendingActionsManager = packageFilter;
     }
 
     /**

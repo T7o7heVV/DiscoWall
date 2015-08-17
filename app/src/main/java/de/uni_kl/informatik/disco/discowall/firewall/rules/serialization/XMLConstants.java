@@ -1,12 +1,12 @@
 package de.uni_kl.informatik.disco.discowall.firewall.rules.serialization;
 
 class XMLConstants {
-    public static class IpPortPair {
+    static class IpPortPair {
         public static final String ATTR_Ip = "ip";
         public static final String ATTR_Port = "port";
     }
 
-    public static class Root {
+    static class Root {
         public static final String TAG = "Discowall";
 
         public static class RuledApps {

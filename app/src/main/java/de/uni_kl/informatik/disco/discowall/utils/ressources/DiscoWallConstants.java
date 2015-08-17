@@ -15,6 +15,7 @@ public final class DiscoWallConstants {
 
     public static final class NotificationIDs {
         public static final int firewallService = 10;
+        public static final int pendingPackage = 1000;
     }
 
     public static final class Directories {
