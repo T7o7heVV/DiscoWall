@@ -7,11 +7,11 @@ public class ConnectionManager {
     private final ConnectionHash<Connections.TcpConnection> tcpConnectionHash = new ConnectionHash();
     private final ConnectionHash<Connections.UdpConnection> udpConnectionHash = new ConnectionHash();
 
-    public Connections.TcpConnection getTcpConnection(Packages.IpPortPair source, Packages.IpPortPair destination) {
+    public Connections.TcpConnection getTcpConnection(int userID, Packages.IpPortPair source, Packages.IpPortPair destination) {
         Connections.TcpConnection connection = tcpConnectionHash.get(source, destination);
 
         if (connection == null) {
-            connection = new Connections.TcpConnection(source, destination);
+            connection = new Connections.TcpConnection(userID, source, destination);
             tcpConnectionHash.put(connection);
         }
 
@@ -19,18 +19,18 @@ public class ConnectionManager {
     }
 
     public Connections.TcpConnection getTcpConnection(Packages.TcpPackage tcpPackage) {
-        return getTcpConnection(tcpPackage.getSource(), tcpPackage.getDestination());
+        return getTcpConnection(tcpPackage.getUserId(), tcpPackage.getSource(), tcpPackage.getDestination());
     }
 
     public boolean containsTcpConnection(Connections.IConnection connection) {
         return tcpConnectionHash.contains(connection);
     }
 
-    public Connections.UdpConnection getUdpConnection(Packages.IpPortPair source, Packages.IpPortPair destination) {
+    public Connections.UdpConnection getUdpConnection(int userID, Packages.IpPortPair source, Packages.IpPortPair destination) {
         Connections.UdpConnection connection = udpConnectionHash.get(source, destination);
 
         if (connection == null) {
-            connection = new Connections.UdpConnection(source, destination);
+            connection = new Connections.UdpConnection(userID, source, destination);
             udpConnectionHash.put(connection);
         }
 
@@ -38,7 +38,7 @@ public class ConnectionManager {
     }
 
     public Connections.UdpConnection getUdpConnection(Packages.UdpPackage udpPackage) {
-        return getUdpConnection(udpPackage.getSource(), udpPackage.getDestination());
+        return getUdpConnection(udpPackage.getUserId(), udpPackage.getSource(), udpPackage.getDestination());
     }
 
     public boolean containsUdpConnection(Connections.IConnection connection) {

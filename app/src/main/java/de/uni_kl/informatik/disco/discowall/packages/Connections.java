@@ -19,6 +19,7 @@ public class Connections {
     public static abstract class Connection implements IConnection {
         private final Packages.IpPortPair source, destination;
         private final long timestamp = System.nanoTime();
+        private final int uid;
         private int packagesCount = 0;
         private int totalLength = 0;
 
@@ -31,16 +32,20 @@ public class Connections {
         @Override public String getDestinationIP() { return destination.getIp(); }
 
         public long getTimestamp() { return timestamp; }
-
-        Connection(IConnection connectionData) {
-            this(connectionData.getSource(), connectionData.getDestination());
+        public int getUserId() {
+            return uid;
         }
 
-        Connection(Packages.IpPortPair source, Packages.IpPortPair destination) {
-            this(source.getIp(), source.getPort(), destination.getIp(), destination.getPort());
+        Connection(int userID, IConnection connectionData) {
+            this(userID, connectionData.getSource(), connectionData.getDestination());
         }
 
-        Connection(String sourceIP, int sourcePort, String destinationIP, int destinationPort) {
+        Connection(int userID, Packages.IpPortPair source, Packages.IpPortPair destination) {
+            this(userID, source.getIp(), source.getPort(), destination.getIp(), destination.getPort());
+        }
+
+        Connection(int userID, String sourceIP, int sourcePort, String destinationIP, int destinationPort) {
+            uid = userID;
             source = new Packages.IpPortPair(sourceIP, sourcePort);
             destination = new Packages.IpPortPair(destinationIP, destinationPort);
         }
@@ -101,19 +106,23 @@ public class Connections {
         }
 
         public abstract Packages.TransportLayerProtocol getTransportLayerProtocol();
+
+        public String toUserString() {
+            return source.getIp() + ":" + source.getPort() + " -> " + destination.getIp() + ":" + destination.getPort();
+        }
     }
 
     public static class UdpConnection extends Connection {
-        UdpConnection(IConnection connectionData) {
-            super(connectionData);
+        UdpConnection(int userID, IConnection connectionData) {
+            super(userID, connectionData);
         }
 
-        UdpConnection(Packages.IpPortPair source, Packages.IpPortPair destination) {
-            super(source, destination);
+        UdpConnection(int userID, Packages.IpPortPair source, Packages.IpPortPair destination) {
+            super(userID, source, destination);
         }
 
-        UdpConnection(String sourceIP, int sourcePort, String destinationIP, int destinationPort) {
-            super(sourceIP, sourcePort, destinationIP, destinationPort);
+        UdpConnection(int userID, String sourceIP, int sourcePort, String destinationIP, int destinationPort) {
+            super(userID, sourceIP, sourcePort, destinationIP, destinationPort);
         }
 
         @Override
@@ -138,16 +147,16 @@ public class Connections {
             return closedTimestamp;
         }
 
-        TcpConnection(IConnection connectionData) {
-            super(connectionData);
+        TcpConnection(int userID, IConnection connectionData) {
+            super(userID, connectionData);
         }
 
-        TcpConnection(Packages.IpPortPair source, Packages.IpPortPair destination) {
-            super(source, destination);
+        TcpConnection(int userID, Packages.IpPortPair source, Packages.IpPortPair destination) {
+            super(userID, source, destination);
         }
 
-        TcpConnection(String sourceIP, int sourcePort, String destinationIP, int destinationPort) {
-            super(sourceIP, sourcePort, destinationIP, destinationPort);
+        TcpConnection(int userID, String sourceIP, int sourcePort, String destinationIP, int destinationPort) {
+            super(userID, sourceIP, sourcePort, destinationIP, destinationPort);
         }
 
         public int getLastSeqNumber() {

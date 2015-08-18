@@ -1,10 +1,10 @@
-package de.uni_kl.informatik.disco.discowall.firewall.helpers;
+package de.uni_kl.informatik.disco.discowall.firewall.packageFilter;
 
 import java.util.HashMap;
 
 import de.uni_kl.informatik.disco.discowall.packages.Connections;
 
-public class TemporaryConnectionRulesManager {
+class TemporaryConnectionRulesManager {
     private static class TempRule {
         private final boolean accept;
         private final Connections.Connection connection;

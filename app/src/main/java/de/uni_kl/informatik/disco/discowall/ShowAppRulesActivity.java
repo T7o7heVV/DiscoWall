@@ -44,6 +44,7 @@ public class ShowAppRulesActivity extends AppCompatActivity implements DecideCon
     private static final String INTENT_ACTION__PENDING_CONNECTION__DECIDE_BY_USER = "action.pendingConnection.user-decide";
     private static final String INTENT_ACTION__PENDING_CONNECTION__ACCEPT = "action.pendingConnection.accept";
     private static final String INTENT_ACTION__PENDING_CONNECTION__BLOCK  = "action.pendingConnection.block";
+    private static final String INTENT__PENDING_CONNECTION_INFO__CONNECTION  = "pendingConnection.info";
 
 
     public FirewallService firewallService;
@@ -250,13 +251,18 @@ public class ShowAppRulesActivity extends AppCompatActivity implements DecideCon
             Log.d(LOG_TAG, "Action.PendingConnection: accept package");
 
             firewall.subsystem.pendingActionsManager.acceptPendingPackage();
+            Toast.makeText(this, "accepted:\n" + args.getString(INTENT__PENDING_CONNECTION_INFO__CONNECTION), Toast.LENGTH_SHORT).show();
+
             finish();
         } else if (INTENT_ACTION__PENDING_CONNECTION__BLOCK.equals(action)) {
             Log.d(LOG_TAG, "Action.PendingConnection: block package");
 
             firewall.subsystem.pendingActionsManager.blockPendingPackage();
+            Toast.makeText(this, "blocked:\n" + args.getString(INTENT__PENDING_CONNECTION_INFO__CONNECTION), Toast.LENGTH_SHORT).show();
+
             finish();
         }
+
     }
 
     private void setupButtons() {
@@ -431,7 +437,7 @@ public class ShowAppRulesActivity extends AppCompatActivity implements DecideCon
         context.startActivity(createActionIntent_showAppRules(context, appUidGroup));
     }
 
-    public static Intent createActionIntent_decideConnection(Context context, AppUidGroup appUidGroup, Packages.TransportLayerPackage tlPackage, Connections.Connection connection) {
+    public static Intent createActionIntent_decideConnection(Context context, AppUidGroup appUidGroup, Connections.Connection connection) {
         Bundle args = new Bundle();
 
         args.putInt("app.uid", appUidGroup.getUid());
@@ -449,19 +455,12 @@ public class ShowAppRulesActivity extends AppCompatActivity implements DecideCon
         return intent;
     }
 
-    public static Intent createActionIntent_handleConnection(Context context, boolean accept) {
-        Bundle args = new Bundle();
-
-        args.putString(INTENT_ACTION, accept ? INTENT_ACTION__PENDING_CONNECTION__ACCEPT : INTENT_ACTION__PENDING_CONNECTION__BLOCK);
-
+    public static Intent createActionIntent_handleConnection(Context context, Connections.Connection connection, boolean accept) {
         Intent intent = new Intent(context, ShowAppRulesActivity.class);
-        intent.putExtras(args);
+        intent.putExtra(INTENT_ACTION, accept ? INTENT_ACTION__PENDING_CONNECTION__ACCEPT : INTENT_ACTION__PENDING_CONNECTION__BLOCK);
+        intent.putExtra(INTENT__PENDING_CONNECTION_INFO__CONNECTION, connection.toUserString());
 
         return intent;
-    }
-
-    public static void showDecideConnectionDialog(Context context, AppUidGroup appUidGroup, Packages.TransportLayerPackage tlPackage, Connections.Connection connection) {
-        context.startActivity(createActionIntent_decideConnection(context, appUidGroup, tlPackage, connection));
     }
 
     @Override

@@ -16,17 +16,24 @@
     </EditTextPreference>
 
     <EditTextPreference
-        android:title="Connection Decision: Timeout"
+        android:title="Connection Decision: timeout seconds"
         android:key="@string/preference_id__firewall_connection_decision_timeoutMS"
-        android:summary="@string/preference_summary__firewall_connection_decision_timeoutMS"
-        android:defaultValue="30000"
+        android:summary="@string/preference_summary__firewall_connection_decision_timeout_seconds"
+        android:defaultValue="3"
         android:inputType="number">
     </EditTextPreference>
 
     <SwitchPreference
-        android:title="Connection Decision: Default Accept"
+        android:title="Connection Decision: default accept"
         android:key="@string/preference_id__firewall_connection_decision_default_action"
         android:summary="@string/preference_summary__firewall_connection_decision_default_action"
+        android:defaultValue="true">
+    </SwitchPreference>
+
+    <SwitchPreference
+        android:title="Connection Decision: expand statusbar"
+        android:key="@string/preference_id__firewall_connection_decision_expand_statusbar"
+        android:summary="@string/preference_summary__firewall_connection_decision_expand_statusbar"
         android:defaultValue="true">
     </SwitchPreference>
 

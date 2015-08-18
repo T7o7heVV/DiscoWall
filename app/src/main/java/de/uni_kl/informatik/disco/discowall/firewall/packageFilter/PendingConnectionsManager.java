@@ -1,4 +1,4 @@
-package de.uni_kl.informatik.disco.discowall.firewall.helpers;
+package de.uni_kl.informatik.disco.discowall.firewall.packageFilter;
 
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -6,7 +6,7 @@ import java.util.LinkedList;
 import de.uni_kl.informatik.disco.discowall.netfilter.bridge.NetfilterBridgeCommunicator;
 import de.uni_kl.informatik.disco.discowall.packages.Connections;
 
-public class PendingConnectionsManager {
+class PendingConnectionsManager {
     public static class PendingConnection {
         public final NetfilterBridgeCommunicator.PackageActionCallback pendingActionCallback;
         public final Connections.Connection connection;
@@ -58,7 +58,17 @@ public class PendingConnectionsManager {
         return pendingConnectionsStack.get(0); // adding always from top ==> first element is last one added
     }
 
-    public boolean hasPendingConnections() {
+    public boolean hasPending() {
         return pendingConnectionsStack.size() > 0;
     }
+
+    public boolean isPending(Connections.Connection connection) {
+        for(PendingConnection pendingConnection : new LinkedList<>(pendingConnectionsStack)) { // copy list to secure it against modification during iteration
+            if (pendingConnection.connection.getID().equals(connection.getID()))
+                return true;
+        }
+
+        return false;
+    }
+
 }
