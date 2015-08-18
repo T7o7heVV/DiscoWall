@@ -437,10 +437,10 @@ public class ShowAppRulesActivity extends AppCompatActivity implements DecideCon
         context.startActivity(createActionIntent_showAppRules(context, appUidGroup));
     }
 
-    public static Intent createActionIntent_decideConnection(Context context, AppUidGroup appUidGroup, Connections.Connection connection) {
+    public static Intent createActionIntent_decideConnection(Context context, Connections.Connection connection) {
         Bundle args = new Bundle();
 
-        args.putInt("app.uid", appUidGroup.getUid());
+        args.putInt("app.uid", connection.getUserId());
 
         args.putInt("connection.src.port", connection.getSourcePort());
         args.putString("connection.src.ip", connection.getSourceIP());
