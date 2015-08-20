@@ -81,6 +81,9 @@ public class MainActivity extends AppCompatActivity {
             Log.v(LOG_TAG, "received finish() command. Closing activity.");
             finish();
         }
+
+        // Remove command from intent, so that re-loading of the activity will not cause the action to be executed again
+        intent.putExtra(INTENT_ACTION, "");
     }
 
     public static void closeAllActivities(Context context) {
