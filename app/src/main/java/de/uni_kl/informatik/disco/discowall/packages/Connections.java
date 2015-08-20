@@ -76,18 +76,22 @@ public class Connections {
             return totalLength;
         }
 
+        public String getID() {
+            return getID(this);
+        }
+
         /**
          * The connection ID is a ordered string of source->destination.
          * @return
          */
-        public String getID() {
-            String sourceID = source.toString();
-            String destinationID = destination.toString();
+        public static String getID(IConnection connection) {
+            String sourceID = connection.getSource().toString();
+            String destinationID = connection.getDestination().toString();
 
             if (sourceID.compareTo(destinationID) < 0)
-                return sourceID + "->" + destinationID;
+                return sourceID + "<->" + destinationID;
             else
-                return destinationID + "->" + sourceID;
+                return destinationID + "<->" + sourceID;
         }
 
         public boolean update(Packages.TransportLayerPackage tlPackage) {
@@ -201,6 +205,36 @@ public class Connections {
         @Override
         public String toString() {
             return super.toString() + " { state=" + state + ", lastSeqNr=" + lastSeqNumber + " }";
+        }
+    }
+
+    public static class SimpleConnection implements IConnection {
+        private final Packages.IpPortPair source, destination;
+
+        @Override public Packages.IpPortPair getSource() { return source; }
+        @Override public int getSourcePort() { return source.getPort(); }
+        @Override public String getSourceIP() { return source.getIp(); }
+
+        @Override public Packages.IpPortPair getDestination() { return destination; }
+        @Override public int getDestinationPort() { return destination.getPort(); }
+        @Override public String getDestinationIP() { return destination.getIp(); }
+
+        public SimpleConnection(IConnection connectionData) {
+            this(connectionData.getSource(), connectionData.getDestination());
+        }
+
+        public SimpleConnection(Packages.IpPortPair source, Packages.IpPortPair destination) {
+            this(source.getIp(), source.getPort(), destination.getIp(), destination.getPort());
+        }
+
+        public SimpleConnection(String sourceIP, int sourcePort, String destinationIP, int destinationPort) {
+            source = new Packages.IpPortPair(sourceIP, sourcePort);
+            destination = new Packages.IpPortPair(destinationIP, destinationPort);
+        }
+
+        @Override
+        public String toString() {
+            return source + " -> " + destination;
         }
     }
 }

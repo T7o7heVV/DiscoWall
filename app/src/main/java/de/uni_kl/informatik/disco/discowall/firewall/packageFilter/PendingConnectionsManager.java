@@ -1,5 +1,7 @@
 package de.uni_kl.informatik.disco.discowall.firewall.packageFilter;
 
+import android.util.Log;
+
 import java.util.HashMap;
 import java.util.LinkedList;
 
@@ -7,9 +9,12 @@ import de.uni_kl.informatik.disco.discowall.netfilter.bridge.NetfilterBridgeComm
 import de.uni_kl.informatik.disco.discowall.packages.Connections;
 
 class PendingConnectionsManager {
+    private static final String LOG_TAG = PendingConnectionsManager.class.getSimpleName();
+
     public static class PendingConnection {
         public final NetfilterBridgeCommunicator.PackageActionCallback pendingActionCallback;
         public final Connections.Connection connection;
+        private PendingConnectionTimeoutThread timeoutThread;
 
         private PendingConnection(Connections.Connection connection, NetfilterBridgeCommunicator.PackageActionCallback pendingActionCallback) {
             this.pendingActionCallback = pendingActionCallback;
@@ -23,6 +28,24 @@ class PendingConnectionsManager {
         public void block() {
             pendingActionCallback.blockPendingPackage();
         }
+
+        public PendingConnectionTimeoutThread getTimeoutThread() {
+            return timeoutThread;
+        }
+
+        public void setTimeoutThread(PendingConnectionTimeoutThread timeoutThread) {
+            this.timeoutThread = timeoutThread;
+        }
+
+        @Override
+        public String toString() {
+            return connection.toString();
+        }
+    }
+
+    public static interface PendingConnectionTimeoutThread {
+        void stopTimeout();
+        void startTimeout();
     }
 
     //================================================================================================================================================
@@ -41,12 +64,16 @@ class PendingConnectionsManager {
         PendingConnection pendingConnection = pendingConnectionsStack.get(0);
         pendingConnectionsStack.remove(0); // remove first from stack
 
+        Log.v(LOG_TAG, "latest pending connection removed: " + pendingConnection);
+
         return pendingConnection;
     }
 
     public PendingConnection addPendingConnection(Connections.Connection connection, NetfilterBridgeCommunicator.PackageActionCallback pendingActionCallback) {
         PendingConnection pendingConnection = new PendingConnection(connection, pendingActionCallback);
         pendingConnectionsStack.addFirst(pendingConnection); // List used as stack ==> add as first
+
+        Log.v(LOG_TAG, "pending connection added: " + pendingConnection);
 
         return pendingConnection;
     }
@@ -63,12 +90,20 @@ class PendingConnectionsManager {
     }
 
     public boolean isPending(Connections.Connection connection) {
+        return getPendingConnection(connection) != null;
+    }
+
+    public PendingConnection getPendingConnection(Connections.IConnection connection) {
+        final String searchedID = Connections.Connection.getID(connection);
+
         for(PendingConnection pendingConnection : new LinkedList<>(pendingConnectionsStack)) { // copy list to secure it against modification during iteration
-            if (pendingConnection.connection.getID().equals(connection.getID()))
-                return true;
+            String currentID = pendingConnection.connection.getID();
+
+            if (currentID.equals(searchedID))
+                return pendingConnection;
         }
 
-        return false;
+        return null;
     }
 
 }

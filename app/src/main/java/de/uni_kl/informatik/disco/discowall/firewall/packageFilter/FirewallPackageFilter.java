@@ -52,7 +52,7 @@ public class FirewallPackageFilter implements SubsystemPendingPackagesManager {
             return;
         }
 
-        Log.i(LOG_TAG, "Pending Connection: [User-Decision] ACCEPT");
+        Log.i(LOG_TAG, "Pending Connection: [User-Decision] ACCEPT   - " + pendingConnectionsManager.getLatestPendingConnection());
         PendingConnectionsManager.PendingConnection pendingConnection = pendingConnectionsManager.removeLatestPendingConnection();
 
         // rule has to be added BEFORE accepting/blocking connection, as the next package will be handled immediately after the current one is handled.
@@ -69,8 +69,7 @@ public class FirewallPackageFilter implements SubsystemPendingPackagesManager {
             return;
         }
 
-        Log.i(LOG_TAG, "Pending Connection: [User-Decision] BLOCK");
-
+        Log.i(LOG_TAG, "Pending Connection: [User-Decision] BLOCK   - " + pendingConnectionsManager.getLatestPendingConnection());
         PendingConnectionsManager.PendingConnection pendingConnection = pendingConnectionsManager.removeLatestPendingConnection();
 
         // rule has to be added BEFORE accepting/blocking connection, as the next package will be handled immediately after the current one is handled.
@@ -177,4 +176,15 @@ public class FirewallPackageFilter implements SubsystemPendingPackagesManager {
         }
     }
 
+    @Override
+    public void OnDecisionDialogOpened(AppUidGroup appUidGroup, Connections.IConnection connection) {
+        Log.d(LOG_TAG, "Stopping decision-timeout for connection: " + connection);
+        decisionNotificationHelper.stopDecisionTimeout(appUidGroup, connection);
+    }
+
+    @Override
+    public void OnDecisionDialogDismissed(AppUidGroup appUidGroup, Connections.IConnection connection) {
+        Log.d(LOG_TAG, "user dismissed decision dialog for connection: " + connection);
+        decisionNotificationHelper.restartDecisionTimeout(connection);
+    }
 }

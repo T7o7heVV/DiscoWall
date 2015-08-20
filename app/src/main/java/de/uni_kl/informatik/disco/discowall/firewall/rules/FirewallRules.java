@@ -222,10 +222,12 @@ public class FirewallRules {
                 case WIFI:
                     if (tlPackage.getNetworkInterface() != Packages.NetworkInterface.WiFi)
                         return false;
+                    break;
                 case UMTS:
                     // umts matches only
                     if (tlPackage.getNetworkInterface() != Packages.NetworkInterface.Umts)
                         return false;
+                    break;
                 default:
                     throw new RuntimeException("Device-Filter unknown: " + deviceFilter);
             }
@@ -238,9 +240,11 @@ public class FirewallRules {
                 case UDP:
                     if (tlPackage.getProtocol() != Packages.TransportLayerProtocol.UDP)
                         return false;
+                    break;
                 case TCP:
                     if (tlPackage.getProtocol() != Packages.TransportLayerProtocol.TCP)
                         return false;
+                    break;
                 default:
                     throw new RuntimeException("Protocol-Filter unknown: " + protocolFilter);
             }

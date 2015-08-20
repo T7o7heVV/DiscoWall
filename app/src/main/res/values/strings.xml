@@ -66,7 +66,7 @@
     <string name="action_accept">Accept</string>
     <string name="action_block">Block</string>
     <string name="action_interactive">Interactive</string>
-    <string name="action_apply_for_all_connections_of_this_app">Apply For All New App-Connections</string>
+    <string name="action_apply_for_all_connections_of_this_app">Apply For New Connections</string>
 
     <string name="action_rule_add">Add Rule</string>
     <string name="action_rule_edit">Edit Rule</string>

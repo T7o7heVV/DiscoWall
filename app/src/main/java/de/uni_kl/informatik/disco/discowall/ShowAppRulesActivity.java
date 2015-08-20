@@ -32,15 +32,20 @@ import de.uni_kl.informatik.disco.discowall.gui.dialogs.ErrorDialog;
 import de.uni_kl.informatik.disco.discowall.packages.Connections;
 import de.uni_kl.informatik.disco.discowall.packages.Packages;
 import de.uni_kl.informatik.disco.discowall.utils.GuiUtils;
+import de.uni_kl.informatik.disco.discowall.utils.IntentDataSerializer;
 import de.uni_kl.informatik.disco.discowall.utils.apps.AppUidGroup;
 
 
-public class ShowAppRulesActivity extends AppCompatActivity implements DecideConnectionDialog.DecideConnectionDialogListener {
+public class ShowAppRulesActivity extends AppCompatActivity {
     private static final String LOG_TAG = ShowAppRulesActivity.class.getSimpleName();
 
     private static final String INTENT_ACTION = "action";
 
     private static final String INTENT_ACTION_SHOW = "show";
+
+    private static final String INTENT_DATA__APP_UID = "app.uid";
+    private static final String INTENT_DATA__TRANSPORT_LAYER_PROTOCOL = "connection.protocol";
+
     private static final String INTENT_ACTION__PENDING_CONNECTION__DECIDE_BY_USER = "action.pendingConnection.user-decide";
     private static final String INTENT_ACTION__PENDING_CONNECTION__ACCEPT = "action.pendingConnection.accept";
     private static final String INTENT_ACTION__PENDING_CONNECTION__BLOCK  = "action.pendingConnection.block";
@@ -225,28 +230,54 @@ public class ShowAppRulesActivity extends AppCompatActivity implements DecideCon
     }
 
     private void handleIntentCommand() {
-        Bundle args = getIntent().getExtras();
-        String action = args.getString("action");
+        final Intent intent = getIntent();
+        final Bundle args = getIntent().getExtras();
+        final String action = args.getString("action");
 
         if (action.equals(INTENT_ACTION_SHOW))
             return;
 
         // Pending Connection Notification Clicks:
         if (INTENT_ACTION__PENDING_CONNECTION__DECIDE_BY_USER.equals(action)) {
-            String srcIP = args.getString("connection.src.ip");
-            int srcPort = args.getInt("connection.src.port");
-
-            String dstIP = args.getString("connection.dst.ip");
-            int dstPort = args.getInt("connection.dst.port");
-
-            int appUid = args.getInt("app.uid");
+            // Extract Intent Data:
+            Connections.IConnection connection = IntentDataSerializer.readConnection(intent, "connection");
+            int uid = args.getInt(INTENT_DATA__APP_UID);
+            final Packages.TransportLayerProtocol protocol = Packages.TransportLayerProtocol.valueOf(intent.getStringExtra(INTENT_DATA__TRANSPORT_LAYER_PROTOCOL));
 
             // decide what to do with connection
-//            DecideConnectionDialog.show(this, appUid, new Packages.IpPortPair(srcIP, srcPort), new Packages.IpPortPair(dstIP, dstPort));
+            DecideConnectionDialog.DecideConnectionDialogListener dialogResultListener = new DecideConnectionDialog.DecideConnectionDialogListener() {
+                @Override
+                public void onConnectionDecided(AppUidGroup appUidGroup, Connections.IConnection connection, final DecideConnectionDialog.AppConnectionDecision decision) {
+                    // Create temporary rule, so that the connection is handled even if the user cancels the edit-rule dialog:
+                    if (decision.allowConnection)
+                        firewall.subsystem.pendingActionsManager.acceptPendingPackage();
+                    else
+                        firewall.subsystem.pendingActionsManager.blockPendingPackage();
 
-            // TODO: DEBUG
-            Log.w(LOG_TAG, "INTERACTIVE decision is NOT impelmented yet! Accepting package...");
-            firewall.subsystem.pendingActionsManager.acceptPendingPackage();
+                    // create permanent rule:
+                    if (decision.createRule) {
+                        FirewallRules.RulePolicy policy = decision.allowConnection ? FirewallRules.RulePolicy.ALLOW : FirewallRules.RulePolicy.BLOCK;
+//                        FirewallRules.FirewallTransportRule rule = firewall.subsystem.rulesManager.createTransportLayerRule(appUidGroup, policy);
+//                        FirewallRules.FirewallTransportRule rule = new FirewallRules.FirewallTransportRule(appUidGroup.getUid(), policy);
+//                        rule.setLocalFilter(connection.getSource());
+//                        rule.setLocalFilter(connection.getDestination());
+//                        rule.setProtocolFilter(protocol.toFilter());
+
+                        actionCreateRuleAbove(null, FirewallRules.RuleKind.Policy, connection, protocol.toFilter());
+                    }
+                }
+
+                @Override
+                public void onDialogDismissed(AppUidGroup appUidGroup, Connections.IConnection connection) {
+                    firewall.subsystem.pendingActionsManager.OnDecisionDialogDismissed(appUidGroup, connection);
+                }
+            };
+
+            // Inform the pendingActionsManager which decision is currently being made by the user
+            firewall.subsystem.pendingActionsManager.OnDecisionDialogOpened(appUidGroup, connection);
+
+            // Show decision-dialog
+            DecideConnectionDialog.show(this, dialogResultListener, appUidGroup, connection, protocol);
         } else if (INTENT_ACTION__PENDING_CONNECTION__ACCEPT.equals(action)) {
             Log.d(LOG_TAG, "Action.PendingConnection: accept package");
 
@@ -308,7 +339,7 @@ public class ShowAppRulesActivity extends AppCompatActivity implements DecideCon
         actionCreateRuleAbove(null);
     }
 
-    private void actionCreateRuleAbove(final FirewallRules.IFirewallRule selectedRule) {
+    private void actionCreateRuleAbove(final FirewallRules.IFirewallRule existingRuleBelowNewOne) {
         new AlertDialog.Builder(ShowAppRulesActivity.this)
                 .setTitle("Create Rule")
                 .setIcon(appUidGroup.getIcon())
@@ -317,19 +348,27 @@ public class ShowAppRulesActivity extends AppCompatActivity implements DecideCon
                 .setPositiveButton("Redirection", new DialogInterface.OnClickListener() { // positive button is on the right ==> redirection is right button
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        actionCreateRuleAbove(selectedRule, FirewallRules.RuleKind.Redirect);
+                        actionCreateRuleAbove(existingRuleBelowNewOne, FirewallRules.RuleKind.Redirect);
                     }
                 })
                 .setNegativeButton("Policy", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        actionCreateRuleAbove(selectedRule, FirewallRules.RuleKind.Policy);
+                        actionCreateRuleAbove(existingRuleBelowNewOne, FirewallRules.RuleKind.Policy);
                     }
                 })
                 .create().show();
     }
 
     private void actionCreateRuleAbove(final FirewallRules.IFirewallRule existingRuleBelowNewOne, FirewallRules.RuleKind ruleKind) {
+        actionCreateRuleAbove(existingRuleBelowNewOne, ruleKind, null, null);
+    }
+
+    private void actionCreateRuleAbove(final FirewallRules.IFirewallRule existingRuleBelowNewOne, FirewallRules.RuleKind ruleKind, Connections.IConnection connectionFilter) {
+        actionCreateRuleAbove(existingRuleBelowNewOne, ruleKind, connectionFilter, null);
+    }
+
+    private void actionCreateRuleAbove(final FirewallRules.IFirewallRule existingRuleBelowNewOne, FirewallRules.RuleKind ruleKind, Connections.IConnection connectionFilter, FirewallRules.ProtocolFilter protocolFilter) {
         FirewallRules.IFirewallRule rule;
 
         switch(ruleKind) {
@@ -352,29 +391,38 @@ public class ShowAppRulesActivity extends AppCompatActivity implements DecideCon
                 return;
         }
 
+        if (connectionFilter != null) {
+            rule.setLocalFilter(connectionFilter.getSource());
+            rule.setRemoteFilter(connectionFilter.getDestination());
+        }
+
+        if (protocolFilter != null)
+            rule.setProtocolFilter(protocolFilter);
+
         EditRuleDialog.show(ShowAppRulesActivity.this, new EditRuleDialog.DialogListener() {
-            @Override
-            public void onAcceptChanges(FirewallRules.IFirewallRule rule, AppUidGroup appUidGroup) {
-                try {
-                    Log.v(LOG_TAG, "Adding rule for AppGroup" + appUidGroup + ": " + rule);
+                    @Override
+                    public void onAcceptChanges(FirewallRules.IFirewallRule rule, AppUidGroup appUidGroup) {
+                        try {
+                            Log.v(LOG_TAG, "Adding rule for AppGroup" + appUidGroup + ": " + rule);
 
-                    if (existingRuleBelowNewOne != null)
-                        firewall.subsystem.rulesManager.addRule(rule, existingRuleBelowNewOne);
-                    else
-                        firewall.subsystem.rulesManager.addRule(rule);
+                            if (existingRuleBelowNewOne != null)
+                                firewall.subsystem.rulesManager.addRule(rule, existingRuleBelowNewOne);
+                            else
+                                firewall.subsystem.rulesManager.addRule(rule);
 
-                    afterRulesChanged();
-                } catch (FirewallRuleExceptions.DuplicateRuleException | FirewallRuleExceptions.RuleNotFoundException e) {
-                    // RuleNotFoundException: can also not happen, as both rules are owned by the same user - as they are in this list
-                    // DuplicateRuleException: will never be fired, as I will never try to add this rule agAIn
-                    Log.e(LOG_TAG, e.getMessage(), e);
-                }
-            }
+                            afterRulesChanged();
+                        } catch (FirewallRuleExceptions.DuplicateRuleException | FirewallRuleExceptions.RuleNotFoundException e) {
+                            // RuleNotFoundException: can also not happen, as both rules are owned by the same user - as they are in this list
+                            // DuplicateRuleException: will never be fired, as I will never try to add this rule agAIn
+                            Log.e(LOG_TAG, e.getMessage(), e);
+                        }
+                    }
 
-            @Override
-            public void onDiscardChanges(FirewallRules.IFirewallRule rule, AppUidGroup appUidGroup) {
-            }
-        }, appUidGroup, rule);
+                    @Override
+                    public void onDiscardChanges(FirewallRules.IFirewallRule rule, AppUidGroup appUidGroup) {
+                    }
+                }, appUidGroup, rule
+        );
     }
 
     private void afterRulesChanged() {
@@ -390,12 +438,14 @@ public class ShowAppRulesActivity extends AppCompatActivity implements DecideCon
                 ShowAppRulesActivity.this, new EditRuleDialog.DialogListener() {
                     @Override
                     public void onAcceptChanges(FirewallRules.IFirewallRule rule, AppUidGroup appUidGroup) {
+                        Log.d(LOG_TAG, "accepted rule-changes for rule: " + rule);
                         afterRulesChanged();
                     }
 
                     @Override
                     public void onDiscardChanges(FirewallRules.IFirewallRule rule, AppUidGroup appUidGroup) {
-                        // do nothing
+                        // do nothing per default
+                        Log.d(LOG_TAG, "discarded rule-changes for rule: " + rule);
                     }
                 }, appUidGroup, rule
         );
@@ -424,13 +474,13 @@ public class ShowAppRulesActivity extends AppCompatActivity implements DecideCon
     public static Intent createActionIntent_showAppRules(Context context, AppUidGroup appUidGroup) {
         Bundle args = new Bundle();
 
-        args.putInt("app.uid", appUidGroup.getUid());
+        args.putInt(INTENT_DATA__APP_UID, appUidGroup.getUid());
         args.putString(INTENT_ACTION, INTENT_ACTION_SHOW);
 
-        Intent intentWithAppGroupInfos = new Intent(context, ShowAppRulesActivity.class);
-        intentWithAppGroupInfos.putExtras(args);
+        Intent intent = new Intent(context, ShowAppRulesActivity.class);
+        intent.putExtras(args);
 
-        return intentWithAppGroupInfos;
+        return intent;
     }
 
     public static void showAppRules(Context context, AppUidGroup appUidGroup) {
@@ -438,19 +488,13 @@ public class ShowAppRulesActivity extends AppCompatActivity implements DecideCon
     }
 
     public static Intent createActionIntent_decideConnection(Context context, Connections.Connection connection) {
-        Bundle args = new Bundle();
-
-        args.putInt("app.uid", connection.getUserId());
-
-        args.putInt("connection.src.port", connection.getSourcePort());
-        args.putString("connection.src.ip", connection.getSourceIP());
-        args.putInt("connection.dst.port", connection.getDestinationPort());
-        args.putString("connection.dst.ip", connection.getDestinationIP());
-
-        args.putString(INTENT_ACTION, INTENT_ACTION__PENDING_CONNECTION__DECIDE_BY_USER);
-
         Intent intent = new Intent(context, ShowAppRulesActivity.class);
-        intent.putExtras(args);
+
+        intent.putExtra(INTENT_DATA__APP_UID, connection.getUserId());
+        intent.putExtra(INTENT_DATA__TRANSPORT_LAYER_PROTOCOL, connection.getTransportLayerProtocol().toString());
+        intent.putExtra(INTENT_ACTION, INTENT_ACTION__PENDING_CONNECTION__DECIDE_BY_USER);
+
+        IntentDataSerializer.writeConnection(connection, intent, "connection");
 
         return intent;
     }
@@ -459,12 +503,12 @@ public class ShowAppRulesActivity extends AppCompatActivity implements DecideCon
         Intent intent = new Intent(context, ShowAppRulesActivity.class);
         intent.putExtra(INTENT_ACTION, accept ? INTENT_ACTION__PENDING_CONNECTION__ACCEPT : INTENT_ACTION__PENDING_CONNECTION__BLOCK);
         intent.putExtra(INTENT__PENDING_CONNECTION_INFO__CONNECTION, connection.toUserString());
+        intent.putExtra(INTENT_DATA__TRANSPORT_LAYER_PROTOCOL, connection.getTransportLayerProtocol().toString());
 
         return intent;
     }
 
-    @Override
-    public void onConnectionDecided(ApplicationInfo appInfo, Packages.IpPortPair source, Packages.IpPortPair destination, DecideConnectionDialog.AppConnectionDecision decision) {
-        // TODO: report back connection decision
+    public static boolean isConnectionDecisionDialogOpen() {
+        return DecideConnectionDialog.isDialogOpen();
     }
 }
