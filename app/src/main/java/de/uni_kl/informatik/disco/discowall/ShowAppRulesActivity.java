@@ -49,7 +49,6 @@ public class ShowAppRulesActivity extends AppCompatActivity {
     private static final String INTENT_ACTION__PENDING_CONNECTION__DECIDE_BY_USER = "action.pendingConnection.user-decide";
     private static final String INTENT_ACTION__PENDING_CONNECTION__ACCEPT = "action.pendingConnection.accept";
     private static final String INTENT_ACTION__PENDING_CONNECTION__BLOCK  = "action.pendingConnection.block";
-    private static final String INTENT__PENDING_CONNECTION_INFO__CONNECTION  = "pendingConnection.info";
 
 
     public FirewallService firewallService;
@@ -229,6 +228,11 @@ public class ShowAppRulesActivity extends AppCompatActivity {
         handleIntentCommand();
     }
 
+    private void showPackageDecidedToast(Connections.IConnection connection, boolean accepted) {
+        String connectionInfo = Connections.Connection.toUserString(connection);
+        Toast.makeText(getApplicationContext(), (accepted ? "accepted" : "blocked:") + "\n" + connectionInfo, Toast.LENGTH_SHORT).show();
+    }
+
     private void handleIntentCommand() {
         final Intent intent = getIntent();
         final Bundle args = getIntent().getExtras();
@@ -236,6 +240,12 @@ public class ShowAppRulesActivity extends AppCompatActivity {
 
         if (action.equals(INTENT_ACTION_SHOW))
             return;
+
+        /* Functionality-Notes:
+         *   - Finishing Activities after action done:
+         *     It would be nice to close all activities once everything is done. But closing activities (i.e. removing them from the stack) causes the listeners on calling activities to fail.
+         *     Example: Some toasts (like "accepted"/"blocked") could not be shown when doing this.
+         */
 
         // Pending Connection Notification Clicks:
         if (INTENT_ACTION__PENDING_CONNECTION__DECIDE_BY_USER.equals(action)) {
@@ -248,28 +258,49 @@ public class ShowAppRulesActivity extends AppCompatActivity {
             DecideConnectionDialog.DecideConnectionDialogListener dialogResultListener = new DecideConnectionDialog.DecideConnectionDialogListener() {
                 @Override
                 public void onConnectionDecided(AppUidGroup appUidGroup, Connections.IConnection connection, final DecideConnectionDialog.AppConnectionDecision decision) {
-                    // Create temporary rule, so that the connection is handled even if the user cancels the edit-rule dialog:
+                    // The package has to be accepted/blocked - independent of the creation of a rule
                     if (decision.allowConnection)
                         firewall.subsystem.pendingActionsManager.acceptPendingPackage();
                     else
                         firewall.subsystem.pendingActionsManager.blockPendingPackage();
 
+                    // show toast about decision:
+                    showPackageDecidedToast(connection, decision.allowConnection);
+
                     // create permanent rule:
                     if (decision.createRule) {
                         FirewallRules.RulePolicy policy = decision.allowConnection ? FirewallRules.RulePolicy.ALLOW : FirewallRules.RulePolicy.BLOCK;
-//                        FirewallRules.FirewallTransportRule rule = firewall.subsystem.rulesManager.createTransportLayerRule(appUidGroup, policy);
-//                        FirewallRules.FirewallTransportRule rule = new FirewallRules.FirewallTransportRule(appUidGroup.getUid(), policy);
-//                        rule.setLocalFilter(connection.getSource());
-//                        rule.setLocalFilter(connection.getDestination());
-//                        rule.setProtocolFilter(protocol.toFilter());
 
-                        actionCreateRuleAbove(null, FirewallRules.RuleKind.Policy, connection, protocol.toFilter());
+                        actionCreateRuleAbove(null, FirewallRules.RuleKind.Policy, connection, protocol.toFilter(), policy,
+                                new EditRuleDialog.DialogListener() {
+                                    @Override
+                                    public void onAcceptChanges(FirewallRules.IFirewallRule rule, AppUidGroup appUidGroup) {
+                                        // close app-rules view
+                                        ShowAppRulesActivity.this.finish();
+//                                        MainActivity.closeAllActivities(ShowAppRulesActivity.this); // close all activities; has to be called AFTER the dialog terminates - otherwise the dialog cannot even start correctly.
+                                    }
+
+                                    @Override
+                                    public void onDiscardChanges(FirewallRules.IFirewallRule rule, AppUidGroup appUidGroup) {
+                                        // close app-rules view
+                                        ShowAppRulesActivity.this.finish();
+//                                        MainActivity.closeAllActivities(ShowAppRulesActivity.this); // close all activities
+                                    }
+                                }
+                        );
+                    } else {
+                        // close app-rules view
+                        Log.v(LOG_TAG, "closing rules activity...");
+//                        MainActivity.closeAllActivities(ShowAppRulesActivity.this); // close all activities
+                        ShowAppRulesActivity.this.finish();
                     }
                 }
 
                 @Override
-                public void onDialogDismissed(AppUidGroup appUidGroup, Connections.IConnection connection) {
+                public void onDialogCanceled(AppUidGroup appUidGroup, Connections.IConnection connection) {
                     firewall.subsystem.pendingActionsManager.OnDecisionDialogDismissed(appUidGroup, connection);
+//                    MainActivity.closeAllActivities(ShowAppRulesActivity.this); // close all activities
+                    ShowAppRulesActivity.this.finish(); // close app-rules view
                 }
             };
 
@@ -278,22 +309,27 @@ public class ShowAppRulesActivity extends AppCompatActivity {
 
             // Show decision-dialog
             DecideConnectionDialog.show(this, dialogResultListener, appUidGroup, connection, protocol);
-        } else if (INTENT_ACTION__PENDING_CONNECTION__ACCEPT.equals(action)) {
-            Log.d(LOG_TAG, "Action.PendingConnection: accept package");
+        } else if (INTENT_ACTION__PENDING_CONNECTION__ACCEPT.equals(action) || INTENT_ACTION__PENDING_CONNECTION__BLOCK.equals(action)) { // ACCEPT/BLOCK actions within Connection-Notification
+            final boolean accept = INTENT_ACTION__PENDING_CONNECTION__ACCEPT.equals(action);
 
-            firewall.subsystem.pendingActionsManager.acceptPendingPackage();
-            Toast.makeText(this, "accepted:\n" + args.getString(INTENT__PENDING_CONNECTION_INFO__CONNECTION), Toast.LENGTH_SHORT).show();
+            if (accept) {
+                Log.d(LOG_TAG, "Action.PendingConnection: accept package");
+                firewall.subsystem.pendingActionsManager.acceptPendingPackage();
+            } else {
+                Log.d(LOG_TAG, "Action.PendingConnection: block package");
+                firewall.subsystem.pendingActionsManager.blockPendingPackage();
+            }
+
+            // show toast about decision:
+            Connections.IConnection connection = IntentDataSerializer.readConnection(intent, "connection");
+            showPackageDecidedToast(connection, accept);
 
             finish();
-        } else if (INTENT_ACTION__PENDING_CONNECTION__BLOCK.equals(action)) {
-            Log.d(LOG_TAG, "Action.PendingConnection: block package");
-
-            firewall.subsystem.pendingActionsManager.blockPendingPackage();
-            Toast.makeText(this, "blocked:\n" + args.getString(INTENT__PENDING_CONNECTION_INFO__CONNECTION), Toast.LENGTH_SHORT).show();
-
-            finish();
+//            MainActivity.closeAllActivities(this); // close all activities
         }
 
+        // remove the action from the intent, so that the same action will not be performed again after returning from a sub-dialog:
+        intent.putExtra(INTENT_ACTION, "");
     }
 
     private void setupButtons() {
@@ -361,19 +397,15 @@ public class ShowAppRulesActivity extends AppCompatActivity {
     }
 
     private void actionCreateRuleAbove(final FirewallRules.IFirewallRule existingRuleBelowNewOne, FirewallRules.RuleKind ruleKind) {
-        actionCreateRuleAbove(existingRuleBelowNewOne, ruleKind, null, null);
+        actionCreateRuleAbove(existingRuleBelowNewOne, ruleKind, null, null, null, null);
     }
 
-    private void actionCreateRuleAbove(final FirewallRules.IFirewallRule existingRuleBelowNewOne, FirewallRules.RuleKind ruleKind, Connections.IConnection connectionFilter) {
-        actionCreateRuleAbove(existingRuleBelowNewOne, ruleKind, connectionFilter, null);
-    }
-
-    private void actionCreateRuleAbove(final FirewallRules.IFirewallRule existingRuleBelowNewOne, FirewallRules.RuleKind ruleKind, Connections.IConnection connectionFilter, FirewallRules.ProtocolFilter protocolFilter) {
+    private void actionCreateRuleAbove(final FirewallRules.IFirewallRule existingRuleBelowNewOne, FirewallRules.RuleKind ruleKind, Connections.IConnection connectionFilter, FirewallRules.ProtocolFilter protocolFilter, FirewallRules.RulePolicy policy, final EditRuleDialog.DialogListener dialogResultListener) {
         FirewallRules.IFirewallRule rule;
 
         switch(ruleKind) {
             case Policy:
-                rule = new FirewallRules.FirewallTransportRule(appUidGroup.getUid(), FirewallRules.RulePolicy.ALLOW);
+                rule = new FirewallRules.FirewallTransportRule(appUidGroup.getUid(), policy != null ? policy : FirewallRules.RulePolicy.ALLOW);
                 break;
             case Redirect:
                 try {
@@ -403,7 +435,7 @@ public class ShowAppRulesActivity extends AppCompatActivity {
                     @Override
                     public void onAcceptChanges(FirewallRules.IFirewallRule rule, AppUidGroup appUidGroup) {
                         try {
-                            Log.v(LOG_TAG, "Adding rule for AppGroup" + appUidGroup + ": " + rule);
+                            Log.v(LOG_TAG, EditRuleDialog.class.getSimpleName() + " closed with OK --> Adding rule for AppGroup" + appUidGroup + ": " + rule);
 
                             if (existingRuleBelowNewOne != null)
                                 firewall.subsystem.rulesManager.addRule(rule, existingRuleBelowNewOne);
@@ -416,10 +448,17 @@ public class ShowAppRulesActivity extends AppCompatActivity {
                             // DuplicateRuleException: will never be fired, as I will never try to add this rule agAIn
                             Log.e(LOG_TAG, e.getMessage(), e);
                         }
+
+                        if (dialogResultListener != null)
+                            dialogResultListener.onAcceptChanges(rule, appUidGroup);
                     }
 
                     @Override
                     public void onDiscardChanges(FirewallRules.IFirewallRule rule, AppUidGroup appUidGroup) {
+                        Log.v(LOG_TAG, EditRuleDialog.class.getSimpleName() + " closed with CANCEL.");
+
+                        if (dialogResultListener != null)
+                            dialogResultListener.onDiscardChanges(rule, appUidGroup);
                     }
                 }, appUidGroup, rule
         );
@@ -502,13 +541,11 @@ public class ShowAppRulesActivity extends AppCompatActivity {
     public static Intent createActionIntent_handleConnection(Context context, Connections.Connection connection, boolean accept) {
         Intent intent = new Intent(context, ShowAppRulesActivity.class);
         intent.putExtra(INTENT_ACTION, accept ? INTENT_ACTION__PENDING_CONNECTION__ACCEPT : INTENT_ACTION__PENDING_CONNECTION__BLOCK);
-        intent.putExtra(INTENT__PENDING_CONNECTION_INFO__CONNECTION, connection.toUserString());
         intent.putExtra(INTENT_DATA__TRANSPORT_LAYER_PROTOCOL, connection.getTransportLayerProtocol().toString());
+
+        IntentDataSerializer.writeConnection(connection, intent, "connection");
 
         return intent;
     }
 
-    public static boolean isConnectionDecisionDialogOpen() {
-        return DecideConnectionDialog.isDialogOpen();
-    }
 }

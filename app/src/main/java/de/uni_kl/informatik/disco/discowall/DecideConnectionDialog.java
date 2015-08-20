@@ -25,37 +25,30 @@ public class DecideConnectionDialog extends DialogFragment {
     private static final String LOG_TAG = DecideConnectionDialog.class.getSimpleName();
 
     private DecideConnectionDialogListener dialogListener;
-    private static boolean dialogOpen = false;
 
     // Arguments:
     private AppUidGroup appUidGroup;
     private Connections.IConnection connection;
     private Packages.TransportLayerProtocol protocol;
 
-    public static boolean isDialogOpen() {
-        return dialogOpen;
-    }
-
     public static class AppConnectionDecision {
-        public final boolean allowConnection, createRule, applyForAllNewConnectionsOfThisApp;
+//        public final boolean allowConnection, createRule, applyForAllNewConnectionsOfThisApp;
+        public final boolean allowConnection, createRule;
 
-        public AppConnectionDecision(boolean allowConnection, boolean createRule, boolean applyForAllNewConnectionsOfThisApp) {
+        public AppConnectionDecision(boolean allowConnection, boolean createRule) {
             this.allowConnection = allowConnection;
             this.createRule = createRule;
-            this.applyForAllNewConnectionsOfThisApp = applyForAllNewConnectionsOfThisApp;
+//            this.applyForAllNewConnectionsOfThisApp = applyForAllNewConnectionsOfThisApp;
         }
     }
 
     public static interface DecideConnectionDialogListener {
         void onConnectionDecided(AppUidGroup appUidGroup, Connections.IConnection connection, AppConnectionDecision decision);
-        void onDialogDismissed(AppUidGroup appUidGroup, Connections.IConnection connection);
+        void onDialogCanceled(AppUidGroup appUidGroup, Connections.IConnection connection);
     }
 
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
-        // so that it can be tracked whether this dialog is currently visible:
-        dialogOpen = true;
-
         // Fetch arguments:
         boolean createRuleChecked = DiscoWallSettings.getInstance().isHandleConnectionDialogDefaultCreateRule(getActivity());
 
@@ -108,7 +101,7 @@ public class DecideConnectionDialog extends DialogFragment {
         checkBoxCreateRules.setChecked(createRuleChecked);
 
         // Checkbox: Apply decision for all new connections of this app:
-        final CheckBox checkBoxApplyForAllNewConnectionsOfThisApp = (CheckBox) layoutView.findViewById(R.id.checkBox_apply_for_all_new_connections_from_this_app);
+//        final CheckBox checkBoxApplyForAllNewConnectionsOfThisApp = (CheckBox) layoutView.findViewById(R.id.checkBox_apply_for_all_new_connections_from_this_app);
 
         // Buttons, add Click-Events:
         layoutView.findViewById(R.id.button_accept).setOnClickListener(
@@ -120,7 +113,8 @@ public class DecideConnectionDialog extends DialogFragment {
                         dialogListener.onConnectionDecided(
                                 appUidGroup,
                                 connection,
-                                new AppConnectionDecision(true, checkBoxCreateRules.isChecked(), checkBoxApplyForAllNewConnectionsOfThisApp.isChecked())
+//                                new AppConnectionDecision(true, checkBoxCreateRules.isChecked(), checkBoxApplyForAllNewConnectionsOfThisApp.isChecked())
+                                new AppConnectionDecision(true, checkBoxCreateRules.isChecked())
                         );
 
                         DecideConnectionDialog.this.dismiss(); // close dialog
@@ -136,7 +130,8 @@ public class DecideConnectionDialog extends DialogFragment {
                         dialogListener.onConnectionDecided(
                                 appUidGroup,
                                 connection,
-                                new AppConnectionDecision(false, checkBoxCreateRules.isChecked(), checkBoxApplyForAllNewConnectionsOfThisApp.isChecked())
+//                                new AppConnectionDecision(false, checkBoxCreateRules.isChecked(), checkBoxApplyForAllNewConnectionsOfThisApp.isChecked())
+                                new AppConnectionDecision(false, checkBoxCreateRules.isChecked())
                         );
 
                         DecideConnectionDialog.this.dismiss(); // close dialog
@@ -154,28 +149,9 @@ public class DecideConnectionDialog extends DialogFragment {
     }
 
     @Override
-    public void onStart() {
-        super.onStart();
-
-        dialogOpen = true;
-    }
-
-    @Override
-    public void onStop() {
-        super.onStop();
-
-        dialogOpen = false;
-    }
-
-    @Override
-    public void onDismiss(DialogInterface dialog) {
-        super.onDismiss(dialog);
-
-        dialogOpen = false;
-
-        Log.v(LOG_TAG, this.getClass().getSimpleName() + " dismissed. Connection was: " + connection);
-
-        dialogListener.onDialogDismissed(appUidGroup, connection);
+    public void onCancel(DialogInterface dialog) {
+        Log.i(LOG_TAG, this.getClass().getSimpleName() + " closed with CANCEL. Connection was: " + connection);
+        dialogListener.onDialogCanceled(appUidGroup, connection);
     }
 
     //    public static DecideConnectionDialog show(Activity context, int uid, Connections.IConnection connection) {

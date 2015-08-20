@@ -177,7 +177,7 @@ public class FirewallService extends IntentService {
     public void updateServiceNotification(Firewall.FirewallState state, FirewallPolicyManager.FirewallPolicy policy) {
         Intent clickIntent = new Intent(this, MainActivity.class);
 //        clickIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        PendingIntent pendingClickIntent = PendingIntent.getActivity(this, 1, clickIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+        PendingIntent pendingClickIntent = PendingIntent.getActivity(this, 10, clickIntent, PendingIntent.FLAG_UPDATE_CURRENT);
 //        PendingIntent pendingClickIntent = PendingIntent.getActivity(this, 1, clickIntent, 0);
 
         String text;

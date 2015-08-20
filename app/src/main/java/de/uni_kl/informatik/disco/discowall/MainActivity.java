@@ -61,9 +61,34 @@ public class MainActivity extends AppCompatActivity {
         // for creating the Floating-Menu on the Apps-List ==> Long-Press will now show the menu
         registerForContextMenu(findViewById(R.id.listViewFirewallMonitoredApps)); // see http://developer.android.com/guide/topics/ui/menus.html#FloatingContextMenu
 
-
-
         // NOTE: All initialization of GUI-Elements etc. is being done onFirewallServiceBound
+
+        handleIntent();
+    }
+
+    private static final String INTENT_ACTION = "action";
+    private static final String INTENT_ACTION__FINISH = "finish";
+
+    private void handleIntent() {
+        final Intent intent = getIntent();
+
+        if (intent == null)
+            return;
+        if (!intent.hasExtra(INTENT_ACTION))
+            return;
+
+        if (INTENT_ACTION__FINISH.equals(intent.getStringExtra(INTENT_ACTION))) {
+            Log.v(LOG_TAG, "received finish() command. Closing activity.");
+            finish();
+        }
+    }
+
+    public static void closeAllActivities(Context context) {
+        Intent clearAndHomeIntent = new Intent(context, MainActivity.class);
+        clearAndHomeIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP); // so that all other activities will be closed
+        clearAndHomeIntent.putExtra(INTENT_ACTION, INTENT_ACTION__FINISH); // tell the mainActivity to close itself
+
+        context.startActivity(clearAndHomeIntent);
     }
 
     @Override

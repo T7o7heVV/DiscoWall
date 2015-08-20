@@ -111,8 +111,14 @@ public class Connections {
 
         public abstract Packages.TransportLayerProtocol getTransportLayerProtocol();
 
-        public String toUserString() {
+        public static String toUserString(IConnection connection) {
+            Packages.IpPortPair source = connection.getSource();
+            Packages.IpPortPair destination = connection.getDestination();
             return source.getIp() + ":" + source.getPort() + " -> " + destination.getIp() + ":" + destination.getPort();
+        }
+
+        public String toUserString() {
+            return toUserString(this);
         }
     }
 

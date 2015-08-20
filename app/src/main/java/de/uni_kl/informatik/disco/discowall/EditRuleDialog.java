@@ -104,8 +104,7 @@ public class EditRuleDialog extends DialogFragment {
         buttonCancel.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                EditRuleDialog.this.dismiss();
-                dialogListener.onAcceptChanges(rule, appUidGroup);
+                performCancelAction();
             }
         });
 
@@ -280,13 +279,27 @@ public class EditRuleDialog extends DialogFragment {
         return builder.create();
     }
 
+    private void performCancelAction() {
+        Log.i(LOG_TAG, this.getClass().getSimpleName() + " closed with CANCEL. Rule was: " + rule);
+        dismiss(); // close dialog
+
+        dialogListener.onDiscardChanges(rule, appUidGroup);
+    }
+
+    @Override
+    public void onCancel(DialogInterface dialog) {
+        performCancelAction();
+    }
+
     @Override
     public void onDismiss(DialogInterface dialog) {
         super.onDismiss(dialog);
 
         // Restore default (unspecified) orientation:
-        EditRuleDialog.this.getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
-        Log.v(LOG_TAG, "default-orientation (SCREEN_ORIENTATION_UNSPECIFIED) restored.");
+        if (EditRuleDialog.this.getActivity() != null) { // the activity is null, when the calling activity has already called "finish()"
+            EditRuleDialog.this.getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
+            Log.v(LOG_TAG, "default-orientation (SCREEN_ORIENTATION_UNSPECIFIED) restored.");
+        }
     }
 
     private Drawable getPolicyImage(FirewallRules.RulePolicy policy) {
