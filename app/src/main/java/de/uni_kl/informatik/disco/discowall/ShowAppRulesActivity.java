@@ -6,7 +6,6 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
-import android.content.pm.ApplicationInfo;
 import android.os.IBinder;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
@@ -131,15 +130,27 @@ public class ShowAppRulesActivity extends AppCompatActivity {
                 actionEditRule(clickedRule);
                 return true;
             case R.id.action_rules_move_rule_up:
-//                actionMoveRuleUp(clickedRule); // TODO
+                actionMoveRule(clickedRule, true);
                 return true;
             case R.id.action_rules_move_rule_down:
-//                actionMoveRuleDown(clickedRule); // TODO
+                actionMoveRule(clickedRule, false);
                 return true;
             default:
                 return super.onContextItemSelected(item);
         }
 
+    }
+
+    private void actionMoveRule(FirewallRules.IFirewallRule rule, boolean up) {
+        boolean moveResult;
+        if (up)
+            moveResult = firewall.subsystem.rulesManager.moveRuleUp(rule);
+        else
+            moveResult = firewall.subsystem.rulesManager.moveRuleDown(rule);
+
+        // refresh gui only if changed
+        if (moveResult)
+            afterRulesChanged();
     }
 
     private void actionDeleteRule(final FirewallRules.IFirewallRule ruleToDelete) {
@@ -351,7 +362,7 @@ public class ShowAppRulesActivity extends AppCompatActivity {
                         .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
                             @Override
                             public void onClick(DialogInterface dialog, int which) {
-                                firewall.subsystem.rulesManager.deleteAllRules(appUidGroup);
+                                firewall.subsystem.rulesManager.deleteUserRules(appUidGroup);
 
                                 Log.d(LOG_TAG, "User deleted all rules for app-group: " + appUidGroup);
                                 Toast.makeText(ShowAppRulesActivity.this, "all rules deleted", Toast.LENGTH_SHORT).show();

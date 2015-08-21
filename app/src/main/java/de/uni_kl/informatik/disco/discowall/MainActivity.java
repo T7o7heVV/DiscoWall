@@ -82,7 +82,6 @@ public class MainActivity extends AppCompatActivity {
             finish();
         }
 
-        // Remove command from intent, so that re-loading of the activity will not cause the action to be executed again
         intent.putExtra(INTENT_ACTION, "");
     }
 

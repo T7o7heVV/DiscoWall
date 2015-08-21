@@ -19,6 +19,7 @@ import de.uni_kl.informatik.disco.discowall.firewall.rules.serialization.Firewal
 import de.uni_kl.informatik.disco.discowall.firewall.util.FirewallRuledApp;
 import de.uni_kl.informatik.disco.discowall.netfilter.bridge.NetfilterFirewallRulesHandler;
 import de.uni_kl.informatik.disco.discowall.netfilter.iptables.IptablesControl;
+import de.uni_kl.informatik.disco.discowall.packages.Connections;
 import de.uni_kl.informatik.disco.discowall.packages.Packages;
 import de.uni_kl.informatik.disco.discowall.utils.apps.AppUidGroup;
 import de.uni_kl.informatik.disco.discowall.utils.ressources.DiscoWallConstants;
@@ -29,7 +30,8 @@ public class SubsystemRulesManager extends FirewallSubsystem{
     private static final String LOG_TAG = SubsystemRulesManager.class.getSimpleName();
 
     private final FirewallRulesManager rulesManager;
-    private final FirewallIptableRulesHandler iptableRulesManager = NetfilterFirewallRulesHandler.instance;
+    private final FirewallIptableRulesHandler firewallIptableRulesHandler = NetfilterFirewallRulesHandler.instance;
+
     private final WatchedAppsManager watchedAppsManager;
 
     public SubsystemRulesManager(Firewall firewall, FirewallService firewallServiceContext, FirewallRulesManager rulesManager, WatchedAppsManager watchedAppsManager) {
@@ -38,6 +40,8 @@ public class SubsystemRulesManager extends FirewallSubsystem{
         this.watchedAppsManager = watchedAppsManager;
     }
 
+    //region iptables-stuff
+
     public String getIptableRules(boolean all) throws FirewallExceptions.FirewallException {
         try {
             if (all) {
@@ -45,12 +49,42 @@ public class SubsystemRulesManager extends FirewallSubsystem{
             } else {
                 if (!firewall.isFirewallRunning())
                     return "< firewall has to be enabled in order to retrieve firewall rules >";
-                return iptableRulesManager.getFirewallRulesText();
+                return firewallIptableRulesHandler.getFirewallRulesText();
             }
         } catch(ShellExecuteExceptions.ShellExecuteException e) {
             throw new FirewallExceptions.FirewallException("Error fetching iptable rules: " + e.getMessage(), e);
         }
     }
+
+    public void writeRedirectionRuleToIptables(FirewallRules.FirewallTransportRule rule) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
+        // TODO
+    }
+
+    public void writePolicyRuleToIptables(FirewallRules.FirewallTransportRule rule) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
+        try {
+            // If TCP should be filtered:
+            if (rule.getProtocolFilter().isTcp())
+                firewallIptableRulesHandler.addTransportLayerRule(Packages.TransportLayerProtocol.TCP, rule.getUserId(), new Connections.SimpleConnection(rule.getLocalFilter(), rule.getRemoteFilter()), rule.getRulePolicy(), rule.getDeviceFilter());
+
+            // If UDP should be filtered:
+            if (rule.getProtocolFilter().isUdp())
+                firewallIptableRulesHandler.addTransportLayerRule(Packages.TransportLayerProtocol.UDP, rule.getUserId(), new Connections.SimpleConnection(rule.getLocalFilter(), rule.getRemoteFilter()), rule.getRulePolicy(), rule.getDeviceFilter());
+
+        } catch (ShellExecuteExceptions.ShellExecuteException e) {
+
+            // Remove created rule (if any), when an exception occurrs:
+            if (rule.getProtocolFilter().isTcp())
+                firewallIptableRulesHandler.deleteTransportLayerRule(Packages.TransportLayerProtocol.TCP, rule.getUserId(), new Connections.SimpleConnection(rule.getLocalFilter(), rule.getRemoteFilter()), rule.getRulePolicy(), rule.getDeviceFilter());
+            if (rule.getProtocolFilter().isUdp())
+                firewallIptableRulesHandler.deleteTransportLayerRule(Packages.TransportLayerProtocol.UDP, rule.getUserId(), new Connections.SimpleConnection(rule.getLocalFilter(), rule.getRemoteFilter()), rule.getRulePolicy(), rule.getDeviceFilter());
+
+            throw e;
+        }
+    }
+
+    //endregion
+
+    //region get/delete/move/create rules
 
     public LinkedList<FirewallRules.IFirewallRule> getAllRules() {
         return new LinkedList<>(rulesManager.getRules());
@@ -93,8 +127,8 @@ public class SubsystemRulesManager extends FirewallSubsystem{
         rulesManager.addRule(rule);
     }
 
-    public void deleteAllRules(AppUidGroup appUidGroup) {
-        rulesManager.deleteAllRules(appUidGroup.getUid());
+    public void deleteUserRules(AppUidGroup appUidGroup) {
+        rulesManager.deleteUserRules(appUidGroup.getUid());
     }
 
     public void deleteRule(FirewallRules.IFirewallRule rule) {
@@ -108,6 +142,22 @@ public class SubsystemRulesManager extends FirewallSubsystem{
     public void addRule(FirewallRules.IFirewallRule rule, FirewallRules.IFirewallRule existingRuleBelowNewOne) throws FirewallRuleExceptions.DuplicateRuleException, FirewallRuleExceptions.RuleNotFoundException {
         rulesManager.addRule(rule, existingRuleBelowNewOne);
     }
+
+    public int getRuleIndex(FirewallRules.IFirewallRule rule) {
+        return rulesManager.getRuleIndex(rule);
+    }
+
+    public boolean moveRuleUp(FirewallRules.IFirewallRule rule) {
+        return rulesManager.moveRuleUp(rule);
+    }
+
+    public boolean moveRuleDown(FirewallRules.IFirewallRule rule) {
+        return rulesManager.moveRuleDown(rule);
+    }
+
+    //endregion
+
+    //region rule-serialization & -storage
 
     public void saveAllRulesToFile(File exportFile) {
         exportFile.getParentFile().mkdirs(); // create all missing directories up to discowall-dir
@@ -193,5 +243,7 @@ public class SubsystemRulesManager extends FirewallSubsystem{
 
         return importedRuledApp;
     }
+
+    //endregion
 
 }
