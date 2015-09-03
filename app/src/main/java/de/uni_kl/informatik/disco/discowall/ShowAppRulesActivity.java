@@ -1,11 +1,15 @@
 package de.uni_kl.informatik.disco.discowall;
 
+import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.ProgressDialog;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.content.pm.PackageManager;
+import android.os.AsyncTask;
 import android.os.IBinder;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
@@ -23,8 +27,10 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.util.LinkedList;
+import java.util.List;
 
 import de.uni_kl.informatik.disco.discowall.firewall.Firewall;
+import de.uni_kl.informatik.disco.discowall.firewall.FirewallExceptions;
 import de.uni_kl.informatik.disco.discowall.firewall.FirewallService;
 import de.uni_kl.informatik.disco.discowall.firewall.rules.FirewallRuleExceptions;
 import de.uni_kl.informatik.disco.discowall.firewall.rules.FirewallRules;
@@ -494,38 +500,44 @@ public class ShowAppRulesActivity extends AppCompatActivity {
     }
 
     private void afterRulesChanged() {
-        // Write rules to storage:
-        firewall.subsystem.rulesManager.saveRulesToAppStorage(appUidGroup);
+        new GuiUtils.AsyncTaskSpinnerProgress<Object, Object, Object>(this, "Iptables Update", "writing rules to iptables...") {
+            @Override
+            protected Object doInBackground(Object... params) {
+                // Write rules to storage:
+                firewall.subsystem.rulesManager.saveRulesToAppStorage(appUidGroup);
 
-        // Write rules to iptables (if enabled):
-        if (DiscoWallSettings.getInstance().isWriteInteractiveRulesToIptables(this))
-            writeRulesToIptables();
-
-        // Restart activity for refreshing data. Reloading listViews almost never works anyway.
-        GuiUtils.restartActivity(ShowAppRulesActivity.this);
-    }
-
-    private void writeRulesToIptables() {
-        boolean writeInteractiveRulesToIptables = DiscoWallSettings.getInstance().isWriteInteractiveRulesToIptables(this);
-
-        Toast.makeText(this, "updating iptables...", Toast.LENGTH_SHORT).show();
-
-        try {
-            for(FirewallRules.IFirewallRule rule : firewall.subsystem.rulesManager.getRules(appUidGroup)) {
-                if (rule instanceof FirewallRules.IFirewallPolicyRule) {
-                    if (!writeInteractiveRulesToIptables)
-                        continue;
+                // Write rules to iptables:
+                try {
+                    writeRulesToIptables();
+                } catch(Exception e) {
+                    Log.e(LOG_TAG, e.getMessage(), e);
                 }
 
-                // removing and adding rule to create the rules-order as specified within this rules-list
-                rule.removeFromIptables();
-                rule.addToIptables();
+                return null;
             }
 
-            Toast.makeText(this, "iptables updated.", Toast.LENGTH_SHORT).show();
-        } catch (ShellExecuteExceptions.ShellExecuteException e) {
-            Log.e(LOG_TAG, e.getMessage(), e);
-            ErrorDialog.showError(ShowAppRulesActivity.this, "Unable to write rule to iptables: " + e.getMessage(), e);
+            @Override
+            protected void onPostExecute(Object o) {
+                super.onPostExecute(o);
+
+                // Restart activity for refreshing data. Reloading listViews almost never works anyway.
+                GuiUtils.restartActivity(ShowAppRulesActivity.this);
+            }
+        }.execute();
+    }
+
+    private void writeRulesToIptables() throws Exception {
+        boolean writeInteractiveRulesToIptables = DiscoWallSettings.getInstance().isWriteInteractiveRulesToIptables(this);
+
+        for(FirewallRules.IFirewallRule rule : firewall.subsystem.rulesManager.getRules(appUidGroup)) {
+            if (rule instanceof FirewallRules.IFirewallPolicyRule) {
+                if (!writeInteractiveRulesToIptables)
+                    continue;
+            }
+
+            // removing and adding rule to create the rules-order as specified within this rules-list
+            rule.removeFromIptables();
+            rule.addToIptables();
         }
     }
 
