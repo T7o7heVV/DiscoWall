@@ -52,7 +52,9 @@ public class NetfilterFirewallRulesHandler implements FirewallIptableRulesHandle
 
         String redirectionJump;
         {
-            String resolvedRedirectionTarget = InetAddress.getByName(redirectTo.getIp()).getHostAddress(); // if the ip-address is a hostname, it will be resolved
+            String ip = redirectTo.getIp() + "";
+            InetAddress address = InetAddress.getByName(ip.isEmpty() ? "localhost" : ip); // WARNING - be carefull when calling this from the apps main-thread, as you will get an exception "NetworkOnMainThreadException" with the meaning full exception-message "null".
+            String resolvedRedirectionTarget = (address == null) ? ip : address.getHostAddress(); // if the ip-address is a hostname, it will be resolved
             redirectionJump = "-j DNAT --to-destination " + resolvedRedirectionTarget + ":" + redirectTo.getPort();
         }
 

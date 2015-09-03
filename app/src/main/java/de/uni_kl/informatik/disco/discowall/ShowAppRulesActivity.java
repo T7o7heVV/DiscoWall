@@ -542,17 +542,35 @@ public class ShowAppRulesActivity extends AppCompatActivity {
     }
 
     private void onRuleDeleted(FirewallRules.IFirewallRule rule) {
-        deleteRuleFromIptables(rule);
+        deleteRuleFromIptables(rule); // is async task!
     }
 
-    private void deleteRuleFromIptables(FirewallRules.IFirewallRule rule) {
+    private void deleteRuleFromIptables(final FirewallRules.IFirewallRule rule) {
         // handle iptable-entries when rules are being deleted:
-        try {
-            rule.removeFromIptables();
-        } catch (Exception e) {
-            Log.e(LOG_TAG, e.getMessage(), e);
-            ErrorDialog.showError(ShowAppRulesActivity.this, "Unable to remove rule from iptables: " + e.getMessage(), e);
-        }
+
+        new AsyncTask<Object, Object, Object>() {
+            private Exception e;
+
+            @Override
+            protected Object doInBackground(Object... params) {
+                try {
+                    rule.removeFromIptables();
+                } catch (Exception e) {
+                    this.e = e;
+                }
+                return null;
+            }
+
+            @Override
+            protected void onPostExecute(Object o) {
+                super.onPostExecute(o);
+
+                if (e != null) {
+                    Log.e(LOG_TAG, e.getMessage(), e);
+                    ErrorDialog.showError(ShowAppRulesActivity.this, "Unable to remove rule from iptables: " + e.getMessage(), e);
+                }
+            }
+        }.execute();
     }
 
     private void actionEditRule(FirewallRules.IFirewallRule rule) {
