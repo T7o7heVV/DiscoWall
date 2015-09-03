@@ -27,6 +27,9 @@ public class NetfilterBridgeIptablesHandler {
     static final String CHAIN_FIREWALL_ACTION_ACCEPT = "discowall-action-accept";
     static final String CHAIN_FIREWALL_ACTION_REJECT = "discowall-action-reject";
     static final String CHAIN_FIREWALL_ACTION_INTERACTIVE = "discowall-interactive";
+    static final String CHAIN_FIREWALL_ACTION_REDIRECT = "discowall-redirect"; // IMPORTANT: this chain is table "nat" (i.e. "-t nat")
+
+    static final String CHAIN_FIREWALL_ACTION_REDIRECT_TABLE = "nat";
 
     // rules
     static final String RULE_TCP_JUMP_TO_FIREWALL_PREFILTER_CHAIN = "-p tcp -j " + CHAIN_FIREWALL_MAIN_PREFILTER;
@@ -41,6 +44,7 @@ public class NetfilterBridgeIptablesHandler {
     static final String RULE_JUMP_TO_FIREWALL_ACCEPTED = "-j " + CHAIN_FIREWALL_ACTION_ACCEPT;
     static final String RULE_JUMP_TO_FIREWALL_INTERACTIVE = "-j " + CHAIN_FIREWALL_ACTION_INTERACTIVE;
     static final String RULE_JUMP_TO_FIREWALL_REJECTED = "-j " + CHAIN_FIREWALL_ACTION_REJECT;
+    static final String RULE_JUMP_TO_FIREWALL_REDIRECTION = "-j " + NetfilterBridgeIptablesHandler.CHAIN_FIREWALL_ACTION_REDIRECT;
 
     // Ignoring traffic from and to loopback device (everything from/to loopback, has been sent from/to loopback)
     static final String RULE_IGNORE_TRAFFIC_FROM_LOOPBACK = "-o lo -j ACCEPT";
@@ -94,6 +98,7 @@ public class NetfilterBridgeIptablesHandler {
         IptablesControl.chainAdd(CHAIN_FIREWALL_ACTION_ACCEPT);
         IptablesControl.chainAdd(CHAIN_FIREWALL_ACTION_REJECT);
         IptablesControl.chainAdd(CHAIN_FIREWALL_ACTION_INTERACTIVE);
+        IptablesControl.chainAdd(CHAIN_FIREWALL_ACTION_REDIRECT, CHAIN_FIREWALL_ACTION_REDIRECT_TABLE);
 
         Log.i(LOG_TAG, "adding iptable rules");
 
@@ -164,6 +169,10 @@ public class NetfilterBridgeIptablesHandler {
             IptablesControl.ruleAdd(CHAIN_FIREWALL_ACTION_INTERACTIVE, "-p udp " + RULE_JUMP_TO_NFQUEUE);
         }
 
+        // chain REDIRECT, table NAT:
+        IptablesControl.ruleAdd(IptableConstants.Chains.OUTPUT, RULE_JUMP_TO_FIREWALL_REDIRECTION, NetfilterBridgeIptablesHandler.CHAIN_FIREWALL_ACTION_REDIRECT_TABLE);
+
+
         Log.v(LOG_TAG, "iptable chains AFTER adding rules:\n" + IptablesControl.getRuleInfoText(true, true));
 
         Log.i(LOG_TAG, "iptable setup completed.");
@@ -186,6 +195,7 @@ public class NetfilterBridgeIptablesHandler {
         *  + ACCEPT= CHAIN_FIREWALL_ACTION_ACCEPT
         *  + REJECT = CHAIN_FIREWALL_ACTION_REJECT
         *  + INTERACTIVE = CHAIN_FIREWALL_ACTION_INTERACTIVE
+        *  + REDIRECT = CHAIN_FIREWALL_ACTION_REDIRECT
         *
         *  Dependencies are as follows:
         *  + INPUT -> PREFILTER
@@ -193,6 +203,8 @@ public class NetfilterBridgeIptablesHandler {
         *  + PREFILTER -> MAIN
         *  + MAIN -> 3G, WIFI, ACCEPT, REJECT, INTERACTIVE
         *  + INTERACTIVE -> NFQUEUE
+        *  + [table 'nat']
+        *    + OUTPUT -> REDIRECT
         *
         *  The rules have to be deleted from the leafs up to the root of the dependency-tree.
         *  ==> Start with INPUT/OUTPUT chain, then MAIN, then 3G & WIFI, then ACCEPTED & REJECTED
@@ -232,6 +244,12 @@ public class NetfilterBridgeIptablesHandler {
         // Removing INTERACTIVE chain:
         safelyRemoveChain(CHAIN_FIREWALL_ACTION_INTERACTIVE);
 
+        // Removing REDIRECT chain:
+        {
+            IptablesControl.ruleDeleteIgnoreIfMissing(IptableConstants.Chains.OUTPUT, RULE_JUMP_TO_FIREWALL_REDIRECTION, CHAIN_FIREWALL_ACTION_REDIRECT_TABLE); // remove jump to Discowall chain "REDIRECT" from chain "OUTPUT" in table "NAT"
+            safelyRemoveChain(CHAIN_FIREWALL_ACTION_REDIRECT, CHAIN_FIREWALL_ACTION_REDIRECT_TABLE); // remove Discowall chain "REDIRECT" from table "NAT"
+        }
+
 
         if (logChainStatesBeforeAndAfter)
             Log.v(LOG_TAG, "iptable chains AFTER removing rules:\n" + IptablesControl.getRuleInfoText(true, true));
@@ -243,6 +261,15 @@ public class NetfilterBridgeIptablesHandler {
             IptablesControl.rulesDeleteAll(chain);
             // 2. the chain itself can be removed
             IptablesControl.chainRemove(chain);
+        }
+    }
+
+    private void safelyRemoveChain(String chain, String table) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
+        if (IptablesControl.chainExists(chain, table)) {
+            // 1. First all references to the chain
+            IptablesControl.rulesDeleteAll(chain, table);
+            // 2. the chain itself can be removed
+            IptablesControl.chainRemove(chain, table);
         }
     }
 

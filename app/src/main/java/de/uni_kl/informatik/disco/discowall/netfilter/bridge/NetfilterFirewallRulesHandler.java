@@ -61,19 +61,22 @@ public class NetfilterFirewallRulesHandler implements FirewallIptableRulesHandle
         // iptables -t nat -A OUTPUT -p tcp --dport 80 -j DNAT --to-destination IP:80
         String rule = protocolFilterCommand + " " + connectionFilter + " " + redirectionJump + " " + userFilter;
 
+//        if (delete)
+//            IptablesControl.ruleDeleteIgnoreIfMissing("OUTPUT", rule, "nat");
+//        else
+//            IptablesControl.ruleAdd("OUTPUT", rule, "nat");
+
         if (delete)
-            IptablesControl.ruleDeleteIgnoreIfMissing("OUTPUT", rule, "nat");
+            IptablesControl.ruleDeleteIgnoreIfMissing(NetfilterBridgeIptablesHandler.CHAIN_FIREWALL_ACTION_REDIRECT, rule, NetfilterBridgeIptablesHandler.CHAIN_FIREWALL_ACTION_REDIRECT_TABLE);
         else
-            IptablesControl.ruleAdd("OUTPUT", rule, "nat");
+            IptablesControl.ruleAdd(NetfilterBridgeIptablesHandler.CHAIN_FIREWALL_ACTION_REDIRECT, rule, NetfilterBridgeIptablesHandler.CHAIN_FIREWALL_ACTION_REDIRECT_TABLE);
 
-        // TODO:
-        // 1) assert 'echo "1" > /proc/sys/net/ipv4/ip_forward'
-        // 2) rule must exist "iptables -t nat -A POSTROUTING -j MASQUERADE"
+        /* IMPORTANT:
+          1) assert 'echo "1" > /proc/sys/net/ipv4/ip_forward'
+          2) rule must exist "iptables -t nat -A POSTROUTING -j MASQUERADE"
 
-        // TODO: Redirection does not work - neither on pc nor on android
-        /* 1) When rule added to "-t nat -A OUTPUT" with "-j REDIRECT --to-port", the rule matches the outgoing package, but does not seem to edit the ports (according to wireshark)
-           2) ANY rule added to "-t nat -A PREROUTING" does not even match.
-         */
+          Both will be done by the Firewall-class when creating the iptable rules.
+        */
     }
 
     public void enableIptablesRedirection() throws ShellExecuteExceptions.ShellExecuteException {
