@@ -56,10 +56,6 @@ public class SubsystemRulesManager extends FirewallSubsystem{
         }
     }
 
-    public void writeRedirectionRuleToIptables(FirewallRules.FirewallTransportRule rule) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
-        // TODO
-    }
-
     //endregion
 
     //region get/delete/move/create rules

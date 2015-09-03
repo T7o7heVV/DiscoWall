@@ -94,8 +94,8 @@ public class FirewallRules {
 
         boolean appliesTo(Packages.TransportLayerPackage tlPackage);
 
-        void addToIptables() throws ShellExecuteExceptions.ShellExecuteException;
-        void removeFromIptables() throws ShellExecuteExceptions.ShellExecuteException;
+        void addToIptables() throws Exception;
+        void removeFromIptables() throws Exception;
     }
 
     public interface IFirewallPolicyRule extends IFirewallRule {
@@ -347,11 +347,11 @@ public class FirewallRules {
             try {
                 // If TCP should be filtered:
                 if (getProtocolFilter().isTcp())
-                    NetfilterFirewallRulesHandler.instance.addTransportLayerRule(Packages.TransportLayerProtocol.TCP, getUserId(), new Connections.SimpleConnection(getLocalFilter(), getRemoteFilter()), getRulePolicy(), getDeviceFilter());
+                    NetfilterFirewallRulesHandler.instance.addPolicyRule(Packages.TransportLayerProtocol.TCP, getUserId(), new Connections.SimpleConnection(getLocalFilter(), getRemoteFilter()), getRulePolicy(), getDeviceFilter());
 
                 // If UDP should be filtered:
                 if (getProtocolFilter().isUdp())
-                    NetfilterFirewallRulesHandler.instance.addTransportLayerRule(Packages.TransportLayerProtocol.UDP, getUserId(), new Connections.SimpleConnection(getLocalFilter(), getRemoteFilter()), getRulePolicy(), getDeviceFilter());
+                    NetfilterFirewallRulesHandler.instance.addPolicyRule(Packages.TransportLayerProtocol.UDP, getUserId(), new Connections.SimpleConnection(getLocalFilter(), getRemoteFilter()), getRulePolicy(), getDeviceFilter());
 
             } catch (ShellExecuteExceptions.ShellExecuteException e) {
 
@@ -366,9 +366,9 @@ public class FirewallRules {
         @Override
         public void removeFromIptables() throws ShellExecuteExceptions.ShellExecuteException {
             if (getProtocolFilter().isTcp())
-                NetfilterFirewallRulesHandler.instance.deleteTransportLayerRule(Packages.TransportLayerProtocol.TCP, getUserId(), new Connections.SimpleConnection(getLocalFilter(), getRemoteFilter()), getRulePolicy(), getDeviceFilter());
+                NetfilterFirewallRulesHandler.instance.deletePolicyRule(Packages.TransportLayerProtocol.TCP, getUserId(), new Connections.SimpleConnection(getLocalFilter(), getRemoteFilter()), getRulePolicy(), getDeviceFilter());
             if (getProtocolFilter().isUdp())
-                NetfilterFirewallRulesHandler.instance.deleteTransportLayerRule(Packages.TransportLayerProtocol.UDP, getUserId(), new Connections.SimpleConnection(getLocalFilter(), getRemoteFilter()), getRulePolicy(), getDeviceFilter());
+                NetfilterFirewallRulesHandler.instance.deletePolicyRule(Packages.TransportLayerProtocol.UDP, getUserId(), new Connections.SimpleConnection(getLocalFilter(), getRemoteFilter()), getRulePolicy(), getDeviceFilter());
         }
 
     }
@@ -423,13 +423,32 @@ public class FirewallRules {
         }
 
         @Override
-        public void addToIptables() throws ShellExecuteExceptions.ShellExecuteException {
+        public void addToIptables() throws Exception {
+            try {
+                // If TCP should be redirected:
+                if (getProtocolFilter().isTcp())
+                    NetfilterFirewallRulesHandler.instance.addRedirectionRule(Packages.TransportLayerProtocol.TCP, getUserId(), getLocalFilter().getPort(), getRemoteFilter(), getRedirectionRemoteHost(), getDeviceFilter());
 
+                // If UDP should be redirected:
+                if (getProtocolFilter().isUdp())
+                    NetfilterFirewallRulesHandler.instance.addRedirectionRule(Packages.TransportLayerProtocol.UDP, getUserId(), getLocalFilter().getPort(), getRemoteFilter(), getRedirectionRemoteHost(), getDeviceFilter());
+
+            } catch (ShellExecuteExceptions.ShellExecuteException e) {
+
+                // Remove created rule (if any), when an exception occurs:
+                removeFromIptables();
+
+                // forward exception after removing rule (if any)
+                throw e;
+            }
         }
 
         @Override
-        public void removeFromIptables() throws ShellExecuteExceptions.ShellExecuteException {
-
+        public void removeFromIptables() throws Exception {
+            if (getProtocolFilter().isTcp())
+                NetfilterFirewallRulesHandler.instance.deleteRedirectionRule(Packages.TransportLayerProtocol.TCP, getUserId(), getLocalFilter().getPort(), getRemoteFilter(), getRedirectionRemoteHost(), getDeviceFilter());
+            if (getProtocolFilter().isUdp())
+                NetfilterFirewallRulesHandler.instance.deleteRedirectionRule(Packages.TransportLayerProtocol.UDP, getUserId(), getLocalFilter().getPort(), getRemoteFilter(), getRedirectionRemoteHost(), getDeviceFilter());
         }
     }
  }

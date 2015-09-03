@@ -229,6 +229,10 @@ public class EditRuleDialog extends DialogFragment {
             textViewRedirectHostIp = (EditText) redirectionLayout.findViewById(R.id.editText_redirectHost_ip);
             textViewRedirectHostPort = (EditText) redirectionLayout.findViewById(R.id.editText_redirectHost_port);
 
+            // Redirection-Rules can only be redirected from localhost:*->*:*
+            textViewClientIp.setText("127.0.0.1");
+            textViewClientIp.setKeyListener(null); // make field readonly
+
             // write data to gui:
             writeIpPortInfoToGui(redirectRule.getRedirectionRemoteHost(), textViewRedirectHostIp, textViewRedirectHostPort);
 

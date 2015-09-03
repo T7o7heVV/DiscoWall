@@ -549,7 +549,7 @@ public class ShowAppRulesActivity extends AppCompatActivity {
         // handle iptable-entries when rules are being deleted:
         try {
             rule.removeFromIptables();
-        } catch (ShellExecuteExceptions.ShellExecuteException e) {
+        } catch (Exception e) {
             Log.e(LOG_TAG, e.getMessage(), e);
             ErrorDialog.showError(ShowAppRulesActivity.this, "Unable to remove rule from iptables: " + e.getMessage(), e);
         }

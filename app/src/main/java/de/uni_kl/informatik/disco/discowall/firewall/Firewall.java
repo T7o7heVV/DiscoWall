@@ -202,6 +202,13 @@ public class Firewall implements NetfilterBridgeCommunicator.BridgeEventsHandler
                 if (progressListener != null)
                     progressListener.onFirewallBeforeRestoreRules(subsystemRulesManager.getAllRules().size());
 
+                Log.i(LOG_TAG, "enabling iptables forwarding support...");
+                try {
+                    NetfilterFirewallRulesHandler.instance.enableIptablesRedirection();
+                } catch (ShellExecuteExceptions.ShellExecuteException e) {
+                    Log.e(LOG_TAG, "Error writing rule to iptables: " + e.getMessage(), e);
+                }
+
                 boolean writeInteractiveRulesToIptables = DiscoWallSettings.getInstance().isWriteInteractiveRulesToIptables(firewallServiceContext);
 
                 for(AppUidGroup installedAppGroup : watchedAppsManager.getInstalledAppGroups()) { // Note that ALL rules are being restored - even though the app might not be watched/monitored at the moment
@@ -209,9 +216,6 @@ public class Firewall implements NetfilterBridgeCommunicator.BridgeEventsHandler
                         // reporting progress to listener
                         if (progressListener != null)
                             progressListener.onFirewallRestoreRule(rule, installedAppGroup);
-
-                        // TODO: Rule has to be written to IPTABLES
-                        // They do NOT have to be added to list, as they are already listed - even though not registered in iptables.
 
                         try {
                             // interactive-rules are only written to iptables, if enabled in settings:
@@ -221,7 +225,7 @@ public class Firewall implements NetfilterBridgeCommunicator.BridgeEventsHandler
                             }
 
                             rule.addToIptables();
-                        } catch (ShellExecuteExceptions.ShellExecuteException e) {
+                        } catch (Exception e) {
                             Log.e(LOG_TAG, "Error writing rule to iptables: " + e.getMessage(), e);
                         }
                     }

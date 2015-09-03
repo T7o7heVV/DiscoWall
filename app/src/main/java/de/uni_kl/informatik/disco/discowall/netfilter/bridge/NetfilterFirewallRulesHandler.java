@@ -2,12 +2,16 @@ package de.uni_kl.informatik.disco.discowall.netfilter.bridge;
 
 import android.util.Log;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+
 import de.uni_kl.informatik.disco.discowall.firewall.rules.FirewallRules;
 import de.uni_kl.informatik.disco.discowall.firewall.rules.FirewallIptableRulesHandler;
 import de.uni_kl.informatik.disco.discowall.netfilter.iptables.IptableConstants;
 import de.uni_kl.informatik.disco.discowall.netfilter.iptables.IptablesControl;
 import de.uni_kl.informatik.disco.discowall.packages.Connections;
 import de.uni_kl.informatik.disco.discowall.packages.Packages;
+import de.uni_kl.informatik.disco.discowall.utils.shell.RootShellExecute;
 import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecuteExceptions;
 
 public class NetfilterFirewallRulesHandler implements FirewallIptableRulesHandler {
@@ -16,17 +20,49 @@ public class NetfilterFirewallRulesHandler implements FirewallIptableRulesHandle
     private NetfilterFirewallRulesHandler() { }
     public static final FirewallIptableRulesHandler instance = new NetfilterFirewallRulesHandler();
 
-    public void addTcpRedirectionRule(int userID, Packages.IpPortPair destinationHostToRedirect, Packages.IpPortPair redirectTo, FirewallRules.DeviceFilter deviceFilter) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
+    private void addDeleteRedirectionRule(Packages.TransportLayerProtocol protocol, int userID, int localOutgoingPort, Packages.IpPortPair remoteHostToRedirect, Packages.IpPortPair redirectTo, boolean delete) throws ShellExecuteExceptions.ShellExecuteException, UnknownHostException {
         // http://www.debuntu.org/how-to-redirecting-network-traffic-to-a-new-ip-using-iptables/
         // http://www.cyberciti.biz/faq/linux-port-redirection-with-iptables/
 
-        String redirectionFilter = "";
-        if (destinationHostToRedirect.hasIp())
-            redirectionFilter += " --destination " + destinationHostToRedirect.getIp();
-        if (destinationHostToRedirect.hasPort())
-            redirectionFilter += " --destination-port " + destinationHostToRedirect.getPort();
 
-        String rule = "-t nat PREROUTING -p tcp " + redirectionFilter + " -j DNAT --to-destination " + redirectTo.getIp() + ":" + redirectTo.getPort();
+        String protocolFilterCommand;
+        {
+            if (protocol == Packages.TransportLayerProtocol.TCP)
+                protocolFilterCommand = "-p tcp";
+            else if (protocol == Packages.TransportLayerProtocol.UDP)
+                protocolFilterCommand = "-p udp";
+            else
+                throw new RuntimeException("Redirection protocol unknown: " + protocol);
+        }
+
+        String connectionFilter = "";
+        {
+            // Source filtering:
+            if (localOutgoingPort > 0)
+                connectionFilter += " --source-port " + localOutgoingPort;
+
+            // Destination filtering:
+            if (remoteHostToRedirect.getPort() > 0)
+                connectionFilter += " --destination-port " + remoteHostToRedirect.getPort();
+            if (!remoteHostToRedirect.getIp().isEmpty() && !remoteHostToRedirect.getIp().equals("*") && !remoteHostToRedirect.getIp().equals("localhost") && !remoteHostToRedirect.getIp().equals("127.0.0.1"))
+                connectionFilter += " --destination " + remoteHostToRedirect.getIp();
+        }
+
+        String userFilter = "-m owner --uid-owner " + userID;
+
+        String redirectionJump;
+        {
+            String resolvedRedirectionTarget = InetAddress.getByName(redirectTo.getIp()).getHostAddress(); // if the ip-address is a hostname, it will be resolved
+            redirectionJump = "-j DNAT --to-destination " + resolvedRedirectionTarget + ":" + redirectTo.getPort();
+        }
+
+        // iptables -t nat -A OUTPUT -p tcp --dport 80 -j DNAT --to-destination IP:80
+        String rule = protocolFilterCommand + " " + connectionFilter + " " + redirectionJump + " " + userFilter;
+
+        if (delete)
+            IptablesControl.ruleDeleteIgnoreIfMissing("OUTPUT", rule, "nat");
+        else
+            IptablesControl.ruleAdd("OUTPUT", rule, "nat");
 
         // TODO:
         // 1) assert 'echo "1" > /proc/sys/net/ipv4/ip_forward'
@@ -36,15 +72,28 @@ public class NetfilterFirewallRulesHandler implements FirewallIptableRulesHandle
         /* 1) When rule added to "-t nat -A OUTPUT" with "-j REDIRECT --to-port", the rule matches the outgoing package, but does not seem to edit the ports (according to wireshark)
            2) ANY rule added to "-t nat -A PREROUTING" does not even match.
          */
-
-        addDeleteUserRule(userID, rule, deviceFilter, false);
     }
 
-    public void addTransportLayerRule(Packages.TransportLayerProtocol protocol, int userID, Connections.IConnection connection, FirewallRules.RulePolicy policy, FirewallRules.DeviceFilter deviceFilter) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
+    public void enableIptablesRedirection() throws ShellExecuteExceptions.ShellExecuteException {
+        IptablesControl.ruleAddIfMissing("POSTROUTING", "-j MASQUERADE", "nat");
+        RootShellExecute.execute(true, "echo 1 > /proc/sys/net/ipv4/ip_forward");
+    }
+
+    @Override
+    public void addRedirectionRule(Packages.TransportLayerProtocol protocol, int userID, int localOutgoingPort, Packages.IpPortPair remoteHostToRedirect, Packages.IpPortPair redirectTo, FirewallRules.DeviceFilter deviceFilter) throws ShellExecuteExceptions.ShellExecuteException, UnknownHostException {
+        addDeleteRedirectionRule(protocol, userID, localOutgoingPort, remoteHostToRedirect, redirectTo, false);
+    }
+
+    @Override
+    public void deleteRedirectionRule(Packages.TransportLayerProtocol protocol, int userID, int localOutgoingPort, Packages.IpPortPair remoteHostToRedirect, Packages.IpPortPair redirectTo, FirewallRules.DeviceFilter deviceFilter) throws ShellExecuteExceptions.ShellExecuteException, UnknownHostException {
+        addDeleteRedirectionRule(protocol, userID, localOutgoingPort, remoteHostToRedirect, redirectTo, true);
+    }
+
+    public void addPolicyRule(Packages.TransportLayerProtocol protocol, int userID, Connections.IConnection connection, FirewallRules.RulePolicy policy, FirewallRules.DeviceFilter deviceFilter) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
         addDeleteTransportLayerRule(protocol, userID, connection, policy, deviceFilter, false);
     }
 
-    public void deleteTransportLayerRule(Packages.TransportLayerProtocol protocol, int userID, Connections.IConnection connection, FirewallRules.RulePolicy policy, FirewallRules.DeviceFilter deviceFilter) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
+    public void deletePolicyRule(Packages.TransportLayerProtocol protocol, int userID, Connections.IConnection connection, FirewallRules.RulePolicy policy, FirewallRules.DeviceFilter deviceFilter) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
         addDeleteTransportLayerRule(protocol, userID, connection, policy, deviceFilter, true);
     }
 
@@ -139,7 +188,7 @@ public class NetfilterFirewallRulesHandler implements FirewallIptableRulesHandle
         if (delete)
             IptablesControl.ruleDeleteIgnoreIfMissing(chain, rule);
         else
-            IptablesControl.ruleAddIfMissing(chain, rule);
+            IptablesControl.ruleAdd(chain, rule);
     }
 
     public boolean isMainChainJumpsEnabled() throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.NonZeroReturnValueException {
@@ -158,11 +207,11 @@ public class NetfilterFirewallRulesHandler implements FirewallIptableRulesHandle
      */
     public void setMainChainJumpsEnabled(boolean enableJumpsToMainChain) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
         if (enableJumpsToMainChain) {
-            IptablesControl.ruleAddIfMissing(IptableConstants.Chains.INPUT, NetfilterBridgeIptablesHandler.RULE_TCP_JUMP_TO_FIREWALL_PREFILTER_CHAIN);
-            IptablesControl.ruleAddIfMissing(IptableConstants.Chains.INPUT, NetfilterBridgeIptablesHandler.RULE_UDP_JUMP_TO_FIREWALL_PREFILTER_CHAIN);
+            IptablesControl.ruleAdd(IptableConstants.Chains.INPUT, NetfilterBridgeIptablesHandler.RULE_TCP_JUMP_TO_FIREWALL_PREFILTER_CHAIN);
+            IptablesControl.ruleAdd(IptableConstants.Chains.INPUT, NetfilterBridgeIptablesHandler.RULE_UDP_JUMP_TO_FIREWALL_PREFILTER_CHAIN);
 
-            IptablesControl.ruleAddIfMissing(IptableConstants.Chains.OUTPUT, NetfilterBridgeIptablesHandler.RULE_TCP_JUMP_TO_FIREWALL_PREFILTER_CHAIN);
-            IptablesControl.ruleAddIfMissing(IptableConstants.Chains.OUTPUT, NetfilterBridgeIptablesHandler.RULE_UDP_JUMP_TO_FIREWALL_PREFILTER_CHAIN);
+            IptablesControl.ruleAdd(IptableConstants.Chains.OUTPUT, NetfilterBridgeIptablesHandler.RULE_TCP_JUMP_TO_FIREWALL_PREFILTER_CHAIN);
+            IptablesControl.ruleAdd(IptableConstants.Chains.OUTPUT, NetfilterBridgeIptablesHandler.RULE_UDP_JUMP_TO_FIREWALL_PREFILTER_CHAIN);
         } else {
             IptablesControl.ruleDeleteIgnoreIfMissing(IptableConstants.Chains.INPUT, NetfilterBridgeIptablesHandler.RULE_TCP_JUMP_TO_FIREWALL_PREFILTER_CHAIN);
             IptablesControl.ruleDeleteIgnoreIfMissing(IptableConstants.Chains.INPUT, NetfilterBridgeIptablesHandler.RULE_UDP_JUMP_TO_FIREWALL_PREFILTER_CHAIN);

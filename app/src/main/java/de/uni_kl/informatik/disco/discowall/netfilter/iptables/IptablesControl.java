@@ -58,6 +58,15 @@ public class IptablesControl {
         return false;
     }
 
+    public static boolean ruleAddIfMissing(String chain, String rule, String table) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.NonZeroReturnValueException {
+        if (!IptablesControl.ruleExists(chain, rule, table)) {
+            IptablesControl.ruleAdd(chain, rule, table);
+            return true;
+        }
+
+        return false;
+    }
+
     public static boolean ruleInsertIfMissing(String chain, String rule) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.NonZeroReturnValueException {
         if (!IptablesControl.ruleExists(chain, rule)) {
             IptablesControl.ruleInsert(chain, rule);
@@ -113,6 +122,10 @@ public class IptablesControl {
         return execute("-A " + chain + " " + rule);
     }
 
+    public static String ruleAdd(String chain, String rule, String table) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.NonZeroReturnValueException {
+        return execute("-t " + table + " -A " + chain + " " + rule);
+    }
+
     public static String ruleInsert(String chain, String rule) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.NonZeroReturnValueException {
         return execute("-I " + chain + " " + rule);
     }
@@ -125,6 +138,14 @@ public class IptablesControl {
         return execute("-D " + chain + " " + rule);
     }
 
+    public static String ruleInsert(String chain, String rule, int index, int table) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.NonZeroReturnValueException {
+        return execute("-t " + table + " -I " + chain + " " + index + " " + rule);
+    }
+
+    public static String ruleDelete(String chain, String rule, int table) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.NonZeroReturnValueException {
+        return execute("-t " + table + " -D " + chain + " " + rule);
+    }
+
     public static String ruleDeleteIgnoreIfMissing(String chain, String[] rules) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
         String result = "";
         for (String rule : rules)
@@ -134,6 +155,10 @@ public class IptablesControl {
 
     public static String ruleDeleteIgnoreIfMissing(String chain, String rule) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
         return execute("-D " + chain + " " + rule, new int[] {0, 1});
+    }
+
+    public static String ruleDeleteIgnoreIfMissing(String chain, String rule, String table) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
+        return execute("-t " + table + " -D " + chain + " " + rule, new int[] {0, 1});
     }
 
     public static String rulesDeleteAll(String chain) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.NonZeroReturnValueException {
@@ -177,6 +202,15 @@ public class IptablesControl {
 
     public static boolean ruleExists(String chain, String rule) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.NonZeroReturnValueException {
         ShellExecute.ShellExecuteResult result = executeEx("-C " + chain + " " + rule);
+
+        if ((result.returnValue != 0) && (result.returnValue != 1))
+            throw new ShellExecuteExceptions.NonZeroReturnValueException(result);
+        else
+            return (result.returnValue == 0); // chain exists, if the return-value is 0.
+    }
+
+    public static boolean ruleExists(String chain, String rule, String table) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.NonZeroReturnValueException {
+        ShellExecute.ShellExecuteResult result = executeEx("-t " + table + " -C " + chain + " " + rule);
 
         if ((result.returnValue != 0) && (result.returnValue != 1))
             throw new ShellExecuteExceptions.NonZeroReturnValueException(result);
