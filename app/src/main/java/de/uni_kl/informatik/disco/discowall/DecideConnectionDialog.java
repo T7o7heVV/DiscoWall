@@ -154,28 +154,6 @@ public class DecideConnectionDialog extends DialogFragment {
         dialogListener.onDialogCanceled(appUidGroup, connection);
     }
 
-    //    public static DecideConnectionDialog show(Activity context, int uid, Connections.IConnection connection) {
-//        if (! (context instanceof DecideConnectionDialogListener)) {
-//            Log.e(LOG_TAG, "Starting-Activity must implement interface " + DecideConnectionDialogListener.class.getCanonicalName());
-//            throw new ClassCastException("Starting-Activity must implement interface " + DecideConnectionDialogListener.class.getCanonicalName());
-//        }
-//
-//        Bundle args = new Bundle();
-//
-//        args.putInt("uid", uid);
-//
-////        args.putString("connection.src.ip", source.getIp());
-////        args.putInt("connection.src.port", source.getPort());
-////        args.putString("connection.dst.ip", destination.getIp());
-////        args.putInt("connection.dst.port", destination.getPort());
-//
-//        DecideConnectionDialog dialog = new DecideConnectionDialog();
-//        dialog.setArguments(args);
-//        dialog.show(context.getFragmentManager(), "");
-//
-//        return dialog;
-//    }
-
     public static DecideConnectionDialog show(Activity context, DecideConnectionDialogListener dialogListener, AppUidGroup appUidGroup, Connections.IConnection connection, Packages.TransportLayerProtocol protocol) {
         DecideConnectionDialog dialog = new DecideConnectionDialog();
 

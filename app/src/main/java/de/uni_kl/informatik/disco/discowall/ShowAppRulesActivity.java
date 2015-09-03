@@ -22,10 +22,13 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.util.LinkedList;
+
 import de.uni_kl.informatik.disco.discowall.firewall.Firewall;
 import de.uni_kl.informatik.disco.discowall.firewall.FirewallService;
 import de.uni_kl.informatik.disco.discowall.firewall.rules.FirewallRuleExceptions;
 import de.uni_kl.informatik.disco.discowall.firewall.rules.FirewallRules;
+import de.uni_kl.informatik.disco.discowall.firewall.subsystems.SubsystemRulesManager;
 import de.uni_kl.informatik.disco.discowall.gui.adapters.AppRulesAdapter;
 import de.uni_kl.informatik.disco.discowall.gui.dialogs.ErrorDialog;
 import de.uni_kl.informatik.disco.discowall.packages.Connections;
@@ -33,6 +36,8 @@ import de.uni_kl.informatik.disco.discowall.packages.Packages;
 import de.uni_kl.informatik.disco.discowall.utils.GuiUtils;
 import de.uni_kl.informatik.disco.discowall.utils.IntentDataSerializer;
 import de.uni_kl.informatik.disco.discowall.utils.apps.AppUidGroup;
+import de.uni_kl.informatik.disco.discowall.utils.ressources.DiscoWallSettings;
+import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecuteExceptions;
 
 
 public class ShowAppRulesActivity extends AppCompatActivity {
@@ -167,6 +172,9 @@ public class ShowAppRulesActivity extends AppCompatActivity {
                         Log.d(LOG_TAG, "User deleted rule '"+ruleToDelete+"' from app-group '" + appUidGroup + "'.");
                         Toast.makeText(ShowAppRulesActivity.this, "rule deleted", Toast.LENGTH_SHORT).show();
 
+                        // remove rule from iptables:
+                        onRuleDeleted(ruleToDelete);
+
                         // reload activity, so that the empty list is shown:
                         afterRulesChanged();
                     }
@@ -296,6 +304,11 @@ public class ShowAppRulesActivity extends AppCompatActivity {
                                         // close app-rules view
                                         ShowAppRulesActivity.this.finish();
 //                                        MainActivity.closeAllActivities(ShowAppRulesActivity.this); // close all activities
+                                    }
+
+                                    @Override
+                                    public void onBeforeRuleChangesSaved(FirewallRules.IFirewallRule rule, AppUidGroup appUidGroup) {
+                                        // the rule has just been created - nothing to do here.
                                     }
                                 }
                         );
@@ -471,6 +484,11 @@ public class ShowAppRulesActivity extends AppCompatActivity {
                         if (dialogResultListener != null)
                             dialogResultListener.onDiscardChanges(rule, appUidGroup);
                     }
+
+                    @Override
+                    public void onBeforeRuleChangesSaved(FirewallRules.IFirewallRule rule, AppUidGroup appUidGroup) {
+                        // nothing to do as the rule has just been created
+                    }
                 }, appUidGroup, rule
         );
     }
@@ -479,8 +497,50 @@ public class ShowAppRulesActivity extends AppCompatActivity {
         // Write rules to storage:
         firewall.subsystem.rulesManager.saveRulesToAppStorage(appUidGroup);
 
+        // Write rules to iptables (if enabled):
+        if (DiscoWallSettings.getInstance().isWriteInteractiveRulesToIptables(this))
+            writeRulesToIptables();
+
         // Restart activity for refreshing data. Reloading listViews almost never works anyway.
         GuiUtils.restartActivity(ShowAppRulesActivity.this);
+    }
+
+    private void writeRulesToIptables() {
+        boolean writeInteractiveRulesToIptables = DiscoWallSettings.getInstance().isWriteInteractiveRulesToIptables(this);
+
+        Toast.makeText(this, "updating iptables...", Toast.LENGTH_SHORT).show();
+
+        try {
+            for(FirewallRules.IFirewallRule rule : firewall.subsystem.rulesManager.getRules(appUidGroup)) {
+                if (rule instanceof FirewallRules.IFirewallPolicyRule) {
+                    if (!writeInteractiveRulesToIptables)
+                        continue;
+                }
+
+                // removing and adding rule to create the rules-order as specified within this rules-list
+                rule.removeFromIptables();
+                rule.addToIptables();
+            }
+
+            Toast.makeText(this, "iptables updated.", Toast.LENGTH_SHORT).show();
+        } catch (ShellExecuteExceptions.ShellExecuteException e) {
+            Log.e(LOG_TAG, e.getMessage(), e);
+            ErrorDialog.showError(ShowAppRulesActivity.this, "Unable to write rule to iptables: " + e.getMessage(), e);
+        }
+    }
+
+    private void onRuleDeleted(FirewallRules.IFirewallRule rule) {
+        deleteRuleFromIptables(rule);
+    }
+
+    private void deleteRuleFromIptables(FirewallRules.IFirewallRule rule) {
+        // handle iptable-entries when rules are being deleted:
+        try {
+            rule.removeFromIptables();
+        } catch (ShellExecuteExceptions.ShellExecuteException e) {
+            Log.e(LOG_TAG, e.getMessage(), e);
+            ErrorDialog.showError(ShowAppRulesActivity.this, "Unable to remove rule from iptables: " + e.getMessage(), e);
+        }
     }
 
     private void actionEditRule(FirewallRules.IFirewallRule rule) {
@@ -497,6 +557,13 @@ public class ShowAppRulesActivity extends AppCompatActivity {
                         // do nothing per default
                         Log.d(LOG_TAG, "discarded rule-changes for rule: " + rule);
                     }
+
+                    @Override
+                    public void onBeforeRuleChangesSaved(FirewallRules.IFirewallRule rule, AppUidGroup appUidGroup) {
+                        // delete rule from iptables before it is being changed, as it cannot be identified afterwards
+                        deleteRuleFromIptables(rule);
+                    }
+
                 }, appUidGroup, rule
         );
     }

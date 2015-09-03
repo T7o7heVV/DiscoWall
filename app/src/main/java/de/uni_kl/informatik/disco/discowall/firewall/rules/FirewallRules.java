@@ -2,7 +2,10 @@ package de.uni_kl.informatik.disco.discowall.firewall.rules;
 
 import java.util.UUID;
 
+import de.uni_kl.informatik.disco.discowall.netfilter.bridge.NetfilterFirewallRulesHandler;
+import de.uni_kl.informatik.disco.discowall.packages.Connections;
 import de.uni_kl.informatik.disco.discowall.packages.Packages;
+import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecuteExceptions;
 
 public class FirewallRules {
     /************************* Rule Data ***********************************************************/
@@ -90,6 +93,9 @@ public class FirewallRules {
         void setRemoteFilter(Packages.IpPortPair remoteFilter);
 
         boolean appliesTo(Packages.TransportLayerPackage tlPackage);
+
+        void addToIptables() throws ShellExecuteExceptions.ShellExecuteException;
+        void removeFromIptables() throws ShellExecuteExceptions.ShellExecuteException;
     }
 
     public interface IFirewallPolicyRule extends IFirewallRule {
@@ -335,6 +341,36 @@ public class FirewallRules {
         public FirewallTransportRule(int userId, Packages.IpPortPair sourceFilter, Packages.IpPortPair destinationFilter, DeviceFilter deviceFilter, ProtocolFilter protocolFilter, RulePolicy rulePolicy) {
             super(userId, protocolFilter, sourceFilter, destinationFilter, deviceFilter, rulePolicy);
         }
+
+        @Override
+        public void addToIptables() throws ShellExecuteExceptions.ShellExecuteException {
+            try {
+                // If TCP should be filtered:
+                if (getProtocolFilter().isTcp())
+                    NetfilterFirewallRulesHandler.instance.addTransportLayerRule(Packages.TransportLayerProtocol.TCP, getUserId(), new Connections.SimpleConnection(getLocalFilter(), getRemoteFilter()), getRulePolicy(), getDeviceFilter());
+
+                // If UDP should be filtered:
+                if (getProtocolFilter().isUdp())
+                    NetfilterFirewallRulesHandler.instance.addTransportLayerRule(Packages.TransportLayerProtocol.UDP, getUserId(), new Connections.SimpleConnection(getLocalFilter(), getRemoteFilter()), getRulePolicy(), getDeviceFilter());
+
+            } catch (ShellExecuteExceptions.ShellExecuteException e) {
+
+                // Remove created rule (if any), when an exception occurrs:
+                removeFromIptables();
+
+                // forward exception after removing rule (if any)
+                throw e;
+            }
+        }
+
+        @Override
+        public void removeFromIptables() throws ShellExecuteExceptions.ShellExecuteException {
+            if (getProtocolFilter().isTcp())
+                NetfilterFirewallRulesHandler.instance.deleteTransportLayerRule(Packages.TransportLayerProtocol.TCP, getUserId(), new Connections.SimpleConnection(getLocalFilter(), getRemoteFilter()), getRulePolicy(), getDeviceFilter());
+            if (getProtocolFilter().isUdp())
+                NetfilterFirewallRulesHandler.instance.deleteTransportLayerRule(Packages.TransportLayerProtocol.UDP, getUserId(), new Connections.SimpleConnection(getLocalFilter(), getRemoteFilter()), getRulePolicy(), getDeviceFilter());
+        }
+
     }
 
     private static abstract class AbstractFirewallRedirectRule extends AbstractFirewallRule implements IFirewallRedirectRule {
@@ -384,6 +420,16 @@ public class FirewallRules {
 
         public FirewallTransportRedirectRule(int userId, Packages.IpPortPair sourceFilter, Packages.IpPortPair destinationFilter, DeviceFilter deviceFilter, ProtocolFilter protocolFilter, Packages.IpPortPair redirectTo) throws FirewallRuleExceptions.InvalidRuleDefinitionException {
             super(userId, protocolFilter, sourceFilter, destinationFilter, deviceFilter, redirectTo);
+        }
+
+        @Override
+        public void addToIptables() throws ShellExecuteExceptions.ShellExecuteException {
+
+        }
+
+        @Override
+        public void removeFromIptables() throws ShellExecuteExceptions.ShellExecuteException {
+
         }
     }
  }

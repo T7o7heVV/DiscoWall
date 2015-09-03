@@ -16,7 +16,7 @@
     </EditTextPreference>
 
     <EditTextPreference
-        android:title="Connection Decision: timeout seconds"
+        android:title="Interactive Rules: Connection Decision: timeout seconds"
         android:key="@string/preference_id__firewall_connection_decision_timeoutMS"
         android:summary="@string/preference_summary__firewall_connection_decision_timeout_seconds"
         android:defaultValue="3"
@@ -24,16 +24,23 @@
     </EditTextPreference>
 
     <SwitchPreference
-        android:title="Connection Decision: default accept"
+        android:title="Interactive Rules: Connection Decision: default accept"
         android:key="@string/preference_id__firewall_connection_decision_default_action"
         android:summary="@string/preference_summary__firewall_connection_decision_default_action"
         android:defaultValue="true">
     </SwitchPreference>
 
     <SwitchPreference
-        android:title="Connection Decision: expand statusbar"
+        android:title="Interactive Rules: Connection Decision: expand statusbar"
         android:key="@string/preference_id__firewall_connection_decision_expand_statusbar"
         android:summary="@string/preference_summary__firewall_connection_decision_expand_statusbar"
+        android:defaultValue="true">
+    </SwitchPreference>
+
+    <SwitchPreference
+        android:title="Interactive Rules: write to iptables"
+        android:key="@string/preference_id__interactive_rules_write_to_iptables"
+        android:summary="@string/preference_summary__interactive_rules_write_to_iptables"
         android:defaultValue="true">
     </SwitchPreference>
 

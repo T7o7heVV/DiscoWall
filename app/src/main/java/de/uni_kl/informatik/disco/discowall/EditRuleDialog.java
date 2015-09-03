@@ -34,6 +34,8 @@ public class EditRuleDialog extends DialogFragment {
     public static interface DialogListener {
         void onAcceptChanges(FirewallRules.IFirewallRule rule, AppUidGroup appUidGroup);
         void onDiscardChanges(FirewallRules.IFirewallRule rule, AppUidGroup appUidGroup);
+
+        void onBeforeRuleChangesSaved(FirewallRules.IFirewallRule rule, AppUidGroup appUidGroup);
     }
 
     // In order to preserve the currently displayed data across dialog-instances (changing the orientation kills the instance),
@@ -96,6 +98,7 @@ public class EditRuleDialog extends DialogFragment {
         buttonOK.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                dialogListener.onBeforeRuleChangesSaved(rule, appUidGroup); // so that one can react to the changes within the rule (used to delete rule from iptables before changing)
                 saveRuleDataFromGui();
                 EditRuleDialog.this.dismiss();
                 dialogListener.onAcceptChanges(rule, appUidGroup);

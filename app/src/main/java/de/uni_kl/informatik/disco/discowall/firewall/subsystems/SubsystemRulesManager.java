@@ -4,6 +4,7 @@ import android.util.Log;
 
 import java.io.File;
 import java.util.LinkedList;
+import java.util.List;
 
 import de.uni_kl.informatik.disco.discowall.firewall.Firewall;
 import de.uni_kl.informatik.disco.discowall.firewall.FirewallExceptions;
@@ -30,7 +31,6 @@ public class SubsystemRulesManager extends FirewallSubsystem{
     private static final String LOG_TAG = SubsystemRulesManager.class.getSimpleName();
 
     private final FirewallRulesManager rulesManager;
-    private final FirewallIptableRulesHandler firewallIptableRulesHandler = NetfilterFirewallRulesHandler.instance;
 
     private final WatchedAppsManager watchedAppsManager;
 
@@ -49,7 +49,7 @@ public class SubsystemRulesManager extends FirewallSubsystem{
             } else {
                 if (!firewall.isFirewallRunning())
                     return "< firewall has to be enabled in order to retrieve firewall rules >";
-                return firewallIptableRulesHandler.getFirewallRulesText();
+                return NetfilterFirewallRulesHandler.instance.getFirewallRulesText();
             }
         } catch(ShellExecuteExceptions.ShellExecuteException e) {
             throw new FirewallExceptions.FirewallException("Error fetching iptable rules: " + e.getMessage(), e);
@@ -58,28 +58,6 @@ public class SubsystemRulesManager extends FirewallSubsystem{
 
     public void writeRedirectionRuleToIptables(FirewallRules.FirewallTransportRule rule) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
         // TODO
-    }
-
-    public void writePolicyRuleToIptables(FirewallRules.FirewallTransportRule rule) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
-        try {
-            // If TCP should be filtered:
-            if (rule.getProtocolFilter().isTcp())
-                firewallIptableRulesHandler.addTransportLayerRule(Packages.TransportLayerProtocol.TCP, rule.getUserId(), new Connections.SimpleConnection(rule.getLocalFilter(), rule.getRemoteFilter()), rule.getRulePolicy(), rule.getDeviceFilter());
-
-            // If UDP should be filtered:
-            if (rule.getProtocolFilter().isUdp())
-                firewallIptableRulesHandler.addTransportLayerRule(Packages.TransportLayerProtocol.UDP, rule.getUserId(), new Connections.SimpleConnection(rule.getLocalFilter(), rule.getRemoteFilter()), rule.getRulePolicy(), rule.getDeviceFilter());
-
-        } catch (ShellExecuteExceptions.ShellExecuteException e) {
-
-            // Remove created rule (if any), when an exception occurrs:
-            if (rule.getProtocolFilter().isTcp())
-                firewallIptableRulesHandler.deleteTransportLayerRule(Packages.TransportLayerProtocol.TCP, rule.getUserId(), new Connections.SimpleConnection(rule.getLocalFilter(), rule.getRemoteFilter()), rule.getRulePolicy(), rule.getDeviceFilter());
-            if (rule.getProtocolFilter().isUdp())
-                firewallIptableRulesHandler.deleteTransportLayerRule(Packages.TransportLayerProtocol.UDP, rule.getUserId(), new Connections.SimpleConnection(rule.getLocalFilter(), rule.getRemoteFilter()), rule.getRulePolicy(), rule.getDeviceFilter());
-
-            throw e;
-        }
     }
 
     //endregion
@@ -154,6 +132,32 @@ public class SubsystemRulesManager extends FirewallSubsystem{
     public boolean moveRuleDown(FirewallRules.IFirewallRule rule) {
         return rulesManager.moveRuleDown(rule);
     }
+
+    //region filter rules
+
+    public static LinkedList<FirewallRules.IFirewallPolicyRule> filterPolicyRules(List<FirewallRules.IFirewallRule> rules) {
+        LinkedList<FirewallRules.IFirewallPolicyRule> policyRules = new LinkedList<>();
+
+        for(FirewallRules.IFirewallRule rule : rules) {
+            if (rule instanceof FirewallRules.IFirewallPolicyRule)
+                policyRules.add((FirewallRules.IFirewallPolicyRule) rule);
+        }
+
+        return policyRules;
+    }
+
+    public static LinkedList<FirewallRules.IFirewallRedirectRule> filterRedirectRules(List<FirewallRules.IFirewallRule> rules) {
+        LinkedList<FirewallRules.IFirewallRedirectRule> redirectRules = new LinkedList<>();
+
+        for(FirewallRules.IFirewallRule rule : rules) {
+            if (rule instanceof FirewallRules.IFirewallRedirectRule)
+                redirectRules.add((FirewallRules.IFirewallRedirectRule) rule);
+        }
+
+        return redirectRules;
+    }
+
+    //endregion
 
     //endregion
 
