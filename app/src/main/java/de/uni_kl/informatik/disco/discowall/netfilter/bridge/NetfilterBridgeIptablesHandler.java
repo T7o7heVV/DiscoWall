@@ -245,7 +245,7 @@ public class NetfilterBridgeIptablesHandler {
         safelyRemoveChain(CHAIN_FIREWALL_ACTION_INTERACTIVE);
 
         // Removing REDIRECT chain:
-        {
+        if (IptablesControl.chainExists(CHAIN_FIREWALL_ACTION_REDIRECT, CHAIN_FIREWALL_ACTION_REDIRECT_TABLE)) {
             IptablesControl.ruleDeleteIgnoreIfMissing(IptableConstants.Chains.OUTPUT, RULE_JUMP_TO_FIREWALL_REDIRECTION, CHAIN_FIREWALL_ACTION_REDIRECT_TABLE); // remove jump to Discowall chain "REDIRECT" from chain "OUTPUT" in table "NAT"
             safelyRemoveChain(CHAIN_FIREWALL_ACTION_REDIRECT, CHAIN_FIREWALL_ACTION_REDIRECT_TABLE); // remove Discowall chain "REDIRECT" from table "NAT"
         }
