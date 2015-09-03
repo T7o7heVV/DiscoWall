@@ -29,7 +29,7 @@ public class NetfilterBridgeIptablesHandler {
     static final String CHAIN_FIREWALL_ACTION_INTERACTIVE = "discowall-interactive";
     static final String CHAIN_FIREWALL_ACTION_REDIRECT = "discowall-redirect"; // IMPORTANT: this chain is table "nat" (i.e. "-t nat")
 
-    static final String CHAIN_FIREWALL_ACTION_REDIRECT_TABLE = "nat";
+    static final String TABLE_NAT = "nat";
 
     // rules
     static final String RULE_TCP_JUMP_TO_FIREWALL_PREFILTER_CHAIN = "-p tcp -j " + CHAIN_FIREWALL_MAIN_PREFILTER;
@@ -98,7 +98,11 @@ public class NetfilterBridgeIptablesHandler {
         IptablesControl.chainAdd(CHAIN_FIREWALL_ACTION_ACCEPT);
         IptablesControl.chainAdd(CHAIN_FIREWALL_ACTION_REJECT);
         IptablesControl.chainAdd(CHAIN_FIREWALL_ACTION_INTERACTIVE);
-        IptablesControl.chainAdd(CHAIN_FIREWALL_ACTION_REDIRECT, CHAIN_FIREWALL_ACTION_REDIRECT_TABLE);
+
+        IptablesControl.chainAdd(CHAIN_FIREWALL_ACTION_REDIRECT, TABLE_NAT);
+        IptablesControl.chainAdd(CHAIN_FIREWALL_INTERFACE_3G, TABLE_NAT);
+        IptablesControl.chainAdd(CHAIN_FIREWALL_INTERFACE_WIFI, TABLE_NAT);
+
 
         Log.i(LOG_TAG, "adding iptable rules");
 
@@ -170,7 +174,18 @@ public class NetfilterBridgeIptablesHandler {
         }
 
         // chain REDIRECT, table NAT:
-        IptablesControl.ruleAdd(IptableConstants.Chains.OUTPUT, RULE_JUMP_TO_FIREWALL_REDIRECTION, NetfilterBridgeIptablesHandler.CHAIN_FIREWALL_ACTION_REDIRECT_TABLE);
+        {
+            // interface 3G
+            for(String interfaceDevice : DEVICES_3G)
+                IptablesControl.ruleAdd(CHAIN_FIREWALL_ACTION_REDIRECT, "-o " + interfaceDevice + " -j " + CHAIN_FIREWALL_INTERFACE_WIFI, TABLE_NAT); // for outgoing packets
+
+            // interface WIFI
+            for(String interfaceDevice : DEVICES_WIFI)
+                IptablesControl.ruleAdd(CHAIN_FIREWALL_ACTION_REDIRECT, "-o "+interfaceDevice+" -j " + CHAIN_FIREWALL_INTERFACE_WIFI, TABLE_NAT);  // for outgoing packets
+
+
+            IptablesControl.ruleAdd(IptableConstants.Chains.OUTPUT, RULE_JUMP_TO_FIREWALL_REDIRECTION, TABLE_NAT);
+        }
 
 
         Log.v(LOG_TAG, "iptable chains AFTER adding rules:\n" + IptablesControl.getRuleInfoText(true, true));
@@ -205,6 +220,8 @@ public class NetfilterBridgeIptablesHandler {
         *  + INTERACTIVE -> NFQUEUE
         *  + [table 'nat']
         *    + OUTPUT -> REDIRECT
+        *    + REDIRECT -> 3G [in 'nat' table]
+        *    + REDIRECT -> WIFI [in 'nat' table]
         *
         *  The rules have to be deleted from the leafs up to the root of the dependency-tree.
         *  ==> Start with INPUT/OUTPUT chain, then MAIN, then 3G & WIFI, then ACCEPTED & REJECTED
@@ -245,9 +262,11 @@ public class NetfilterBridgeIptablesHandler {
         safelyRemoveChain(CHAIN_FIREWALL_ACTION_INTERACTIVE);
 
         // Removing REDIRECT chain:
-        if (IptablesControl.chainExists(CHAIN_FIREWALL_ACTION_REDIRECT, CHAIN_FIREWALL_ACTION_REDIRECT_TABLE)) {
-            IptablesControl.ruleDeleteIgnoreIfMissing(IptableConstants.Chains.OUTPUT, RULE_JUMP_TO_FIREWALL_REDIRECTION, CHAIN_FIREWALL_ACTION_REDIRECT_TABLE); // remove jump to Discowall chain "REDIRECT" from chain "OUTPUT" in table "NAT"
-            safelyRemoveChain(CHAIN_FIREWALL_ACTION_REDIRECT, CHAIN_FIREWALL_ACTION_REDIRECT_TABLE); // remove Discowall chain "REDIRECT" from table "NAT"
+        if (IptablesControl.chainExists(CHAIN_FIREWALL_ACTION_REDIRECT, TABLE_NAT)) {
+            IptablesControl.ruleDeleteIgnoreIfMissing(IptableConstants.Chains.OUTPUT, RULE_JUMP_TO_FIREWALL_REDIRECTION, TABLE_NAT); // remove jump to Discowall chain "REDIRECT" from chain "OUTPUT" in table "NAT"
+            safelyRemoveChain(CHAIN_FIREWALL_ACTION_REDIRECT, TABLE_NAT); // remove Discowall chain "REDIRECT" from table "NAT"
+            safelyRemoveChain(CHAIN_FIREWALL_INTERFACE_3G, TABLE_NAT); // remove Discowall chain "3G" from table "NAT"
+            safelyRemoveChain(CHAIN_FIREWALL_INTERFACE_WIFI, TABLE_NAT); // remove Discowall chain "WIFI" from table "NAT"
         }
 
 

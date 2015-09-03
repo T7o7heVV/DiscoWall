@@ -12,6 +12,7 @@ import android.content.pm.PackageManager;
 import android.os.AsyncTask;
 import android.os.IBinder;
 import android.os.Bundle;
+import android.os.StrictMode;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.ContextMenu;
@@ -542,35 +543,22 @@ public class ShowAppRulesActivity extends AppCompatActivity {
     }
 
     private void onRuleDeleted(FirewallRules.IFirewallRule rule) {
-        deleteRuleFromIptables(rule); // is async task!
+        deleteRuleFromIptables(rule);
     }
 
     private void deleteRuleFromIptables(final FirewallRules.IFirewallRule rule) {
         // handle iptable-entries when rules are being deleted:
 
-        new AsyncTask<Object, Object, Object>() {
-            private Exception e;
+        // against "no networking in main thread"
+        StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitNetwork().build();
+        StrictMode.setThreadPolicy(policy);
 
-            @Override
-            protected Object doInBackground(Object... params) {
-                try {
-                    rule.removeFromIptables();
-                } catch (Exception e) {
-                    this.e = e;
-                }
-                return null;
-            }
-
-            @Override
-            protected void onPostExecute(Object o) {
-                super.onPostExecute(o);
-
-                if (e != null) {
-                    Log.e(LOG_TAG, e.getMessage(), e);
-                    ErrorDialog.showError(ShowAppRulesActivity.this, "Unable to remove rule from iptables: " + e.getMessage(), e);
-                }
-            }
-        }.execute();
+        try {
+            rule.removeFromIptables();
+        } catch (Exception e) {
+            Log.e(LOG_TAG, e.getMessage(), e);
+            ErrorDialog.showError(ShowAppRulesActivity.this, "Unable to remove rule from iptables: " + e.getMessage(), e);
+        }
     }
 
     private void actionEditRule(FirewallRules.IFirewallRule rule) {

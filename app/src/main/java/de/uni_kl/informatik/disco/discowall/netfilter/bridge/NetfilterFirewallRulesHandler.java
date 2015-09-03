@@ -20,7 +20,14 @@ public class NetfilterFirewallRulesHandler implements FirewallIptableRulesHandle
     private NetfilterFirewallRulesHandler() { }
     public static final FirewallIptableRulesHandler instance = new NetfilterFirewallRulesHandler();
 
-    private void addDeleteRedirectionRule(Packages.TransportLayerProtocol protocol, int userID, int localOutgoingPort, Packages.IpPortPair remoteHostToRedirect, Packages.IpPortPair redirectTo, boolean delete) throws ShellExecuteExceptions.ShellExecuteException, UnknownHostException {
+    private void addDeleteRedirectionRule(Packages.TransportLayerProtocol protocol, int userID, int localOutgoingPort, Packages.IpPortPair remoteHostToRedirect, Packages.IpPortPair redirectTo, FirewallRules.DeviceFilter deviceFilter, boolean delete) throws ShellExecuteExceptions.ShellExecuteException, UnknownHostException {
+        if (deviceFilter.allowsUmts())
+            addDeleteRedirectionRule(protocol, userID, localOutgoingPort, remoteHostToRedirect, redirectTo, NetfilterBridgeIptablesHandler.CHAIN_FIREWALL_INTERFACE_3G, delete);
+        if (deviceFilter.allowsWifi())
+            addDeleteRedirectionRule(protocol, userID, localOutgoingPort, remoteHostToRedirect, redirectTo, NetfilterBridgeIptablesHandler.CHAIN_FIREWALL_INTERFACE_WIFI, delete);
+    }
+
+    private void addDeleteRedirectionRule(Packages.TransportLayerProtocol protocol, int userID, int localOutgoingPort, Packages.IpPortPair remoteHostToRedirect, Packages.IpPortPair redirectTo, String deviceChain, boolean delete) throws ShellExecuteExceptions.ShellExecuteException, UnknownHostException {
         // http://www.debuntu.org/how-to-redirecting-network-traffic-to-a-new-ip-using-iptables/
         // http://www.cyberciti.biz/faq/linux-port-redirection-with-iptables/
 
@@ -61,15 +68,12 @@ public class NetfilterFirewallRulesHandler implements FirewallIptableRulesHandle
         // iptables -t nat -A OUTPUT -p tcp --dport 80 -j DNAT --to-destination IP:80
         String rule = protocolFilterCommand + " " + connectionFilter + " " + redirectionJump + " " + userFilter;
 
-//        if (delete)
-//            IptablesControl.ruleDeleteIgnoreIfMissing("OUTPUT", rule, "nat");
-//        else
-//            IptablesControl.ruleAdd("OUTPUT", rule, "nat");
+        // call rule for each device within filter:
 
         if (delete)
-            IptablesControl.ruleDeleteIgnoreIfMissing(NetfilterBridgeIptablesHandler.CHAIN_FIREWALL_ACTION_REDIRECT, rule, NetfilterBridgeIptablesHandler.CHAIN_FIREWALL_ACTION_REDIRECT_TABLE);
+            IptablesControl.ruleDeleteIgnoreIfMissing(deviceChain, rule, NetfilterBridgeIptablesHandler.TABLE_NAT);
         else
-            IptablesControl.ruleAdd(NetfilterBridgeIptablesHandler.CHAIN_FIREWALL_ACTION_REDIRECT, rule, NetfilterBridgeIptablesHandler.CHAIN_FIREWALL_ACTION_REDIRECT_TABLE);
+            IptablesControl.ruleAdd(deviceChain, rule, NetfilterBridgeIptablesHandler.TABLE_NAT);
 
         /* IMPORTANT:
           1) assert 'echo "1" > /proc/sys/net/ipv4/ip_forward'
@@ -86,12 +90,12 @@ public class NetfilterFirewallRulesHandler implements FirewallIptableRulesHandle
 
     @Override
     public void addRedirectionRule(Packages.TransportLayerProtocol protocol, int userID, int localOutgoingPort, Packages.IpPortPair remoteHostToRedirect, Packages.IpPortPair redirectTo, FirewallRules.DeviceFilter deviceFilter) throws ShellExecuteExceptions.ShellExecuteException, UnknownHostException {
-        addDeleteRedirectionRule(protocol, userID, localOutgoingPort, remoteHostToRedirect, redirectTo, false);
+        addDeleteRedirectionRule(protocol, userID, localOutgoingPort, remoteHostToRedirect, redirectTo, deviceFilter, false);
     }
 
     @Override
     public void deleteRedirectionRule(Packages.TransportLayerProtocol protocol, int userID, int localOutgoingPort, Packages.IpPortPair remoteHostToRedirect, Packages.IpPortPair redirectTo, FirewallRules.DeviceFilter deviceFilter) throws ShellExecuteExceptions.ShellExecuteException, UnknownHostException {
-        addDeleteRedirectionRule(protocol, userID, localOutgoingPort, remoteHostToRedirect, redirectTo, true);
+        addDeleteRedirectionRule(protocol, userID, localOutgoingPort, remoteHostToRedirect, redirectTo, deviceFilter, true);
     }
 
     public void addPolicyRule(Packages.TransportLayerProtocol protocol, int userID, Connections.IConnection connection, FirewallRules.RulePolicy policy, FirewallRules.DeviceFilter deviceFilter) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
