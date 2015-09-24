@@ -840,7 +840,8 @@ int main(int argc, char **argv)
        exit(0);
     }
 
-	fprintf(stdout, "Netfilter-Bridge: application started...\n");
+    fprintf(stdout, "Netfilter-Bridge: application started...\n");
+    fprintf(stdout, "Netfilter-Bridge: version 1.0\n");
 
     connectToServer(argv[1], argv[2]);
 

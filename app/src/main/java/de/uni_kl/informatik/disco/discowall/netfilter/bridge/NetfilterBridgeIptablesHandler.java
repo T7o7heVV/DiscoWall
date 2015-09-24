@@ -153,7 +153,8 @@ public class NetfilterBridgeIptablesHandler {
         }
 
         // chain ACCEPTED:
-        // rule: jumpt to accept
+        // rule: remove mark & jumpt to accept
+        IptablesControl.ruleAdd(CHAIN_FIREWALL_ACTION_ACCEPT, "-j MARK --set-mark 0"); // this has to be done due to an iptables bug on android, as the existence of the mark may cause an remote client-application (so far only hping3) to drop the package!
         IptablesControl.ruleAdd(CHAIN_FIREWALL_ACTION_ACCEPT, "-j ACCEPT");
 
         // chain REJECTED:

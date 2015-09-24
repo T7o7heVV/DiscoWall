@@ -44,4 +44,8 @@ public final class DiscoWallConstants {
         public static final int dnsCachePort = 5353;
     }
 
+    public static final class Behavior {
+        public static boolean isExpandStatusbarEvenIfAppIsInForeground = true;
+    }
+
 }

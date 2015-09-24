@@ -159,8 +159,8 @@ class DecisionNotificationHelper {
         if (DiscoWallSettings.getInstance().isConnectionDecisionNotificationExpandStatusbar(context)) {
             Log.v(LOG_TAG, "expanding StatusBar in order to show notification (according to user-settings)...");
 
-            if (AppUtils.isAppInForeground(context)) {
-                Log.v(LOG_TAG, "DiscoWall is in foreground. Therefore the StatusBar will not be expanded.");
+            if (AppUtils.isAppInForeground(context) && !DiscoWallConstants.Behavior.isExpandStatusbarEvenIfAppIsInForeground) {
+                Log.d(LOG_TAG, "DiscoWall is in foreground. Therefore the StatusBar will not be expanded.");
 //            if (ShowAppRulesActivity.isConnectionDecisionDialogOpen()) {
 //                Log.v(LOG_TAG, "Connection Decision Dialog is currently being displayed. Therefore the StatusBar will not be expanded.");
             } else {
