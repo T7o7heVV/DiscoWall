@@ -48,4 +48,7 @@ public final class DiscoWallConstants {
         public static boolean isExpandStatusbarEvenIfAppIsInForeground = true;
     }
 
+    public static final class Debug {
+        public static boolean useExternalNetfilterBridgeLibrary = true;
+    }
 }

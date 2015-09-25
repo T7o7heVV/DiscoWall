@@ -6,11 +6,12 @@ import android.util.Log;
 import java.io.IOException;
 
 import de.uni_kl.informatik.disco.discowall.netfilter.NetfilterExceptions;
+import de.uni_kl.informatik.disco.discowall.utils.ressources.DiscoWallConstants;
 import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecuteExceptions;
 
 public class NetfilterBridgeControl {
     private static final String LOG_TAG = NetfilterBridgeControl.class.getSimpleName();
-    public static final boolean DEBUG_USE_EXTERNAL_BINARY = false;
+    public static final boolean DEBUG_USE_EXTERNAL_BINARY = DiscoWallConstants.Debug.useExternalNetfilterBridgeLibrary;
 
     private final Context firewallServiceContext;
 

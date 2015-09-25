@@ -239,7 +239,7 @@ public class ShowAppRulesActivity extends AppCompatActivity {
         // Activity Title:
         setTitle("Rules: " + appUidGroup.getName());
 
-        // App Information
+        // App Informationfirewall.subsystem.rulesManager.addRule(rule);
         ((TextView) findViewById(R.id.activity_show_app_rules_app_name)).setText(appUidGroup.getName());
         ((TextView) findViewById(R.id.activity_show_app_rules_app_package)).setText(appUidGroup.getPackageName());
         ((ImageView) findViewById(R.id.activity_show_app_rules_app_icon)).setImageDrawable(appUidGroup.getIcon());
@@ -251,7 +251,26 @@ public class ShowAppRulesActivity extends AppCompatActivity {
 
         showAppRulesInGui(appUidGroup);
 
+        // Adding testing-rules only if no rules set:
+        if (firewall.subsystem.rulesManager.getRules(appUidGroup).isEmpty())
+            DEBUG_ACTION_LOAD_TESTING_RULES(10);
+
         handleIntentCommand();
+    }
+
+    private void DEBUG_ACTION_LOAD_TESTING_RULES(int rulesCount) {
+        for(int i=0; i<rulesCount; i++) {
+            FirewallRules.FirewallTransportRule rule = new FirewallRules.FirewallTransportRule(appUidGroup.getUid(), FirewallRules.RulePolicy.ALLOW);
+            rule.setDeviceFilter(FirewallRules.DeviceFilter.WiFi_UMTS);
+            rule.setLocalFilter(new Packages.IpPortPair("1.1.1.1", 12345));
+            rule.setRemoteFilter(new Packages.IpPortPair("1.1.1.1", 12345));
+
+            try {
+                firewall.subsystem.rulesManager.addRule(rule);
+            } catch (FirewallRuleExceptions.DuplicateRuleException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     private void showPackageDecidedToast(Connections.IConnection connection, boolean accepted) {

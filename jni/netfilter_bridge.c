@@ -737,8 +737,14 @@ static int cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
 		// BUT: In truth the package will jump to ACCEPT instantly and NOT continue traversing the chain. 
 		//      Has been tested: Any follow-up rule (even reject) will have no effect on the package after it has been accepted.
 		fprintf(stdout, "ACCEPT package.\n");
-		return nfq_set_verdict(qh, id, NF_ACCEPT, 0, NULL);
-	}
+		//return nfq_set_verdict(qh, id, NF_ACCEPT, 0, NULL);
+	
+        // DiscoWall: Removing mark set within discowall's iptables-structure, as this mark creates problems for some remote apps:
+        // the 'nfq_set_verdict2' function sets a mark in addition to setting a verdict [former function was 'nfq_set_verdict_mark' but is deprecated and broken]
+        fprintf(stdout, "set mark to 0.\n");
+        //nfq_set_verdict_mark(qh, id, NF_ACCEPT, 0, 0, NULL); // deprecated version of 'nfq_set_verdict2(qh, id, <verdict>, <mark>, 0, NULL)'
+        nfq_set_verdict2(qh, id, NF_ACCEPT, 0, 0, NULL); // 'nfq_set_verdict2(qh, id, <verdict>, <mark>, 0, NULL)'
+    }
 	else 
 	{
 		// NOTE: The package will be discarted right here 
@@ -841,7 +847,7 @@ int main(int argc, char **argv)
     }
 
     fprintf(stdout, "Netfilter-Bridge: application started...\n");
-    fprintf(stdout, "Netfilter-Bridge: version 1.0\n");
+    fprintf(stdout, "Netfilter-Bridge: version 1.1\n");
 
     connectToServer(argv[1], argv[2]);
 

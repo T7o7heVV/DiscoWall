@@ -67,7 +67,7 @@ public class DiscoWallSettings {
     }
 
     public boolean isWriteInteractiveRulesToIptables(Context context) {
-        return getSettingBool(context, R.string.preference_id__handle_connection_dialog__create_rule_default_checked, true);
+        return getSettingBool(context, R.string.preference_id__interactive_rules_write_to_iptables, true);
     }
 
     public boolean isHandleConnectionDialogDefaultCreateRule(Context context) {
