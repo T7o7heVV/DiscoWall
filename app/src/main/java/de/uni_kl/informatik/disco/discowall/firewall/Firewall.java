@@ -163,7 +163,8 @@ public class Firewall implements NetfilterBridgeCommunicator.BridgeEventsHandler
 
             // starting netfilter bridge - i.e. the "firewall core"
             try {
-                control = new NetfilterBridgeControl(this, this, firewallServiceContext, port);
+                boolean startNetfilterBridgeInstance = DiscoWallSettings.getInstance().isNfqueueBridgeAutomaticallyStartLocalInstance(firewallServiceContext);
+                control = new NetfilterBridgeControl(startNetfilterBridgeInstance, this, this, firewallServiceContext, port);
             } catch(Exception e) {
                 IptablesControl.setCommandListener(null); // removing command-listener
                 throw new FirewallExceptions.FirewallException("Error initializing firewall: " + e.getMessage(), e);

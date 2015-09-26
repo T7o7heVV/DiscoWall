@@ -7,11 +7,11 @@ import java.io.IOException;
 
 import de.uni_kl.informatik.disco.discowall.netfilter.NetfilterExceptions;
 import de.uni_kl.informatik.disco.discowall.utils.ressources.DiscoWallConstants;
+import de.uni_kl.informatik.disco.discowall.utils.ressources.DiscoWallSettings;
 import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecuteExceptions;
 
 public class NetfilterBridgeControl {
     private static final String LOG_TAG = NetfilterBridgeControl.class.getSimpleName();
-    public static final boolean DEBUG_USE_EXTERNAL_BINARY = DiscoWallConstants.Debug.useExternalNetfilterBridgeLibrary;
 
     private final Context firewallServiceContext;
 
@@ -20,7 +20,7 @@ public class NetfilterBridgeControl {
     private NetfilterBridgeCommunicator bridgeCommunicator;
     private final int bridgeCommunicationPort;
 
-    public NetfilterBridgeControl(NetfilterBridgeCommunicator.PackageReceivedHandler packageReceivedHandler, NetfilterBridgeCommunicator.BridgeEventsHandler bridgeEventsHandler, Context firewallServiceContext, int bridgeCommunicationPort) throws NetfilterExceptions.NetfilterBridgeDeploymentException, ShellExecuteExceptions.ReturnValueException, ShellExecuteExceptions.CallException, IOException {
+    public NetfilterBridgeControl(boolean automaticallyStartLocalInstance, NetfilterBridgeCommunicator.PackageReceivedHandler packageReceivedHandler, NetfilterBridgeCommunicator.BridgeEventsHandler bridgeEventsHandler, Context firewallServiceContext, int bridgeCommunicationPort) throws NetfilterExceptions.NetfilterBridgeDeploymentException, ShellExecuteExceptions.ReturnValueException, ShellExecuteExceptions.CallException, IOException {
         Log.d(LOG_TAG, "initializing NetfilterBridgeControl...");
         Log.d(LOG_TAG, "NetfilterBridge communication port: " + bridgeCommunicationPort);
 
@@ -56,7 +56,7 @@ public class NetfilterBridgeControl {
         Log.d(LOG_TAG, "killing all possibly running netfilter bridge instances...");
         bridgeBinaryHandler.killAllInstances();
 
-        if (!DEBUG_USE_EXTERNAL_BINARY) {
+        if (automaticallyStartLocalInstance) {
             Log.d(LOG_TAG, "executing netfilter bridge binary...");
             bridgeBinaryHandler.start(bridgeCommunicationPort);
         } else {

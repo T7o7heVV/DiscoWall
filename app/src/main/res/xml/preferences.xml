@@ -8,12 +8,19 @@
     </SwitchPreference>
 
     <EditTextPreference
-        android:title="NFQUEUE-Bridge Communication Port"
+        android:title="Nfqueue-Bridge: Communication Port"
         android:key="@string/preference_id__nfqueue_bridge_port"
         android:summary="@string/preference_summary__nfqueue_bridge_port"
         android:defaultValue="1337"
         android:inputType="number">
     </EditTextPreference>
+
+    <SwitchPreference
+        android:title="Nfqueue-Bridge: start automatically"
+        android:key="@string/preference_id__nfqueue_bridge_start_automatically"
+        android:summary="@string/preference_summary__nfqueue_bridge_start_automatically"
+        android:defaultValue="true">
+    </SwitchPreference>
 
     <EditTextPreference
         android:title="Interactive Rules: Connection Decision: timeout seconds"

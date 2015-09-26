@@ -14,6 +14,7 @@
     <!-- Preferences -->
 
     <string name="preference_id__nfqueue_bridge_port">nfqueue bridge port</string>
+    <string name="preference_id__nfqueue_bridge_start_automatically">nfqueue bridge run local instance</string>
     <string name="preference_id__firewall_enabled">firewall enabled</string>
     <string name="preference_id__firewall_policy">firewall policy</string>
     <string name="preference_id__service_autostart">firewall service autostart</string>
@@ -29,6 +30,7 @@
     <string name="preference_summary__firewall_connection_decision_expand_statusbar">Expand statusbar to show decision-notification when a connection needs ACCEPT/BLOCK decision. Only for interactive firewall mode.</string>
     <string name="preference_summary__interactive_rules_write_to_iptables">When interactive mode is enabled and a package is being received, the first matching rule is executed. Instead of handling this in userspace an iptables-rule can be created, to let the android-kernel handle the package in the same way DiscoWall would.</string>
     <string name="preference_summary__nfqueue_bridge_port">Port used by the nfqueue-communicator native binary to communicate with the firewall. As long as the port is not otherwise in use, anyone will do.</string>
+    <string name="preference_summary__nfqueue_bridge_start_automatically">disable for debugging-purposes. Firewall will first kill any running instance of nfqueue-bridge and then start a new one on the specified port.</string>
     <string name="preference_summary__service_autostart">Automatically start firewall-service with Android. Otherwise the service will be started when running the app.</string>
     <string name="preference_summary__handle_connection_dialog__create_rule_default_checked">When accepting/blocking a connect, create a new rule by default.</string>
 

@@ -74,6 +74,10 @@ public class DiscoWallSettings {
         return getSettingBool(context, R.string.preference_id__handle_connection_dialog__create_rule_default_checked, true);
     }
 
+    public boolean isNfqueueBridgeAutomaticallyStartLocalInstance(Context context) {
+        return getSettingBool(context, R.string.preference_id__nfqueue_bridge_start_automatically, true);
+    }
+
     public void setHandleConnectionDialogDefaultCreateRule(Context context, boolean value) {
         setSettingBool(context, R.string.preference_id__handle_connection_dialog__create_rule_default_checked, value);
     }
