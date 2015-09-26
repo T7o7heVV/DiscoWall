@@ -142,31 +142,15 @@ public class FirewallRulesManager {
     //endregion
 
     //region public: move/delete rules
-
-    private void deleteRuleFromIptables(FirewallRules.IFirewallRule rule) {
-        try {
-            rule.removeFromIptables();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
     public void deleteUserRules(int uid) {
-        for (FirewallRules.IFirewallRule rule : getRulesOrCreate(uid))
-            deleteRuleFromIptables(rule);
-
         getRulesOrCreate(uid).clear();
     }
 
     public void deleteRule(FirewallRules.IFirewallRule rule) {
-        deleteRuleFromIptables(rule);
         getRulesOrCreate(rule.getUserId()).remove(rule);
     }
 
     public void deleteAllRules() {
-        for (FirewallRules.IFirewallRule rule : getRules())
-            deleteRuleFromIptables(rule);
-
         userIdToRulesListHash.clear();
     }
 

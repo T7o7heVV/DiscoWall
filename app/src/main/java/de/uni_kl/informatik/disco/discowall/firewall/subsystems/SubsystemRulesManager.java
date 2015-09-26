@@ -101,15 +101,30 @@ public class SubsystemRulesManager extends FirewallSubsystem{
         rulesManager.addRule(rule);
     }
 
+    private void deleteRuleFromIptables(FirewallRules.IFirewallRule rule) {
+        try {
+            rule.removeFromIptables();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     public void deleteUserRules(AppUidGroup appUidGroup) {
+        for (FirewallRules.IFirewallRule rule : rulesManager.getRules(appUidGroup.getUid()))
+            deleteRuleFromIptables(rule);
+
         rulesManager.deleteUserRules(appUidGroup.getUid());
     }
 
     public void deleteRule(FirewallRules.IFirewallRule rule) {
+        deleteRuleFromIptables(rule);
         rulesManager.deleteRule(rule);
     }
 
     public void deleteAllRules() {
+        for (FirewallRules.IFirewallRule rule : rulesManager.getRules())
+            deleteRuleFromIptables(rule);
+
         rulesManager.deleteAllRules();
     }
 
