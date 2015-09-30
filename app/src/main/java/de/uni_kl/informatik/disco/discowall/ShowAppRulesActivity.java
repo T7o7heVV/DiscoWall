@@ -68,6 +68,7 @@ public class ShowAppRulesActivity extends AppCompatActivity {
     private AppRulesAdapter appRulesAdapter;
     private int groupUid;
     private AppUidGroup appUidGroup;
+    private boolean removeRulesFromIptablesWhenDeleting = true; // may be changed later-on - only disabled when debugging
 
     private Button buttonAddRule;
     private Button buttonClearRules;
@@ -174,7 +175,7 @@ public class ShowAppRulesActivity extends AppCompatActivity {
                 .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        firewall.subsystem.rulesManager.deleteRule(ruleToDelete);
+                        firewall.subsystem.rulesManager.deleteRule(ruleToDelete, removeRulesFromIptablesWhenDeleting);
 
                         Log.d(LOG_TAG, "User deleted rule '"+ruleToDelete+"' from app-group '" + appUidGroup + "'.");
                         Toast.makeText(ShowAppRulesActivity.this, "rule deleted", Toast.LENGTH_SHORT).show();
@@ -253,25 +254,25 @@ public class ShowAppRulesActivity extends AppCompatActivity {
 
 //        // Adding testing-rules only if no rules set:
 //        if (firewall.subsystem.rulesManager.getRules(appUidGroup).isEmpty())
-//            DEBUG_ACTION_LOAD_TESTING_RULES(10000);
+//            DEBUG_ACTION_LOAD_TESTING_RULES(10);
 
         handleIntentCommand();
     }
 
-//    private void DEBUG_ACTION_LOAD_TESTING_RULES(int rulesCount) {
-//        for(int i=0; i<rulesCount; i++) {
-//            FirewallRules.FirewallTransportRule rule = new FirewallRules.FirewallTransportRule(appUidGroup.getUid(), FirewallRules.RulePolicy.ALLOW);
-//            rule.setDeviceFilter(FirewallRules.DeviceFilter.WiFi_UMTS);
-//            rule.setLocalFilter(new Packages.IpPortPair("1.1.1.1", 12345));
-//            rule.setRemoteFilter(new Packages.IpPortPair("1.1.1.1", 12345));
-//
-//            try {
-//                firewall.subsystem.rulesManager.addRule(rule);
-//            } catch (FirewallRuleExceptions.DuplicateRuleException e) {
-//                e.printStackTrace();
-//            }
-//        }
-//    }
+    private void DEBUG_ACTION_LOAD_TESTING_RULES(int rulesCount) {
+        for(int i=0; i<rulesCount; i++) {
+            FirewallRules.FirewallTransportRule rule = new FirewallRules.FirewallTransportRule(appUidGroup.getUid(), FirewallRules.RulePolicy.ALLOW);
+            rule.setDeviceFilter(FirewallRules.DeviceFilter.WiFi_UMTS);
+            rule.setLocalFilter(new Packages.IpPortPair("1.1.1.1", 12345));
+            rule.setRemoteFilter(new Packages.IpPortPair("1.1.1.1", 12345));
+
+            try {
+                firewall.subsystem.rulesManager.addRule(rule);
+            } catch (FirewallRuleExceptions.DuplicateRuleException e) {
+                e.printStackTrace();
+            }
+        }
+    }
 
     private void showPackageDecidedToast(Connections.IConnection connection, boolean accepted) {
         String connectionInfo = Connections.Connection.toUserString(connection);
@@ -401,7 +402,7 @@ public class ShowAppRulesActivity extends AppCompatActivity {
                         .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
                             @Override
                             public void onClick(DialogInterface dialog, int which) {
-                                firewall.subsystem.rulesManager.deleteUserRules(appUidGroup);
+                                firewall.subsystem.rulesManager.deleteUserRules(appUidGroup, removeRulesFromIptablesWhenDeleting);
 
                                 Log.d(LOG_TAG, "User deleted all rules for app-group: " + appUidGroup);
                                 Toast.makeText(ShowAppRulesActivity.this, "all rules deleted", Toast.LENGTH_SHORT).show();

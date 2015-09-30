@@ -18,6 +18,7 @@ import de.uni_kl.informatik.disco.discowall.firewall.rules.serialization.Firewal
 import de.uni_kl.informatik.disco.discowall.firewall.rules.serialization.FirewallRulesExporter;
 import de.uni_kl.informatik.disco.discowall.firewall.rules.serialization.FirewallRulesImporter;
 import de.uni_kl.informatik.disco.discowall.firewall.util.FirewallRuledApp;
+import de.uni_kl.informatik.disco.discowall.netfilter.bridge.NetfilterBridgeIptablesHandler;
 import de.uni_kl.informatik.disco.discowall.netfilter.bridge.NetfilterFirewallRulesHandler;
 import de.uni_kl.informatik.disco.discowall.netfilter.iptables.IptablesControl;
 import de.uni_kl.informatik.disco.discowall.packages.Connections;
@@ -109,21 +110,30 @@ public class SubsystemRulesManager extends FirewallSubsystem{
         }
     }
 
-    public void deleteUserRules(AppUidGroup appUidGroup) {
-        for (FirewallRules.IFirewallRule rule : rulesManager.getRules(appUidGroup.getUid()))
-            deleteRuleFromIptables(rule);
+    public void deleteUserRules(AppUidGroup appUidGroup, boolean deleteFromIptables) {
+        if (deleteFromIptables) {
+            for (FirewallRules.IFirewallRule rule : rulesManager.getRules(appUidGroup.getUid()))
+                deleteRuleFromIptables(rule);
+        }
 
         rulesManager.deleteUserRules(appUidGroup.getUid());
     }
 
-    public void deleteRule(FirewallRules.IFirewallRule rule) {
-        deleteRuleFromIptables(rule);
+    public void deleteRule(FirewallRules.IFirewallRule rule, boolean deleteFromIptables) {
+        if (deleteFromIptables)
+            deleteRuleFromIptables(rule);
+
         rulesManager.deleteRule(rule);
     }
 
-    public void deleteAllRules() {
-        for (FirewallRules.IFirewallRule rule : rulesManager.getRules())
-            deleteRuleFromIptables(rule);
+    public void deleteAllRules(boolean deleteFromIptables) {
+        if (deleteFromIptables) {
+            try {
+                NetfilterFirewallRulesHandler.instance.deleteAllRules();
+            } catch (Exception e) {
+                Log.e(LOG_TAG, e.getMessage(), e);
+            }
+        }
 
         rulesManager.deleteAllRules();
     }

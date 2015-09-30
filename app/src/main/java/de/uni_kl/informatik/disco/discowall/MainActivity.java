@@ -191,7 +191,7 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         Log.d(LOG_TAG, "Deleting all rules...");
-                        firewall.subsystem.rulesManager.deleteAllRules();
+                        firewall.subsystem.rulesManager.deleteAllRules(true);
                         Log.d(LOG_TAG, "rules deleted.");
 
                         // reload activity, so that the empty list is shown:

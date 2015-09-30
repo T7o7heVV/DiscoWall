@@ -178,7 +178,7 @@ public class NetfilterBridgeIptablesHandler {
         {
             // interface 3G
             for(String interfaceDevice : DEVICES_3G)
-                IptablesControl.ruleAdd(CHAIN_FIREWALL_ACTION_REDIRECT, "-o " + interfaceDevice + " -j " + CHAIN_FIREWALL_INTERFACE_WIFI, TABLE_NAT); // for outgoing packets
+                IptablesControl.ruleAdd(CHAIN_FIREWALL_ACTION_REDIRECT, "-o " + interfaceDevice + " -j " + CHAIN_FIREWALL_INTERFACE_3G, TABLE_NAT); // for outgoing packets
 
             // interface WIFI
             for(String interfaceDevice : DEVICES_WIFI)

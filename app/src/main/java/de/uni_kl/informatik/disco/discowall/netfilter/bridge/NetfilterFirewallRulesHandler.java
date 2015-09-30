@@ -319,4 +319,15 @@ public class NetfilterFirewallRulesHandler implements FirewallIptableRulesHandle
 
         return text;
     }
+
+    @Override
+    public void deleteAllRules() throws ShellExecuteExceptions.ShellExecuteException {
+        // Policy Rules:
+        IptablesControl.rulesDeleteAll(NetfilterBridgeIptablesHandler.CHAIN_FIREWALL_INTERFACE_3G);
+        IptablesControl.rulesDeleteAll(NetfilterBridgeIptablesHandler.CHAIN_FIREWALL_INTERFACE_WIFI);
+
+        // Redirection Rules:
+        IptablesControl.rulesDeleteAll(NetfilterBridgeIptablesHandler.CHAIN_FIREWALL_INTERFACE_3G, NetfilterBridgeIptablesHandler.TABLE_NAT);
+        IptablesControl.rulesDeleteAll(NetfilterBridgeIptablesHandler.CHAIN_FIREWALL_INTERFACE_WIFI, NetfilterBridgeIptablesHandler.TABLE_NAT);
+    }
 }

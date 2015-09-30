@@ -9,6 +9,11 @@ import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecuteExceptions;
 public interface FirewallIptableRulesHandler {
     String getFirewallRulesText() throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.NonZeroReturnValueException;
 
+    /**
+     * Deletes all REDIRECTIO and POLICY rules from iptables.
+     */
+    void deleteAllRules() throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.NonZeroReturnValueException, ShellExecuteExceptions.ShellExecuteException;
+
     enum PackageHandlingMode { ACCEPT_PACKAGE, REJECT_PACKAGE, INTERACTIVE }
 
     void setDefaultPackageHandlingMode(PackageHandlingMode mode) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException;
