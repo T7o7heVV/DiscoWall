@@ -230,10 +230,10 @@ public class NetfilterFirewallRulesHandler implements FirewallIptableRulesHandle
         }
     }
 
-    private String[] getFirewallForwardingRulesForUser(int uid) {
+    private String[] getFirewallForwardingRulesForUser(int uid, String chaintToForwardTo) {
         return new String[]{
                 "-m owner --uid-owner " + uid + " -j MARK --set-mark " + (uid + NetfilterBridgeIptablesHandler.PACKAGE_UID_MARK_OFFSET), // rule which encodes the user-id as package-mark
-                "-m owner --uid-owner " + uid + " -j " + NetfilterBridgeIptablesHandler.CHAIN_FIREWALL_MAIN // rule which forwards package to firewall main-chain
+                "-m owner --uid-owner " + uid + " -j " + chaintToForwardTo // rule which forwards package to next chain
         };
     }
 
@@ -241,7 +241,7 @@ public class NetfilterFirewallRulesHandler implements FirewallIptableRulesHandle
         int forwardedCount = 0;
         int notForwardedCount = 0;
 
-        for (String rule : getFirewallForwardingRulesForUser(uid)) {
+        for (String rule : getFirewallForwardingRulesForUser(uid, NetfilterBridgeIptablesHandler.CHAIN_FIREWALL_MAIN)) {
             if (IptablesControl.ruleExists(NetfilterBridgeIptablesHandler.CHAIN_FIREWALL_MAIN_PREFILTER, rule))
                 forwardedCount++;
             else
@@ -260,14 +260,24 @@ public class NetfilterFirewallRulesHandler implements FirewallIptableRulesHandle
 
     public void setUserPackagesForwardToFirewall(int uid, boolean forward) throws ShellExecuteExceptions.CallException, ShellExecuteExceptions.ReturnValueException {
         if (forward) {
-            for (String rule : getFirewallForwardingRulesForUser(uid))
+            // Policy Rules:
+            for (String rule : getFirewallForwardingRulesForUser(uid, NetfilterBridgeIptablesHandler.CHAIN_FIREWALL_MAIN))
                 IptablesControl.ruleAddIfMissing(NetfilterBridgeIptablesHandler.CHAIN_FIREWALL_MAIN_PREFILTER, rule);
+
+            // Redirection Rules:
+            for (String rule : getFirewallForwardingRulesForUser(uid, NetfilterBridgeIptablesHandler.CHAIN_FIREWALL_REDIRECT))
+                IptablesControl.ruleAddIfMissing(NetfilterBridgeIptablesHandler.CHAIN_FIREWALL_REDIRECT_PREFILTER, rule, NetfilterBridgeIptablesHandler.TABLE_NAT);
 
 //        IptablesControl.ruleAddIfMissing(CHAIN_FIREWALL_MAIN_PREFILTER, "-m owner --uid-owner "+uid+" -j MARK --set-mark" + uid);
 //        IptablesControl.ruleAddIfMissing(CHAIN_FIREWALL_MAIN_PREFILTER, "-m owner --uid-owner "+uid+" -j " + CHAIN_FIREWALL_MAIN);
         } else {
-            for (String rule : getFirewallForwardingRulesForUser(uid))
+            // Policy Rules:
+            for (String rule : getFirewallForwardingRulesForUser(uid, NetfilterBridgeIptablesHandler.CHAIN_FIREWALL_MAIN))
                 IptablesControl.ruleDeleteIgnoreIfMissing(NetfilterBridgeIptablesHandler.CHAIN_FIREWALL_MAIN_PREFILTER, rule);
+
+            // Redirection Rules:
+            for (String rule : getFirewallForwardingRulesForUser(uid, NetfilterBridgeIptablesHandler.CHAIN_FIREWALL_REDIRECT))
+                IptablesControl.ruleDeleteIgnoreIfMissing(NetfilterBridgeIptablesHandler.CHAIN_FIREWALL_REDIRECT_PREFILTER, rule, NetfilterBridgeIptablesHandler.TABLE_NAT);
         }
     }
 

@@ -189,7 +189,7 @@ public class ShellExecute {
                         }
 
                         if (result.isEmpty())
-                            Log.v(LOG_TAG, "string output of command '" + shellExecuteResult.commandsAsString + ": <command had no output>");
+                            Log.v(LOG_TAG, "string output of command '" + shellExecuteResult.commandsAsString + "': <command had no output>");
                         else
                             Log.v(LOG_TAG, "string output of command '" + shellExecuteResult.commandsAsString + "':\n" + result);
 

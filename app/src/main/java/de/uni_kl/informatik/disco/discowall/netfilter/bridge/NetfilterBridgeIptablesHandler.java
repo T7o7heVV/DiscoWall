@@ -8,11 +8,11 @@ import de.uni_kl.informatik.disco.discowall.utils.shell.ShellExecuteExceptions;
 
 /**
  * IPTABLES Documentation for flags:
-    --tcp-flags
-        Gefolgt von einem optionalen '!', dann zwei Zeichenketten von Flags, erlaubt Dir, nach speziellen TCP-Flags zu filtern. Die erste Zeichenkette von Flags ist die Maske: eine Liste von Flags, die Du untersuchen willst. Die zweite Zeichenkette besagt, welche Flags gesetzt sein sollen. Zum Beispiel:
-
-        # iptables -A INPUT --protocol tcp --tcp-flags ALL SYN,ACK -j DENY
-        Dies besagt, dass alle Flags untersucht werden sollen ('ALL' ist synonym mit 'SYN, ACK, FIN, RST, URG, PSH'), dass aber nur SYN und ACK gesetzt sein sollen. Es gibt auch ein Argument 'NONE', was 'Keine Flags' bedeutet.
+ * --tcp-flags
+ * Gefolgt von einem optionalen '!', dann zwei Zeichenketten von Flags, erlaubt Dir, nach speziellen TCP-Flags zu filtern. Die erste Zeichenkette von Flags ist die Maske: eine Liste von Flags, die Du untersuchen willst. Die zweite Zeichenkette besagt, welche Flags gesetzt sein sollen. Zum Beispiel:
+ * <p/>
+ * # iptables -A INPUT --protocol tcp --tcp-flags ALL SYN,ACK -j DENY
+ * Dies besagt, dass alle Flags untersucht werden sollen ('ALL' ist synonym mit 'SYN, ACK, FIN, RST, URG, PSH'), dass aber nur SYN und ACK gesetzt sein sollen. Es gibt auch ein Argument 'NONE', was 'Keine Flags' bedeutet.
  */
 
 public class NetfilterBridgeIptablesHandler {
@@ -27,13 +27,15 @@ public class NetfilterBridgeIptablesHandler {
     static final String CHAIN_FIREWALL_ACTION_ACCEPT = "discowall-action-accept";
     static final String CHAIN_FIREWALL_ACTION_REJECT = "discowall-action-reject";
     static final String CHAIN_FIREWALL_ACTION_INTERACTIVE = "discowall-interactive";
-    static final String CHAIN_FIREWALL_ACTION_REDIRECT = "discowall-redirect"; // IMPORTANT: this chain is table "nat" (i.e. "-t nat")
 
+    // IMPORTANT: following chains are in table "nat" (i.e. "-t nat")
     static final String TABLE_NAT = "nat";
+    static final String CHAIN_FIREWALL_REDIRECT_PREFILTER = "discowall-prefilter";
+    static final String CHAIN_FIREWALL_REDIRECT = "discowall-redirect";
 
     // rules
     static final String RULE_TCP_JUMP_TO_FIREWALL_PREFILTER_CHAIN = "-p tcp -j " + CHAIN_FIREWALL_MAIN_PREFILTER;
-//    static final String[] RULE_TCP_JUMP_TO_FIREWALL_PREFILTER_CHAIN = new String[] {
+    //    static final String[] RULE_TCP_JUMP_TO_FIREWALL_PREFILTER_CHAIN = new String[] {
 //            // "--tcp-flags Flag1,Flag2,...,FlagN <FlagX_only>" --- "--tcp-flags ALL SYN" will filter all flags and only accept if ONLY SYN is set. ==> Only the connection-esablishment is being filtered.
 ////            "-p tcp --tcp-flags SYN,RST SYN -j " + CHAIN_FIREWALL_MAIN_PREFILTER, // within SYN,RST,FIN has only(!) SYN
 //            "-p tcp --tcp-flags SYN,RST,FIN SYN -j " + CHAIN_FIREWALL_MAIN_PREFILTER, // within SYN,RST,FIN has only(!) SYN
@@ -44,7 +46,7 @@ public class NetfilterBridgeIptablesHandler {
     static final String RULE_JUMP_TO_FIREWALL_ACCEPTED = "-j " + CHAIN_FIREWALL_ACTION_ACCEPT;
     static final String RULE_JUMP_TO_FIREWALL_INTERACTIVE = "-j " + CHAIN_FIREWALL_ACTION_INTERACTIVE;
     static final String RULE_JUMP_TO_FIREWALL_REJECTED = "-j " + CHAIN_FIREWALL_ACTION_REJECT;
-    static final String RULE_JUMP_TO_FIREWALL_REDIRECTION = "-j " + NetfilterBridgeIptablesHandler.CHAIN_FIREWALL_ACTION_REDIRECT;
+    static final String RULE_JUMP_TO_FIREWALL_REDIRECTION_PREFILTER = "-j " + CHAIN_FIREWALL_REDIRECT_PREFILTER;
 
     // Ignoring traffic from and to loopback device (everything from/to loopback, has been sent from/to loopback)
     static final String RULE_IGNORE_TRAFFIC_FROM_LOOPBACK = "-o lo -j ACCEPT";
@@ -54,8 +56,8 @@ public class NetfilterBridgeIptablesHandler {
 //    private final String RULE_BRIDGE_COM_EXCEPTION_CLIENT;
 
     // interfaces
-    private static final String[] DEVICES_3G = { "rmnet+", "pdp+", "ppp+", "uwbr+", "wimax+", "vsnet+", "ccmni+", "usb+" };
-    private static final String[] DEVICES_WIFI = { "tiwlan+", "wlan+", "eth+", "ra+" };
+    private static final String[] DEVICES_3G = {"rmnet+", "pdp+", "ppp+", "uwbr+", "wimax+", "vsnet+", "ccmni+", "usb+"};
+    private static final String[] DEVICES_WIFI = {"tiwlan+", "wlan+", "eth+", "ra+"};
 
     /**
      * The number which is being added to the mark in order to encode the user-id of the process which created the package.
@@ -74,10 +76,11 @@ public class NetfilterBridgeIptablesHandler {
 
     /**
      * Adds the rules required for bridge-android communication.
-     * <p>
+     * <p/>
      * This includes:
      * <li>The <b>iptables-exception</b> rule for NOT BLOCKING the bridge-communication with the android app via tcp </li>
      * <li>The <b>NFQUEUE</b> rule for fetching any package and sending it to the bridge</li>
+     *
      * @throws ShellExecuteExceptions.CallException
      * @throws ShellExecuteExceptions.NonZeroReturnValueException
      */
@@ -99,7 +102,9 @@ public class NetfilterBridgeIptablesHandler {
         IptablesControl.chainAdd(CHAIN_FIREWALL_ACTION_REJECT);
         IptablesControl.chainAdd(CHAIN_FIREWALL_ACTION_INTERACTIVE);
 
-        IptablesControl.chainAdd(CHAIN_FIREWALL_ACTION_REDIRECT, TABLE_NAT);
+        // redicretion chains:
+        IptablesControl.chainAdd(CHAIN_FIREWALL_REDIRECT_PREFILTER, TABLE_NAT);
+        IptablesControl.chainAdd(CHAIN_FIREWALL_REDIRECT, TABLE_NAT);
         IptablesControl.chainAdd(CHAIN_FIREWALL_INTERFACE_3G, TABLE_NAT);
         IptablesControl.chainAdd(CHAIN_FIREWALL_INTERFACE_WIFI, TABLE_NAT);
 
@@ -134,16 +139,16 @@ public class NetfilterBridgeIptablesHandler {
             // rule: forward to according interface
             {
                 // interface 3G
-                for(String interfaceDevice : DEVICES_3G)
+                for (String interfaceDevice : DEVICES_3G)
                     IptablesControl.ruleAdd(CHAIN_FIREWALL_MAIN, "-i " + interfaceDevice + " -j " + CHAIN_FIREWALL_INTERFACE_3G); // for incomming packets
-                for(String interfaceDevice : DEVICES_3G)
+                for (String interfaceDevice : DEVICES_3G)
                     IptablesControl.ruleAdd(CHAIN_FIREWALL_MAIN, "-o " + interfaceDevice + " -j " + CHAIN_FIREWALL_INTERFACE_3G); // for outgoing packets
 
                 // interface WIFI
-                for(String interfaceDevice : DEVICES_WIFI)
-                    IptablesControl.ruleAdd(CHAIN_FIREWALL_MAIN, "-i "+interfaceDevice+" -j " + CHAIN_FIREWALL_INTERFACE_WIFI);  // for incomming packets
-                for(String interfaceDevice : DEVICES_WIFI)
-                    IptablesControl.ruleAdd(CHAIN_FIREWALL_MAIN, "-o "+interfaceDevice+" -j " + CHAIN_FIREWALL_INTERFACE_WIFI);  // for outgoing packets
+                for (String interfaceDevice : DEVICES_WIFI)
+                    IptablesControl.ruleAdd(CHAIN_FIREWALL_MAIN, "-i " + interfaceDevice + " -j " + CHAIN_FIREWALL_INTERFACE_WIFI);  // for incomming packets
+                for (String interfaceDevice : DEVICES_WIFI)
+                    IptablesControl.ruleAdd(CHAIN_FIREWALL_MAIN, "-o " + interfaceDevice + " -j " + CHAIN_FIREWALL_INTERFACE_WIFI);  // for outgoing packets
             }
 
             // Default-Action on the end of the MAIN chain will be set according to the wishes of the user
@@ -177,15 +182,15 @@ public class NetfilterBridgeIptablesHandler {
         // chain REDIRECT, table NAT:
         {
             // interface 3G
-            for(String interfaceDevice : DEVICES_3G)
-                IptablesControl.ruleAdd(CHAIN_FIREWALL_ACTION_REDIRECT, "-o " + interfaceDevice + " -j " + CHAIN_FIREWALL_INTERFACE_3G, TABLE_NAT); // for outgoing packets
+            for (String interfaceDevice : DEVICES_3G)
+                IptablesControl.ruleAdd(CHAIN_FIREWALL_REDIRECT, "-o " + interfaceDevice + " -j " + CHAIN_FIREWALL_INTERFACE_3G, TABLE_NAT); // for outgoing packets
 
             // interface WIFI
-            for(String interfaceDevice : DEVICES_WIFI)
-                IptablesControl.ruleAdd(CHAIN_FIREWALL_ACTION_REDIRECT, "-o "+interfaceDevice+" -j " + CHAIN_FIREWALL_INTERFACE_WIFI, TABLE_NAT);  // for outgoing packets
+            for (String interfaceDevice : DEVICES_WIFI)
+                IptablesControl.ruleAdd(CHAIN_FIREWALL_REDIRECT, "-o " + interfaceDevice + " -j " + CHAIN_FIREWALL_INTERFACE_WIFI, TABLE_NAT);  // for outgoing packets
 
 
-            IptablesControl.ruleAdd(IptableConstants.Chains.OUTPUT, RULE_JUMP_TO_FIREWALL_REDIRECTION, TABLE_NAT);
+            IptablesControl.ruleAdd(IptableConstants.Chains.OUTPUT, RULE_JUMP_TO_FIREWALL_REDIRECTION_PREFILTER, TABLE_NAT);
         }
 
 
@@ -212,17 +217,21 @@ public class NetfilterBridgeIptablesHandler {
         *  + REJECT = CHAIN_FIREWALL_ACTION_REJECT
         *  + INTERACTIVE = CHAIN_FIREWALL_ACTION_INTERACTIVE
         *  + REDIRECT = CHAIN_FIREWALL_ACTION_REDIRECT
+        *  + REDIRECT_PREFILTER = CHAIN_FIREWALL_REDIRECTION_PREFILTER
         *
         *  Dependencies are as follows:
+        *  [ table 'mangle' ]
         *  + INPUT -> PREFILTER
         *  + OUTPUT -> PREFILTER
         *  + PREFILTER -> MAIN
         *  + MAIN -> 3G, WIFI, ACCEPT, REJECT, INTERACTIVE
         *  + INTERACTIVE -> NFQUEUE
-        *  + [table 'nat']
-        *    + OUTPUT -> REDIRECT
-        *    + REDIRECT -> 3G [in 'nat' table]
-        *    + REDIRECT -> WIFI [in 'nat' table]
+        *
+        *  [table 'nat']
+        *  + OUTPUT -> REDIRECT-PREFILTER
+        *  + REDIRECT-PREFILTER -> REDIRECT
+        *  + REDIRECT -> 3G [in 'nat' table]
+        *  + REDIRECT -> WIFI [in 'nat' table]
         *
         *  The rules have to be deleted from the leafs up to the root of the dependency-tree.
         *  ==> Start with INPUT/OUTPUT chain, then MAIN, then 3G & WIFI, then ACCEPTED & REJECTED
@@ -263,13 +272,14 @@ public class NetfilterBridgeIptablesHandler {
         safelyRemoveChain(CHAIN_FIREWALL_ACTION_INTERACTIVE);
 
         // Removing REDIRECT chain:
-        if (IptablesControl.chainExists(CHAIN_FIREWALL_ACTION_REDIRECT, TABLE_NAT)) {
-            IptablesControl.ruleDeleteIgnoreIfMissing(IptableConstants.Chains.OUTPUT, RULE_JUMP_TO_FIREWALL_REDIRECTION, TABLE_NAT); // remove jump to Discowall chain "REDIRECT" from chain "OUTPUT" in table "NAT"
-            safelyRemoveChain(CHAIN_FIREWALL_ACTION_REDIRECT, TABLE_NAT); // remove Discowall chain "REDIRECT" from table "NAT"
+        if (IptablesControl.chainExists(CHAIN_FIREWALL_REDIRECT_PREFILTER, TABLE_NAT)) {
+            IptablesControl.ruleDeleteIgnoreIfMissing(IptableConstants.Chains.OUTPUT, RULE_JUMP_TO_FIREWALL_REDIRECTION_PREFILTER, TABLE_NAT); // remove jump to Discowall chain "REDIRECT" from chain "OUTPUT" in table "NAT"
+
+            safelyRemoveChain(CHAIN_FIREWALL_REDIRECT_PREFILTER, TABLE_NAT); // remove Discowall chain "REDIRECT-PREFILTER" from table "NAT"
+            safelyRemoveChain(CHAIN_FIREWALL_REDIRECT, TABLE_NAT); // remove Discowall chain "REDIRECT" from table "NAT"
             safelyRemoveChain(CHAIN_FIREWALL_INTERFACE_3G, TABLE_NAT); // remove Discowall chain "3G" from table "NAT"
             safelyRemoveChain(CHAIN_FIREWALL_INTERFACE_WIFI, TABLE_NAT); // remove Discowall chain "WIFI" from table "NAT"
         }
-
 
         if (logChainStatesBeforeAndAfter)
             Log.v(LOG_TAG, "iptable chains AFTER removing rules:\n" + IptablesControl.getRuleInfoText(true, true));
