@@ -47,7 +47,7 @@
 
     <string name="action_rules_export">Export Rules</string>
     <string name="action_rules_import">Import Rules</string>
-    <string name="action_rules_delete_all">Delete Rules</string>
+    <string name="action_rules_delete_all">Delete All Rules</string>
     <string name="action_rules_export_all">Export All Rules</string>
     <string name="action_rules_import_all">Import All Rules</string>
 
