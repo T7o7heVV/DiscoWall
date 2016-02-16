@@ -33,6 +33,15 @@ public class DiscoWallSettings {
         return getSettingBool(context, R.string.preference_id__service_autostart, true);
     }
 
+    /**
+     * When disabled the user is only asked once for any connection - even when the ports change.
+     * @param context
+     * @return
+     */
+    public boolean isInteractiveTemporaryRulesDistinguishByPorts(Context context) {
+        return getSettingBool(context, R.string.preference_id__interactive_rules_distinguish_temporary_rules_by_port, true);
+    }
+
     public boolean isFirewallEnabled(Context context) {
         return getSettingBool(context, R.string.preference_id__firewall_enabled, false);
     }

@@ -1,5 +1,6 @@
 package de.uni_kl.informatik.disco.discowall.firewall.packageFilter;
 
+import android.content.Context;
 import android.util.Log;
 
 import java.util.HashMap;
@@ -7,6 +8,7 @@ import java.util.LinkedList;
 
 import de.uni_kl.informatik.disco.discowall.netfilter.bridge.NetfilterBridgeCommunicator;
 import de.uni_kl.informatik.disco.discowall.packages.Connections;
+import de.uni_kl.informatik.disco.discowall.utils.ressources.DiscoWallSettings;
 
 class PendingConnectionsManager {
     private static final String LOG_TAG = PendingConnectionsManager.class.getSimpleName();
@@ -52,6 +54,11 @@ class PendingConnectionsManager {
 
     private final LinkedList<PendingConnection> pendingConnectionsStack = new LinkedList<>();
     private final HashMap<Connections.Connection, Boolean> connectionToInteractiveTempActionMap = new HashMap<>();
+    private final Context context;
+
+    PendingConnectionsManager(Context context) {
+        this.context = context;
+    }
 
     /**
      * Removes latest pending connection (if any) and returns the removed instance.
@@ -86,18 +93,23 @@ class PendingConnectionsManager {
     }
 
     public boolean hasPending() {
-        return pendingConnectionsStack.size() > 0;
+        return !pendingConnectionsStack.isEmpty();
     }
 
     public boolean isPending(Connections.Connection connection) {
         return getPendingConnection(connection) != null;
     }
 
+    private String getConnectionID(Connections.IConnection connection) {
+        boolean includePortInfo = DiscoWallSettings.getInstance().isInteractiveTemporaryRulesDistinguishByPorts(context);
+        return Connections.Connection.getID(connection, includePortInfo);
+    }
+
     public PendingConnection getPendingConnection(Connections.IConnection connection) {
-        final String searchedID = Connections.Connection.getID(connection);
+        final String searchedID = getConnectionID(connection);
 
         for(PendingConnection pendingConnection : new LinkedList<>(pendingConnectionsStack)) { // copy list to secure it against modification during iteration
-            String currentID = pendingConnection.connection.getID();
+            String currentID = getConnectionID(pendingConnection.connection);
 
             if (currentID.equals(searchedID))
                 return pendingConnection;

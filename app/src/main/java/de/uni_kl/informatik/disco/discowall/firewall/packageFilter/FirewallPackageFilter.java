@@ -32,8 +32,8 @@ public class FirewallPackageFilter implements SubsystemPendingPackagesManager {
     private final DecisionNotificationHelper decisionNotificationHelper;
     private final Context context;
 
-    private final PendingConnectionsManager pendingConnectionsManager = new PendingConnectionsManager();
-    private final TemporaryConnectionRulesManager tempRulesManager = new TemporaryConnectionRulesManager();
+    private final PendingConnectionsManager pendingConnectionsManager;
+    private final TemporaryConnectionRulesManager tempRulesManager;
 
     public FirewallPackageFilter(Context context, FirewallPolicyManager policyManager, FirewallRulesManager rulesManager, WatchedAppsManager watchedAppsManager) {
         this.context = context;
@@ -41,6 +41,8 @@ public class FirewallPackageFilter implements SubsystemPendingPackagesManager {
         this.rulesManager = rulesManager;
         this.watchedAppsManager = watchedAppsManager;
 
+        this.pendingConnectionsManager = new PendingConnectionsManager(context);
+        this.tempRulesManager = new TemporaryConnectionRulesManager(context);
         this.decisionNotificationHelper = new DecisionNotificationHelper(context, this, pendingConnectionsManager);
     }
 

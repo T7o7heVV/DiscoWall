@@ -1,56 +1,68 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
     <SwitchPreference
-        android:title="Firewall-Service Autostart"
+        android:title="Autostart DiscoWall"
         android:key="@string/preference_id__service_autostart"
         android:summary="@string/preference_summary__service_autostart"
         android:defaultValue="true">
     </SwitchPreference>
 
-    <EditTextPreference
-        android:title="Nfqueue-Bridge: Communication Port"
-        android:key="@string/preference_id__nfqueue_bridge_port"
-        android:summary="@string/preference_summary__nfqueue_bridge_port"
-        android:defaultValue="1337"
-        android:inputType="number">
-    </EditTextPreference>
+    <PreferenceScreen android:title="Netfilter-Bridge" android:persistent="false">
+        <SwitchPreference
+            android:title="Autostart Netfilter-Bridge"
+            android:key="@string/preference_id__nfqueue_bridge_start_automatically"
+            android:summary="@string/preference_summary__nfqueue_bridge_start_automatically"
+            android:defaultValue="true">
+        </SwitchPreference>
+        <EditTextPreference
+            android:title="Netfilter-Bridge communication port"
+            android:key="@string/preference_id__nfqueue_bridge_port"
+            android:summary="@string/preference_summary__nfqueue_bridge_port"
+            android:defaultValue="1337"
+            android:inputType="number">
+        </EditTextPreference>
+    </PreferenceScreen>
 
-    <SwitchPreference
-        android:title="Nfqueue-Bridge: start automatically"
-        android:key="@string/preference_id__nfqueue_bridge_start_automatically"
-        android:summary="@string/preference_summary__nfqueue_bridge_start_automatically"
-        android:defaultValue="true">
-    </SwitchPreference>
+    <PreferenceScreen android:title="Interactive Rules" android:persistent="false">
+        <PreferenceCategory android:title="Unknown Connections">
+            <SwitchPreference
+                android:title="Accept by default"
+                android:key="@string/preference_id__firewall_connection_decision_default_action"
+                android:summary="@string/preference_summary__firewall_connection_decision_default_action"
+                android:defaultValue="true">
+            </SwitchPreference>
+            <SwitchPreference
+                android:title="Differentiate connections by host and ports"
+                android:key="@string/preference_id__interactive_rules_distinguish_temporary_rules_by_port"
+                android:summary="@string/preference_summary__interactive_rules_distinguish_temporary_rules_by_port"
+                android:defaultValue="true">
+            </SwitchPreference>
+            <EditTextPreference
+                android:title="Timeout in seconds"
+                android:key="@string/preference_id__firewall_connection_decision_timeoutMS"
+                android:summary="@string/preference_summary__firewall_connection_decision_timeout_seconds"
+                android:defaultValue="3"
+                android:inputType="number">
+            </EditTextPreference>
+            <SwitchPreference
+                android:title="Expand statusbar for easy interaction"
+                android:key="@string/preference_id__firewall_connection_decision_expand_statusbar"
+                android:summary="@string/preference_summary__firewall_connection_decision_expand_statusbar"
+                android:defaultValue="true">
+            </SwitchPreference>
+        </PreferenceCategory>
 
-    <EditTextPreference
-        android:title="Interactive Rules: Connection Decision: timeout seconds"
-        android:key="@string/preference_id__firewall_connection_decision_timeoutMS"
-        android:summary="@string/preference_summary__firewall_connection_decision_timeout_seconds"
-        android:defaultValue="3"
-        android:inputType="number">
-    </EditTextPreference>
+        <PreferenceCategory android:title="Advanced">
+            <SwitchPreference
+                android:title="Write rules to iptables"
+                android:key="@string/preference_id__interactive_rules_write_to_iptables"
+                android:summary="@string/preference_summary__interactive_rules_write_to_iptables"
+                android:defaultValue="true">
+            </SwitchPreference>
+        </PreferenceCategory>
 
-    <SwitchPreference
-        android:title="Interactive Rules: Connection Decision: default accept"
-        android:key="@string/preference_id__firewall_connection_decision_default_action"
-        android:summary="@string/preference_summary__firewall_connection_decision_default_action"
-        android:defaultValue="true">
-    </SwitchPreference>
-
-    <SwitchPreference
-        android:title="Interactive Rules: Connection Decision: expand statusbar"
-        android:key="@string/preference_id__firewall_connection_decision_expand_statusbar"
-        android:summary="@string/preference_summary__firewall_connection_decision_expand_statusbar"
-        android:defaultValue="true">
-    </SwitchPreference>
-
-    <SwitchPreference
-        android:title="Interactive Rules: write to iptables"
-        android:key="@string/preference_id__interactive_rules_write_to_iptables"
-        android:summary="@string/preference_summary__interactive_rules_write_to_iptables"
-        android:defaultValue="true">
-    </SwitchPreference>
-
+    </PreferenceScreen>
 
     <!--
 

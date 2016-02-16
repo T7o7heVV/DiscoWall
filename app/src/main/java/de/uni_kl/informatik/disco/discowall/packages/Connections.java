@@ -76,17 +76,32 @@ public class Connections {
             return totalLength;
         }
 
+        public String getID(boolean includePortInfo) {
+            return getID(this, includePortInfo);
+        }
+
         public String getID() {
-            return getID(this);
+            return getID(this, true);
+        }
+
+        public static String getID(IConnection connection) {
+            return getID(connection, true);
         }
 
         /**
          * The connection ID is a ordered string of source->destination.
          * @return
          */
-        public static String getID(IConnection connection) {
-            String sourceID = connection.getSource().toString();
-            String destinationID = connection.getDestination().toString();
+        public static String getID(IConnection connection, boolean includePortInfo) {
+            String sourceID, destinationID;
+
+            if (includePortInfo) {
+                sourceID = connection.getSource().toString();
+                destinationID = connection.getDestination().toString();
+            } else {
+                sourceID = connection.getSource().getIp();
+                destinationID = connection.getDestination().getIp();
+            }
 
             if (sourceID.compareTo(destinationID) < 0)
                 return sourceID + "<->" + destinationID;
